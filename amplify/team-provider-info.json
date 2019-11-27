@@ -1,0 +1,50 @@
+{
+    "nts": {
+        "awscloudformation": {
+            "AuthRoleName": "ntspim-nts-20190809102016-authRole",
+            "UnauthRoleArn": "arn:aws:iam::369726659016:role/ntspim-nts-20190809102016-unauthRole",
+            "AuthRoleArn": "arn:aws:iam::369726659016:role/ntspim-nts-20190809102016-authRole",
+            "Region": "us-east-2",
+            "DeploymentBucketName": "ntspim-nts-20190809102016-deployment",
+            "UnauthRoleName": "ntspim-nts-20190809102016-unauthRole",
+            "StackName": "ntspim-nts-20190809102016",
+            "StackId": "arn:aws:cloudformation:us-east-2:369726659016:stack/ntspim-nts-20190809102016/934de180-bac1-11e9-b98c-02c65bf75a14"
+        }
+    },
+    "ntsnew": {
+        "awscloudformation": {
+            "AuthRoleName": "ntspim-ntsnew-20190826160013-authRole",
+            "UnauthRoleArn": "arn:aws:iam::110426898045:role/ntspim-ntsnew-20190826160013-unauthRole",
+            "AuthRoleArn": "arn:aws:iam::110426898045:role/ntspim-ntsnew-20190826160013-authRole",
+            "Region": "us-east-2",
+            "DeploymentBucketName": "ntspim-ntsnew-20190826160013-deployment",
+            "UnauthRoleName": "ntspim-ntsnew-20190826160013-unauthRole",
+            "StackName": "ntspim-ntsnew-20190826160013",
+            "StackId": "arn:aws:cloudformation:us-east-2:110426898045:stack/ntspim-ntsnew-20190826160013/e1cb2f50-c84c-11e9-83fe-0a71b7d84638"
+        }
+    },
+    "new": {
+        "awscloudformation": {
+            "AuthRoleName": "ntspim-new-20190826160245-authRole",
+            "UnauthRoleArn": "arn:aws:iam::369726659016:role/ntspim-new-20190826160245-unauthRole",
+            "AuthRoleArn": "arn:aws:iam::369726659016:role/ntspim-new-20190826160245-authRole",
+            "Region": "us-east-2",
+            "DeploymentBucketName": "ntspim-new-20190826160245-deployment",
+            "UnauthRoleName": "ntspim-new-20190826160245-unauthRole",
+            "StackName": "ntspim-new-20190826160245",
+            "StackId": "arn:aws:cloudformation:us-east-2:369726659016:stack/ntspim-new-20190826160245/3c710e70-c84d-11e9-86bc-069bf518e2a4"
+        }
+    },
+    "enviro": {
+        "awscloudformation": {
+            "AuthRoleName": "ntspim-enviro-20190826160516-authRole",
+            "UnauthRoleArn": "arn:aws:iam::110426898045:role/ntspim-enviro-20190826160516-unauthRole",
+            "AuthRoleArn": "arn:aws:iam::110426898045:role/ntspim-enviro-20190826160516-authRole",
+            "Region": "us-east-2",
+            "DeploymentBucketName": "ntspim-enviro-20190826160516-deployment",
+            "UnauthRoleName": "ntspim-enviro-20190826160516-unauthRole",
+            "StackName": "ntspim-enviro-20190826160516",
+            "StackId": "arn:aws:cloudformation:us-east-2:110426898045:stack/ntspim-enviro-20190826160516/962ab8d0-c84d-11e9-b6a0-060ae44bf6ec"
+        }
+    }
+}

@@ -1,0 +1,188 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:app="http://schemas.android.com/apk/res-auto"
+        xmlns:tools="http://schemas.android.com/tools"
+        android:id="@+id/root_layout"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/screenBackgroundColor"
+        android:paddingLeft="16dp"
+        android:paddingRight="16dp">
+
+    <TextView
+            android:id="@+id/triptotalleaduptext"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentStart="true"
+            android:layout_alignParentTop="true"
+            android:layout_marginStart="76dp"
+            android:fontFamily="@font/source_sans_pro"
+            android:text="Tap for your e-receipt!"
+            android:textColor="#FFFFFF"
+            android:textSize="30sp"
+            app:layout_constraintStart_toEndOf="@+id/debit_credit_btn"
+            app:layout_constraintTop_toBottomOf="@+id/cash_textView" />
+
+    <ImageView
+            android:id="@+id/debit_credit_btn"
+            android:layout_width="250dp"
+            android:layout_height="175dp"
+            android:layout_alignParentStart="true"
+            android:layout_alignParentBottom="true"
+            android:layout_marginBottom="180dp"
+            android:background="@drawable/square_tip_btn"
+            android:fontFamily="@font/source_sans_pro"
+            android:text="Debit/Credit"
+            android:textColor="@color/whiteTextColor"
+            android:textSize="36sp"
+            android:visibility="visible"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@+id/button2" />
+
+    <ImageView
+            android:id="@+id/cash_btn"
+            android:layout_width="250dp"
+            android:layout_height="175dp"
+            android:layout_alignParentEnd="true"
+            android:layout_alignParentBottom="true"
+            android:layout_marginBottom="180dp"
+            android:background="@drawable/square_tip_btn"
+            android:fontFamily="@font/source_sans_pro"
+            android:text="Cash"
+            android:textColor="@color/whiteTextColor"
+            android:textSize="36sp"
+            android:visibility="visible"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toEndOf="@+id/button2" />
+
+    <TextView
+            android:id="@+id/how_to_pay_text_view"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentStart="true"
+            android:layout_alignParentEnd="true"
+            android:layout_alignParentBottom="true"
+            android:layout_marginTop="70dp"
+            android:fontFamily="@font/source_sans_pro_semibold"
+            android:text="How would you like to pay?"
+            android:textAlignment="center"
+            android:textColor="#FFFFFF"
+            android:textSize="44sp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.16"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+            android:id="@+id/trip_total_for_tip_text_view"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentStart="true"
+            android:layout_alignParentTop="true"
+            android:fontFamily="@font/source_sans_pro_semibold"
+            android:text="1.00"
+            android:textColor="@color/red"
+            android:textSize="36sp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.1"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/how_to_pay_text_view" />
+
+    <androidx.constraintlayout.widget.Guideline
+            android:id="@+id/guideline"
+
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            app:layout_constraintGuide_end="675dp" />
+
+    <ScrollView
+            android:id="@+id/pleaseWaitScrollView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@color/screenBackgroundColor"
+            android:visibility="gone"
+            tools:layout_editor_absoluteX="16dp">
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+                android:id="@+id/linearLayout7"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="vertical"
+                app:layout_constraintEnd_toStartOf="@+id/pleaseWait"
+                app:layout_constraintStart_toStartOf="@+id/pleaseWait">
+
+            <com.example.nts_pim.utilities.please_wait.PleaseWait
+                    android:id="@+id/pleaseWait"
+                    android:layout_width="992dp"
+                    android:layout_height="692dp"
+                    android:orientation="horizontal"
+                    android:visibility="visible"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent"
+                    tools:layout_conversion_absoluteHeight="1dp"
+                    tools:layout_conversion_absoluteWidth="1dp"
+                    tools:visibility="visible" />
+        </androidx.constraintlayout.widget.ConstraintLayout>
+    </ScrollView>
+
+    <ImageView
+            android:id="@+id/credit_card_imageView"
+            android:layout_width="120dp"
+            android:layout_height="120dp"
+            android:layout_marginBottom="47dp"
+            app:layout_constraintBottom_toBottomOf="@+id/debit_credit_btn"
+            app:layout_constraintEnd_toEndOf="@+id/debit_credit_btn"
+            app:layout_constraintStart_toStartOf="@+id/debit_credit_btn"
+            app:srcCompat="@drawable/ic_credit_card_icon" />
+
+    <ImageView
+            android:id="@+id/dollar_sign_imageView"
+            android:layout_width="130dp"
+            android:layout_height="130dp"
+            android:layout_marginBottom="44dp"
+            app:layout_constraintBottom_toTopOf="@+id/triptotalleaduptext"
+            app:layout_constraintEnd_toEndOf="@+id/cash_btn"
+            app:layout_constraintHorizontal_bias="0.528"
+            app:layout_constraintStart_toStartOf="@+id/cash_btn"
+            app:srcCompat="@drawable/ic_currency_icon" />
+
+    <TextView
+            android:id="@+id/credit_textView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="@font/source_sans_pro"
+            android:text="Credit"
+            android:textColor="@color/whiteTextColor"
+            android:textSize="50sp"
+            app:layout_constraintBottom_toBottomOf="@+id/debit_credit_btn"
+            app:layout_constraintEnd_toEndOf="@+id/debit_credit_btn"
+            app:layout_constraintStart_toStartOf="@+id/debit_credit_btn" />
+
+    <TextView
+            android:id="@+id/cash_textView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="@font/source_sans_pro"
+            android:text="Cash"
+            android:textColor="@color/whiteTextColor"
+            android:textSize="50sp"
+            app:layout_constraintBottom_toBottomOf="@+id/cash_btn"
+            app:layout_constraintEnd_toEndOf="@+id/cash_btn"
+            app:layout_constraintStart_toStartOf="@+id/cash_btn" />
+
+    <Button
+            android:id="@+id/button2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Button"
+            android:visibility="invisible"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>
+

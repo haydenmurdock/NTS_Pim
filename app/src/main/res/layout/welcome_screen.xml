@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:app="http://schemas.android.com/apk/res-auto"
+        xmlns:tools="http://schemas.android.com/tools"
+        android:id="@+id/linearLayout3"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/screenBackgroundColor">
+
+    <TextView
+            android:id="@+id/thank_you_text_view"
+            android:layout_width="758dp"
+            android:layout_height="162dp"
+            android:alpha="0.0"
+            android:fontFamily="@font/source_sans_pro"
+            android:gravity="center"
+            android:text="Thank you for choosing YellowCab Company of the gods and demons"
+            android:textAlignment="center"
+            android:textColor="#FFFFFF"
+            android:textSize="60sp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+            android:id="@+id/welcome_text_view"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="@font/source_sans_pro"
+            android:text="Welcome"
+            android:textColor="#FFFFFF"
+            android:textSize="60sp"
+            android:visibility="visible"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+    <Button
+            android:id="@+id/open_vehicle_settings_button"
+            android:layout_width="140dp"
+            android:layout_height="50dp"
+            android:layout_marginTop="16dp"
+            android:alpha="0.0"
+            android:background="@color/secondaryButtonBackgroundColor"
+            android:clickable="true"
+            android:text="Dismiss"
+            android:textColor="@color/secondaryButtonTextColor"
+            android:visibility="visible"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.98"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintVertical_bias="0.0" />
+
+    <ScrollView
+            android:id="@+id/password_scroll_view"
+            android:layout_width="395dp"
+            android:layout_height="250dp"
+            android:clickable="false"
+            android:visibility="invisible"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="1.0"
+            app:layout_constraintStart_toStartOf="parent">
+
+        <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="visible">
+
+            <EditText
+                    android:id="@+id/password_editText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:clickable="false"
+                    android:ems="10"
+                    android:hint="Password"
+                    android:inputType="textPersonName"
+                    android:textAlignment="center"
+                    android:textColor="#FFFFFF"
+                    android:textColorHint="#FFFFFF" />
+
+            <com.example.nts_pim.utilities.keyboards.PhoneKeyboard
+                    android:id="@+id/passwordPhoneKeyboard"
+                    android:layout_width="match_parent"
+                    android:layout_height="200dp"
+                    android:orientation="horizontal">
+
+            </com.example.nts_pim.utilities.keyboards.PhoneKeyboard>
+        </LinearLayout>
+    </ScrollView>
+
+    <ImageButton
+            android:id="@+id/welcome_screen_next_screen_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="32dp"
+            android:background="@null"
+            app:layout_constraintBottom_toTopOf="@+id/password_scroll_view"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/open_vehicle_settings_button"
+            app:layout_constraintVertical_bias="0.88"
+            app:srcCompat="@drawable/ic_arrow_point_to_right" />
+
+
+</androidx.constraintlayout.widget.ConstraintLayout>

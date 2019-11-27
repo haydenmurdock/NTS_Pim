@@ -1,0 +1,14 @@
+{
+    "nts": {
+        "awscloudformation": {
+            "AuthRoleName": "amplify-nts-20190826151535-authRole",
+            "UnauthRoleArn": "arn:aws:iam::110426898045:role/amplify-nts-20190826151535-unauthRole",
+            "AuthRoleArn": "arn:aws:iam::110426898045:role/amplify-nts-20190826151535-authRole",
+            "Region": "us-east-2",
+            "DeploymentBucketName": "amplify-nts-20190826151535-deployment",
+            "UnauthRoleName": "amplify-nts-20190826151535-unauthRole",
+            "StackName": "amplify-nts-20190826151535",
+            "StackId": "arn:aws:cloudformation:us-east-2:110426898045:stack/amplify-nts-20190826151535/a5541dd0-c846-11e9-8e49-0659c08a3f80"
+        }
+    }
+}

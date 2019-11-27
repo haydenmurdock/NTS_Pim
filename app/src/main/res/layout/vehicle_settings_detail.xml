@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:app="http://schemas.android.com/apk/res-auto"
+        xmlns:tools="http://schemas.android.com/tools"
+        android:id="@+id/linearLayout"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#303030"
+        android:descendantFocusability="beforeDescendants"
+        android:focusableInTouchMode="true">
+
+    <Button
+            android:id="@+id/check_bluetooth_btn"
+            android:layout_width="258dp"
+            android:layout_height="wrap_content"
+            android:alpha="0.0"
+            android:text="SQUARE BLUETOOTH CONNECTIONS"
+            android:textAlignment="center"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.5"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintVertical_bias="0.499" />
+
+    <Button
+            android:id="@+id/setting_detail_back_btn"
+            android:layout_width="258dp"
+            android:layout_height="wrap_content"
+            android:alpha="0.0"
+            android:text="BACK"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/power_Off_PIM_btn" />
+
+    <Button
+            android:id="@+id/exit_app_btn"
+            android:layout_width="258dp"
+            android:layout_height="wrap_content"
+            android:alpha="0.0"
+            android:text="EXIT APPLICATION"
+            app:layout_constraintBottom_toTopOf="@+id/check_bluetooth_btn"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent" />
+
+    <TextView
+            android:id="@+id/settings_detail_textView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="VehicleID:"
+            android:textColor="#FFFFFF"
+            android:textSize="30sp"
+            android:visibility="visible"
+            app:layout_constraintBottom_toTopOf="@+id/exit_app_btn"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.02"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintVertical_bias="0.110000014" />
+
+    <Button
+            android:id="@+id/power_Off_PIM_btn"
+            android:layout_width="258dp"
+            android:layout_height="wrap_content"
+            android:alpha="0.0"
+            android:text="Power OFF PIM"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/check_bluetooth_btn" />
+
+    <ImageView
+            android:id="@+id/battery_btn"
+            android:layout_width="77dp"
+            android:layout_height="53dp"
+            android:visibility="visible"
+            app:layout_constraintBottom_toTopOf="@+id/exit_app_btn"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.94"
+            app:layout_constraintStart_toEndOf="@+id/settings_detail_textView"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintVertical_bias="0.110000014"
+            app:srcCompat="@drawable/ic_battery_2"
+            tools:srcCompat="@drawable/ic_battery_2" />
+
+    <SeekBar
+            android:id="@+id/vibrateSeekBar"
+            android:layout_width="280dp"
+            android:layout_height="46dp"
+            android:layout_marginTop="129dp"
+            android:layout_marginBottom="206dp"
+            android:max="255"
+            android:visibility="invisible"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/setting_detail_back_btn" />
+
+    <ProgressBar
+            android:id="@+id/activity_indicator_vehicle_detail"
+            style="?android:attr/progressBarStyle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:layout_constraintBottom_toTopOf="@+id/power_Off_PIM_btn"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.5"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/check_bluetooth_btn"
+            tools:visibility="invisible" />
+
+    <ImageView
+            android:id="@+id/dev_mode_btn"
+            android:layout_width="73dp"
+            android:layout_height="51dp"
+            android:visibility="gone"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@+id/battery_btn"
+            app:layout_constraintHorizontal_bias="1.0"
+            app:layout_constraintStart_toEndOf="@+id/settings_detail_textView"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintVertical_bias="0.04000002"
+            app:srcCompat="@drawable/ic_wrench" />
+
+    <TextView
+            android:id="@+id/last_trip_id_textView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="LastTripID"
+            android:textColor="@color/whiteTextColor"
+            android:textSize="24sp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.02"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/settings_detail_textView"
+            app:layout_constraintVertical_bias="0.01999998" />
+</androidx.constraintlayout.widget.ConstraintLayout>

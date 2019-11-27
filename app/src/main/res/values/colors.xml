@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorPrimary">#008577</color>
+    <color name="colorPrimaryDark">#00574B</color>
+    <color name="colorAccent">#D81B60</color>
+    <color name="keyboardText">#3c494f</color>
+    <color name="secondaryButtonBackgroundColor">#E91E63</color>
+    <color name="secondaryButtonTextColor">#F0F4F7</color>
+    <color name="screenBackgroundColor">#1A1D21</color>
+    <color name="squareBtnBackgroundColor">#596685</color>
+    <color name="squareBtnBackgroundPressed">#384154</color>
+    <color name="buttonTextPressed">#A7AAAA</color>
+    <color name="whiteTextColor">#FFFFFF</color>
+    <color name="red">#F41952</color>
+    <color name="grey">#929292</color>
+    <color name="pink">#E291A8</color>
+    <color name="cursorBlue">#4B90D9</color>
+
+</resources>

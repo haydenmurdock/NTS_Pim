@@ -1,0 +1,395 @@
+# this is an auto generated file. This will be overwritten
+query GetCompanyName($vehicleId: String!) {
+  getCompanyName(vehicleId: $vehicleId) {
+    error
+    errorCode
+    name
+  }
+}
+query GetMeterEvents(
+  $endDate: String
+  $startDate: String
+  $vehicleId: String!
+) {
+  getMeterEvents(
+    endDate: $endDate
+    startDate: $startDate
+    vehicleId: $vehicleId
+  ) {
+    distance
+    distanceFare
+    error
+    errorCode
+    errorMsg
+    eventId
+    eventTimeStamp
+    fare
+    meterState
+    meterStatus
+    timeFare
+    totalDist
+    totalFare
+    totalPaidDist
+    totalTrips
+    tripId
+    vehicleId
+    waitTime
+  }
+}
+query GetMeterEventsForTrip($tripId: String!) {
+  getMeterEventsForTrip(tripId: $tripId) {
+    distance
+    distanceFare
+    error
+    errorCode
+    errorMsg
+    eventId
+    eventTimeStamp
+    fare
+    meterState
+    meterStatus
+    timeFare
+    totalDist
+    totalFare
+    totalPaidDist
+    totalTrips
+    tripId
+    vehicleId
+    waitTime
+  }
+}
+query GetMeterRates($rateId: String!, $rateNbr: Int) {
+  getMeterRates(rateId: $rateId, rateNbr: $rateNbr) {
+    distDropFare
+    distRate
+    dropDist
+    dropTime
+    encryptRateData
+    encryptRateTimeStamp
+    error
+    errorCode
+    increment
+    maxFare
+    minFare
+    rateId
+    rateNbr
+    timeDropFare
+    timeRate
+  }
+}
+query GetPimSettings($deviceId: String!, $pin: String) {
+  getPIMSettings(deviceId: $deviceId, pin: $pin) {
+    deviceId
+    error
+    errorCode
+    vehicleId
+  }
+}
+query GetSettings($deviceId: String!, $pin: String) {
+  getSettings(deviceId: $deviceId, pin: $pin) {
+    airportControl
+    autoPrint
+    autoPrintPremium
+    autoStart
+    blockTyping
+    bluetoothProx
+    callEntryForm
+    clarenPim
+    deviceId
+    error
+    errorCode
+    fleetGroup
+    fleetNbr
+    hideStartTrip
+    lisnr
+    locReport
+    log
+    meter
+    meterBtAddr
+    meterBtName
+    meterLocked
+    meterPing
+    meterPrinter
+    meterZap
+    mustSignIn
+    noAuthLimit
+    ntsPim
+    obd
+    obdBtAddr
+    obdBtName
+    odometer
+    protocol
+    receiptNbr
+    recvPort
+    resendWait
+    rfid
+    sendPort
+    serverIP
+    uploadLogs
+    vehicleId
+    vehicleNbr
+    verifone
+    verifoneBTConn
+    vin
+    virtualMeter
+    webServerIP
+    zapDistAcc
+    zapFareAcc
+    zapFarePerMile
+    zapFareStart
+  }
+}
+query GetStatus($vehicleId: String!) {
+  getStatus(vehicleId: $vehicleId) {
+    driverId
+    error
+    errorCode
+    gpsDirection
+    lat
+    lng
+    locationTimeStamp
+    meterPaidDist
+    meterRate1Set
+    meterRate2Set
+    meterStatus
+    meterTotalDist
+    meterTotalTrips
+    pimStatus
+    postedStatus
+    tripId
+    tripStatus
+    vehicleId
+  }
+}
+query GetTrip($tripId: String!) {
+  getTrip(tripId: $tripId) {
+    airportFee
+    appliedFareMin
+    appliedFareRate
+    cardInfo
+    custPhoneNbr
+    custEmail
+    discountAmt
+    discountPercent
+    dropoffAddress {
+      apt
+      city
+      state
+      street
+      zip
+    }
+    dropoffLocation {
+      lat
+      lng
+    }
+    error
+    errorCode
+    meterDistFare
+    meterDistance
+    meterError
+    meterFare
+    meterRate
+    meterState
+    meterTimeFare
+    meterWaitTime
+    owedPrice
+    owedPriceSource
+    paidAmt
+    paymentType
+    pimPaidAmt
+    pimTransId
+    pimTransDate
+    pickupAddress {
+      apt
+      city
+      state
+      street
+      zip
+    }
+    pickupLocation {
+      lat
+      lng
+    }
+    tipAmt
+    tipPercent
+    toll
+    tripEndTime
+    tripId
+    tripNbr
+    tripStartTime
+    tripStatus
+    tripTime
+    upfrontPriceAdj
+    upfrontPriceDist
+    upfrontPriceOrig
+    upfrontPriceTime
+    upfrontPriceWaitAmt
+    vehicleId
+    voucherAcctNbr
+    voucherEnteredAmt
+    voucherNbr
+  }
+}
+query GetTripsByNbr($endDate: String, $startDate: String, $tripNbr: Int!) {
+  getTripsByNbr(endDate: $endDate, startDate: $startDate, tripNbr: $tripNbr) {
+    airportFee
+    appliedFareMin
+    appliedFareRate
+    cardInfo
+    custPhoneNbr
+    custEmail
+    discountAmt
+    discountPercent
+    dropoffAddress {
+      apt
+      city
+      state
+      street
+      zip
+    }
+    dropoffLocation {
+      lat
+      lng
+    }
+    error
+    errorCode
+    meterDistFare
+    meterDistance
+    meterError
+    meterFare
+    meterRate
+    meterState
+    meterTimeFare
+    meterWaitTime
+    owedPrice
+    owedPriceSource
+    paidAmt
+    paymentType
+    pimPaidAmt
+    pimTransId
+    pimTransDate
+    pickupAddress {
+      apt
+      city
+      state
+      street
+      zip
+    }
+    pickupLocation {
+      lat
+      lng
+    }
+    tipAmt
+    tipPercent
+    toll
+    tripEndTime
+    tripId
+    tripNbr
+    tripStartTime
+    tripStatus
+    tripTime
+    upfrontPriceAdj
+    upfrontPriceDist
+    upfrontPriceOrig
+    upfrontPriceTime
+    upfrontPriceWaitAmt
+    vehicleId
+    voucherAcctNbr
+    voucherEnteredAmt
+    voucherNbr
+  }
+}
+query GetTripsByVehId($vehicleId: String!) {
+  getTripsByVehId(vehicleId: $vehicleId) {
+    airportFee
+    appliedFareMin
+    appliedFareRate
+    cardInfo
+    custPhoneNbr
+    custEmail
+    discountAmt
+    discountPercent
+    dropoffAddress {
+      apt
+      city
+      state
+      street
+      zip
+    }
+    dropoffLocation {
+      lat
+      lng
+    }
+    error
+    errorCode
+    meterDistFare
+    meterDistance
+    meterError
+    meterFare
+    meterRate
+    meterState
+    meterTimeFare
+    meterWaitTime
+    owedPrice
+    owedPriceSource
+    paidAmt
+    paymentType
+    pimPaidAmt
+    pimTransId
+    pimTransDate
+    pickupAddress {
+      apt
+      city
+      state
+      street
+      zip
+    }
+    pickupLocation {
+      lat
+      lng
+    }
+    tipAmt
+    tipPercent
+    toll
+    tripEndTime
+    tripId
+    tripNbr
+    tripStartTime
+    tripStatus
+    tripTime
+    upfrontPriceAdj
+    upfrontPriceDist
+    upfrontPriceOrig
+    upfrontPriceTime
+    upfrontPriceWaitAmt
+    vehicleId
+    voucherAcctNbr
+    voucherEnteredAmt
+    voucherNbr
+  }
+}
+query GetVehicleEvents(
+  $endDate: String
+  $startDate: String
+  $vehicleId: String!
+) {
+  getVehicleEvents(
+    endDate: $endDate
+    startDate: $startDate
+    vehicleId: $vehicleId
+  ) {
+    driverId
+    error
+    errorCode
+    eventId
+    eventTimeStamp
+    eventType
+    extraInfo
+    gpsDirection
+    lat
+    lng
+    tripId
+    vehicleId
+    vehicleNbr
+  }
+}

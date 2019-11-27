@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+            xmlns:app="http://schemas.android.com/apk/res-auto"
+            xmlns:tools="http://schemas.android.com/tools"
+            android:id="@+id/nav_graph"
+            app:startDestination="@id/startupFragment">
+
+    <fragment
+            android:id="@+id/welcome_fragment"
+            android:name="com.example.nts_pim.fragments_viewmodel.welcome.WelcomeFragment"
+            android:label="welcome"
+            tools:layout="@layout/welcome_screen">
+        <action android:id="@+id/toTaxiNumber"
+                app:destination="@id/taxi_number_fragment"/>
+        <action
+                android:id="@+id/toVehicleSettingsDetail"
+                app:destination="@id/vehicle_settings_detail_fragment" />
+        <action
+                android:id="@+id/welcomeFragmentToLiveMeterSceen"
+                app:destination="@id/live_meter_fragment" />
+    </fragment>
+
+    <fragment
+            android:id="@+id/taxi_number_fragment"
+            android:name="com.example.nts_pim.fragments_viewmodel.taxi_number.TaxiNumberFragment"
+            android:label="Taxi_number"
+            tools:layout="@layout/taxi_number_screen">
+        <action android:id="@+id/toSafetyWarning"
+                app:destination="@id/safety_warning_fragment"/>
+    </fragment>
+
+    <fragment
+            android:id="@+id/safety_warning_fragment"
+            android:name="com.example.nts_pim.fragments_viewmodel.safety_warning.SafetyWarningFragment"
+            android:label="safety_warning"
+            tools:layout="@layout/safety_warning_screen">
+        <action android:id="@+id/toLiveMeter"
+                app:destination="@id/live_meter_fragment"/>
+    </fragment>
+
+    <fragment
+            android:id="@+id/live_meter_fragment"
+            android:name="com.example.nts_pim.fragments_viewmodel.live_meter.LiveMeterFragment"
+            android:label="live_meter"
+            tools:layout="@layout/live_meter_screen">
+        <action
+                android:id="@+id/toTripReviewFragment"
+                app:destination="@id/trip_review_fragment"
+                app:exitAnim="@anim/nav_default_exit_anim"
+                app:popUpToInclusive="false" />
+        <argument
+                android:name="meterTotal"
+                app:argType="float" />
+    </fragment>
+
+    <fragment
+            android:id="@+id/trip_review_fragment"
+            android:name="com.example.nts_pim.fragments_viewmodel.trip_review.TripReviewFragment"
+            android:label="trip_review"
+            tools:layout="@layout/trip_review_screen">
+        <action android:id="@+id/toEmailOrText"
+                app:destination="@id/email_or_text_fragment"/>
+        <action android:id="@+id/activityTimeOutToInteractionComplete"
+                app:destination="@id/interaction_complete_fragment"/>
+        <action
+                android:id="@+id/backToLiveMeter"
+                app:destination="@id/live_meter_fragment" />
+        <argument
+                android:name="meterOwedPrice"
+                app:argType="float" />
+        <action
+                android:id="@+id/toTipScreen"
+                app:destination="@id/tipScreenFragment" />
+    </fragment>
+
+    <fragment
+            android:id="@+id/email_or_text_fragment"
+            android:name="com.example.nts_pim.fragments_viewmodel.email_or_text.EmailOrTextFragment"
+            android:label="email_or_text"
+            tools:layout="@layout/email_or_text_screen">
+        <action android:id="@+id/toInteractionComplete"
+                app:destination="@id/interaction_complete_fragment"/>
+        <argument android:name="tripTotal" app:argType="float" />
+        <argument
+                android:name="paymentType"
+                app:argType="string" />
+        <action
+                android:id="@+id/emailOrTextBackToTripReview"
+                app:destination="@id/trip_review_fragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/interaction_complete_fragment"
+        android:name="com.example.nts_pim.fragments_viewmodel.interaction_complete.InteractionCompleteFragment"
+        android:label="interaction_complete"
+        tools:layout="@layout/interaction_complete_screen">
+        <action
+                android:id="@+id/toRestartNewTrip"
+                app:destination="@id/welcome_fragment" />
+    </fragment>
+
+    <fragment
+            android:id="@+id/vehicle_settings_detail_fragment"
+            android:name="com.example.nts_pim.fragments_viewmodel.vehicle_settings_detail.VehicleSettingsDetailFragment"
+            android:label="vehicle_settings_detail"
+            tools:layout="@layout/vehicle_settings_detail">
+        <action
+                android:id="@+id/back_to_welcome_fragment"
+                app:destination="@id/welcome_fragment" />
+    </fragment>
+
+    <fragment
+            android:id="@+id/vehicleSetupFragment"
+            android:name="com.example.nts_pim.fragments_viewmodel.vehicle_setup.VehicleSetupFragment"
+            android:label="VehicleSetupFragment" >
+        <action
+                android:id="@+id/toCheckVehicleInfoFragment"
+                app:destination="@id/checkVehicleInfoFragment" />
+    </fragment>
+    <fragment
+            android:id="@+id/checkVehicleInfoFragment"
+            android:name="com.example.nts_pim.fragments_viewmodel.check_vehicle_info.CheckVehicleInfoFragment"
+            android:label="CheckVehicleInfoFragment" >
+        <action
+                android:id="@+id/WelcomeFragment"
+                app:destination="@id/welcome_fragment" />
+    </fragment>
+    <fragment
+            android:id="@+id/startupFragment"
+            android:name="com.example.nts_pim.fragments_viewmodel.startup.StartupFragment"
+            android:label="StartupFragment" >
+        <action
+                android:id="@+id/toVehicleSetupFragment"
+                app:destination="@id/vehicleSetupFragment" />
+        <action
+                android:id="@+id/toWelcomeScreenFromStartUP"
+                app:destination="@id/welcome_fragment" />
+    </fragment>
+    <fragment
+            android:id="@+id/tipScreenFragment"
+            android:name="com.example.nts_pim.fragments_viewmodel.tip_screens.TipScreenFragment"
+            android:label="TipScreenFragment" >
+        <argument
+                android:name="tipScreenTripTotal"
+                app:argType="float" />
+        <action
+                android:id="@+id/backToTripReview"
+                app:destination="@id/trip_review_fragment" />
+        <action
+                android:id="@+id/toCustomTipScreen"
+                app:destination="@id/customTipScreenFragment"
+                app:popEnterAnim="@anim/nav_default_pop_enter_anim" />
+        <action
+                android:id="@+id/tipFragmentToEmailorTextFragment"
+                app:destination="@id/email_or_text_fragment" />
+        <argument
+                android:name="doneButtonTouchedOnCustomTipScreen"
+                app:argType="boolean"
+                android:defaultValue="false" />
+        <argument
+                android:name="tipChosenFromCustomTipScreen"
+                app:argType="float" />
+    </fragment>
+    <fragment
+            android:id="@+id/customTipScreenFragment"
+            android:name="com.example.nts_pim.fragments_viewmodel.tip_screens.CustomTipScreenFragment"
+            android:label="CustomTipScreenFragment" >
+        <action
+                android:id="@+id/backToTipScreenFragment"
+                app:destination="@id/tipScreenFragment"
+                app:popExitAnim="@anim/nav_default_pop_exit_anim" />
+        <argument
+                android:name="tripTotalFromTipScreen"
+                app:argType="float" />
+    </fragment>
+
+
+</navigation>

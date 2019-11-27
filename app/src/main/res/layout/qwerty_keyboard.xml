@@ -1,0 +1,457 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+
+    <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+        <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+            <Button
+                    android:id="@+id/capKeyboard_button_One"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="1"
+                    android:textColor="@color/keyboardText"
+                    android:background="@drawable/button_shape"/>
+
+            <Button
+                    android:id="@+id/capKeyboard_button_Two"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="2"
+                    android:textColor="@color/keyboardText"
+                    android:background="@drawable/button_shape"/>
+
+            <Button
+                    android:id="@+id/capKeyboard_button_Three"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="3"
+                    android:textColor="@color/keyboardText"
+                    android:background="@drawable/button_shape"/>
+
+            <Button
+                    android:id="@+id/capKeyboard_button_Four"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="4"
+                    android:textColor="@color/keyboardText"
+                    android:background="@drawable/button_shape"/>
+
+            <Button
+                    android:id="@+id/capKeyboard_button_Five"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="5"
+                    android:textColor="@color/keyboardText"
+                    android:background="@drawable/button_shape"/>
+
+            <Button
+                    android:id="@+id/capKeyboard_button_Six"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="6"
+                    android:textColor="@color/keyboardText"
+                    android:background="@drawable/button_shape"/>
+
+            <Button
+                    android:id="@+id/capKeyboard_button_Seven"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="7"
+                    android:textColor="@color/keyboardText"
+                    android:background="@drawable/button_shape"/>
+
+            <Button
+                    android:id="@+id/capKeyboard_button_Eight"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="8"
+                    android:textColor="@color/keyboardText"
+                    android:background="@drawable/button_shape"/>
+
+            <Button
+                    android:id="@+id/capKeyboard_button_Nine"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="9"
+                    android:textColor="@color/keyboardText"
+                    android:background="@drawable/button_shape"/>
+
+            <Button
+                    android:id="@+id/capKeyboard_button_Zero"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="0"
+                    android:textColor="@color/keyboardText"
+                    android:background="@drawable/button_shape"/>
+
+
+        </LinearLayout>
+
+        <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+            <Button
+                    android:id="@+id/capKeyboard_button_Q"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Q"
+                    android:textAllCaps="false"
+                    android:textColor="@color/keyboardText"
+                    android:background="@drawable/button_shape"/>
+
+            <Button
+                    android:id="@+id/capKeyboard_button_W"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="W"
+                    android:textAllCaps="false"
+                    android:textColor="@color/keyboardText"
+                    android:background="@drawable/button_shape"/>
+
+            <Button
+                    android:id="@+id/capKeyboard_button_E"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="E"
+                    android:textAllCaps="false"
+                    android:textColor="@color/keyboardText"
+                    android:background="@drawable/button_shape"/>
+
+            <Button
+                    android:id="@+id/capKeyboard_button_R"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="R"
+                    android:textAllCaps="false"
+                    android:textColor="@color/keyboardText"
+                    android:background="@drawable/button_shape"/>
+
+            <Button
+                    android:id="@+id/capKeyboard_button_T"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="T"
+                    android:textAllCaps="false"
+                    android:textColor="@color/keyboardText"
+                    android:background="@drawable/button_shape"/>
+
+            <Button
+                    android:id="@+id/capKeyboard_button_Y"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Y"
+                    android:textAllCaps="false"
+                    android:textColor="@color/keyboardText"
+                    android:background="@drawable/button_shape"/>
+
+            <Button
+                    android:id="@+id/capKeyboard_button_U"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="U"
+                    android:textAllCaps="false"
+                    android:textColor="@color/keyboardText"
+                    android:background="@drawable/button_shape"/>
+
+            <Button
+                    android:id="@+id/capKeyboard_button_I"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="I"
+                    android:textAllCaps="false"
+                    android:textColor="@color/keyboardText"
+                    android:background="@drawable/button_shape"/>
+
+            <Button
+                    android:id="@+id/capKeyboard_button_O"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="O"
+                    android:textAllCaps="false"
+                    android:textColor="@color/keyboardText"
+                    android:background="@drawable/button_shape"/>
+
+            <Button
+                    android:id="@+id/capKeyboard_button_P"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="P"
+                    android:textAllCaps="false"
+                    android:textColor="@color/keyboardText"
+                    android:background="@drawable/button_shape"/>
+
+
+        </LinearLayout>
+
+        <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+            <Button
+                    android:id="@+id/capKeyboard_button_A"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="A"
+                    android:textAllCaps="false"
+                    android:textColor="@color/keyboardText"
+                    android:background="@drawable/button_shape"/>
+
+            <Button
+                    android:id="@+id/capKeyboard_button_S"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="S"
+                    android:textAllCaps="false"
+                    android:textColor="@color/keyboardText"
+                    android:background="@drawable/button_shape"/>
+
+            <Button
+                    android:id="@+id/capKeyboard_button_D"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="D"
+                    android:textAllCaps="false"
+                    android:textColor="@color/keyboardText"
+                    android:background="@drawable/button_shape"/>
+
+            <Button
+                    android:id="@+id/capKeyboard_button_F"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="F"
+                    android:textAllCaps="false"
+                    android:textColor="@color/keyboardText"
+                    android:background="@drawable/button_shape"/>
+
+            <Button
+                    android:id="@+id/capKeyboard_button_G"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="G"
+                    android:textAllCaps="false"
+                    android:textColor="@color/keyboardText"
+                    android:background="@drawable/button_shape"/>
+
+            <Button
+                    android:id="@+id/capKeyboard_button_H"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="H"
+                    android:textAllCaps="false"
+                    android:textColor="@color/keyboardText"
+                    android:background="@drawable/button_shape"/>
+
+            <Button
+                    android:id="@+id/capKeyboard_button_J"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="J"
+                    android:textAllCaps="false"
+                    android:textColor="@color/keyboardText"
+                    android:background="@drawable/button_shape"/>
+
+            <Button
+                    android:id="@+id/capKeyboard_button_K"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="K"
+                    android:textAllCaps="false"
+                    android:textColor="@color/keyboardText"
+                    android:background="@drawable/button_shape"/>
+
+            <Button
+                    android:id="@+id/capKeyboard_button_L"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="L"
+                    android:textAllCaps="false"
+                    android:textColor="@color/keyboardText"
+                    android:background="@drawable/button_shape"/>
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+    <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+        <Button
+                android:id="@+id/capKeyboard_button_Z"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Z"
+                android:textAllCaps="false"
+                android:textColor="@color/keyboardText"
+                android:background="@drawable/button_shape"/>
+
+        <Button
+                android:id="@+id/capKeyboard_button_X"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="X"
+                android:textAllCaps="false"
+                android:textColor="@color/keyboardText"
+                android:background="@drawable/button_shape"/>
+
+        <Button
+                android:id="@+id/capKeyboard_button_C"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="C"
+                android:textAllCaps="false"
+                android:textColor="@color/keyboardText"
+                android:background="@drawable/button_shape"/>
+
+        <Button
+                android:id="@+id/capKeyboard_button_V"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="V"
+                android:textAllCaps="false"
+                android:textColor="@color/keyboardText"
+                android:background="@drawable/button_shape"/>
+
+        <Button
+                android:id="@+id/capKeyboard_button_B"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="B"
+                android:textAllCaps="false"
+                android:textColor="@color/keyboardText"
+                android:background="@drawable/button_shape"/>
+
+        <Button
+                android:id="@+id/capKeyboard_button_N"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="N"
+                android:textAllCaps="false"
+                android:textColor="@color/keyboardText"
+                android:background="@drawable/button_shape"/>
+
+        <Button
+                android:id="@+id/capKeyboard_button_M"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="m"
+                android:textAllCaps="false"
+                android:textColor="@color/keyboardText"
+                android:background="@drawable/button_shape"/>
+
+        <Button
+                android:id="@+id/capKeyboard_button_pointer"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="."
+                android:textColor="@color/keyboardText"
+                android:background="@drawable/button_shape"/>
+
+        <Button
+                android:id="@+id/capKeyboard_button_emailSign"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@"
+                android:textColor="@color/keyboardText"
+                android:background="@drawable/button_shape"/>
+
+    </LinearLayout>
+
+    <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+        <ImageButton
+                android:id="@+id/capKeyboard_button_changeCap"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:background="@drawable/button_shape"
+                android:src="@drawable/ic_upload_button_white"
+                android:textAllCaps="false"
+                android:textColor="@color/keyboardText" />
+
+        <ImageButton
+                android:id="@+id/capKeyboard_button_specialChar"
+                android:layout_width="53dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@drawable/button_shape"
+                android:src="@drawable/ic_hash"
+                android:textAllCaps="false"
+                android:textColor="@color/keyboardText" />
+
+        <ImageButton
+                android:id="@+id/capKeyboard_button_delete"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="2"
+                android:background="@drawable/button_shape"
+                android:src="@drawable/ic_backspace_arrow_green"
+                android:textColor="@color/keyboardText" />
+
+        <ImageButton
+                android:id="@+id/capKeyboard_button_enter"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="3"
+                android:background="@drawable/button_shape"
+                android:src="@drawable/ic_enter_arrow"
+                android:textColor="@color/keyboardText" />
+
+    </LinearLayout>
+
+</LinearLayout>

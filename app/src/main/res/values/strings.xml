@@ -1,0 +1,27 @@
+<resources>
+    <string name="app_name">NTS PIM</string>
+    <string name="title_activity_square">SquareActivity</string>
+    <string name="APPLICATION_ID_SANDBOX">sandbox-sq0idp-5_XOnvUJpYLpx6JMsSgWGQ</string>
+    <string name="customize_new_bike">CUSTOMIZE NEW BIKE</string>
+    <string name="error_api_disabled">Point of Sale API is Disabled</string>
+    <string name="error_api_disabled_message">Sorry, the Point of Sale API is not currently available.</string>
+    <string name="error_invalid_request_message">The debug description of this error can be found in Logcat.</string>
+    <string name="error_install_point_of_sale">Install Point of Sale</string>
+    <string name="error_install_point_of_sale_message">Square Point of Sale must be installed to perform transactions. Please visit the play store to download.</string>
+    <string name="error_network">Network error</string>
+    <string name="error_network_message">The transaction failed because there is no Internet connection. Please ensure you are connected and try again.</string>
+    <string name="error_no_result">No result from Square Point of Sale</string>
+    <string name="error_no_result_message">This can happen if Square Point of Sale was uninstalled or crashed while we\'re waiting for a result.</string>
+    <string name="error_not_activated">User not activated</string>
+    <string name="error_not_activated_message">This Square merchant has not been activated for card processing. You can complete the transaction with cash or sign in to Point of Sale with a different account.</string>
+    <string name="error_not_authorized">The Merchant has not authorized this application</string>
+    <string name="error_not_logged_in">User not logged in</string>
+    <string name="error_not_logged_in_message">You must be logged in to Square Point of Sale on this device to complete the transaction. Please log in and try again.</string>
+    <string name="error_transaction_cancelled">The Transaction was Cancelled</string>
+    <string name="error_transaction_cancelled_message">Click try again to restart the transaction.</string>
+    <string name="error_transaction_in_progress">Transaction in Progress</string>
+    <string name="error_transaction_in_progress_message">Please open Point of Sale and complete the transaction in progress before trying again.</string>
+    <string name="error_unspecified">Point of Sale API Encountered an Error</string>
+    <string name="install_point_of_sale_confirm">Open Play Store</string>
+    <string name="try_again">Please try again</string>
+</resources>

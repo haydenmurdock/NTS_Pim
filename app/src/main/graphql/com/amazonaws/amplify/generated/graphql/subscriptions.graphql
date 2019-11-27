@@ -1,0 +1,146 @@
+# this is an auto generated file. This will be overwritten
+subscription OnSettingsUpdate($deviceId: String) {
+  onSettingsUpdate(deviceId: $deviceId) {
+    airportControl
+    autoPrint
+    autoPrintPremium
+    autoStart
+    blockTyping
+    bluetoothProx
+    callEntryForm
+    clarenPim
+    deviceId
+    error
+    errorCode
+    fleetGroup
+    fleetNbr
+    hideStartTrip
+    lisnr
+    locReport
+    log
+    meter
+    meterBtAddr
+    meterBtName
+    meterLocked
+    meterPing
+    meterPrinter
+    meterZap
+    mustSignIn
+    noAuthLimit
+    ntsPim
+    obd
+    obdBtAddr
+    obdBtName
+    odometer
+    protocol
+    receiptNbr
+    recvPort
+    resendWait
+    rfid
+    sendPort
+    serverIP
+    uploadLogs
+    vehicleId
+    vehicleNbr
+    verifone
+    verifoneBTConn
+    vin
+    virtualMeter
+    webServerIP
+    zapDistAcc
+    zapFareAcc
+    zapFarePerMile
+    zapFareStart
+  }
+}
+subscription OnStatusUpdate($vehicleId: String) {
+  onStatusUpdate(vehicleId: $vehicleId) {
+    driverId
+    error
+    errorCode
+    gpsDirection
+    lat
+    lng
+    locationTimeStamp
+    meterPaidDist
+    meterRate1Set
+    meterRate2Set
+    meterStatus
+    meterTotalDist
+    meterTotalTrips
+    pimStatus
+    postedStatus
+    tripId
+    tripStatus
+    vehicleId
+  }
+}
+subscription OnTripUpdate($tripId: String) {
+  onTripUpdate(tripId: $tripId) {
+    airportFee
+    appliedFareMin
+    appliedFareRate
+    cardInfo
+    custPhoneNbr
+    custEmail
+    discountAmt
+    discountPercent
+    dropoffAddress {
+      apt
+      city
+      state
+      street
+      zip
+    }
+    dropoffLocation {
+      lat
+      lng
+    }
+    error
+    errorCode
+    meterDistFare
+    meterDistance
+    meterError
+    meterFare
+    meterRate
+    meterState
+    meterTimeFare
+    meterWaitTime
+    owedPrice
+    owedPriceSource
+    paidAmt
+    paymentType
+    pimPaidAmt
+    pimTransId
+    pimTransDate
+    pickupAddress {
+      apt
+      city
+      state
+      street
+      zip
+    }
+    pickupLocation {
+      lat
+      lng
+    }
+    tipAmt
+    tipPercent
+    toll
+    tripEndTime
+    tripId
+    tripNbr
+    tripStartTime
+    tripStatus
+    tripTime
+    upfrontPriceAdj
+    upfrontPriceDist
+    upfrontPriceOrig
+    upfrontPriceTime
+    upfrontPriceWaitAmt
+    vehicleId
+    voucherAcctNbr
+    voucherEnteredAmt
+    voucherNbr
+  }
+}

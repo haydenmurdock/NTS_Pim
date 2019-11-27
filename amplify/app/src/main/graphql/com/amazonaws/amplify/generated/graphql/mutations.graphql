@@ -1,0 +1,437 @@
+# this is an auto generated file. This will be overwritten
+mutation CreateMeterEvent($parameters: createMeterEventInput) {
+  createMeterEvent(parameters: $parameters) {
+    distance
+    distanceFare
+    error
+    errorCode
+    errorMsg
+    eventId
+    eventTimeStamp
+    fare
+    meterState
+    meterStatus
+    timeFare
+    totalDist
+    totalFare
+    totalPaidDist
+    totalTrips
+    tripId
+    vehicleId
+    waitTime
+  }
+}
+mutation CreateVehicleEvent($parameters: createVehicleEventInput) {
+  createVehicleEvent(parameters: $parameters) {
+    driverId
+    error
+    errorCode
+    eventId
+    eventTimeStamp
+    eventType
+    extraInfo
+    gpsDirection
+    lat
+    lng
+    tripId
+    vehicleId
+    vehicleNbr
+  }
+}
+mutation SetMeterRateEncryptData($parameters: setEncryptDataInput) {
+  setMeterRateEncryptData(parameters: $parameters) {
+    distDropFare
+    distRate
+    dropDist
+    dropTime
+    encryptRateData
+    encryptRateTimeStamp
+    error
+    errorCode
+    increment
+    maxFare
+    minFare
+    rateId
+    rateNbr
+    timeDropFare
+    timeRate
+  }
+}
+mutation UpdateBluetooth($parameters: updateBluetoothInput) {
+  updateBluetooth(parameters: $parameters) {
+    airportControl
+    autoPrint
+    autoPrintPremium
+    autoStart
+    blockTyping
+    bluetoothProx
+    callEntryForm
+    clarenPim
+    deviceId
+    error
+    errorCode
+    fleetGroup
+    fleetNbr
+    hideStartTrip
+    lisnr
+    locReport
+    log
+    meter
+    meterBtAddr
+    meterBtName
+    meterLocked
+    meterPing
+    meterPrinter
+    meterZap
+    mustSignIn
+    noAuthLimit
+    ntsPim
+    obd
+    obdBtAddr
+    obdBtName
+    odometer
+    protocol
+    receiptNbr
+    recvPort
+    resendWait
+    rfid
+    sendPort
+    serverIP
+    uploadLogs
+    vehicleId
+    vehicleNbr
+    verifone
+    verifoneBTConn
+    vin
+    virtualMeter
+    webServerIP
+    zapDistAcc
+    zapFareAcc
+    zapFarePerMile
+    zapFareStart
+  }
+}
+mutation UpdatePimStatus($parameters: updatePimStatusInput) {
+  updatePimStatus(parameters: $parameters) {
+    driverId
+    error
+    errorCode
+    gpsDirection
+    lat
+    lng
+    locationTimeStamp
+    meterPaidDist
+    meterRate1Set
+    meterRate2Set
+    meterStatus
+    meterTotalDist
+    meterTotalTrips
+    pimStatus
+    postedStatus
+    tripId
+    tripStatus
+    vehicleId
+  }
+}
+mutation UpdateRateSet($parameters: updateRateSetInput) {
+  updateRateSet(parameters: $parameters) {
+    driverId
+    error
+    errorCode
+    gpsDirection
+    lat
+    lng
+    locationTimeStamp
+    meterPaidDist
+    meterRate1Set
+    meterRate2Set
+    meterStatus
+    meterTotalDist
+    meterTotalTrips
+    pimStatus
+    postedStatus
+    tripId
+    tripStatus
+    vehicleId
+  }
+}
+mutation UpdateSettings($parameters: updateSettingsInput) {
+  updateSettings(parameters: $parameters) {
+    airportControl
+    autoPrint
+    autoPrintPremium
+    autoStart
+    blockTyping
+    bluetoothProx
+    callEntryForm
+    clarenPim
+    deviceId
+    error
+    errorCode
+    fleetGroup
+    fleetNbr
+    hideStartTrip
+    lisnr
+    locReport
+    log
+    meter
+    meterBtAddr
+    meterBtName
+    meterLocked
+    meterPing
+    meterPrinter
+    meterZap
+    mustSignIn
+    noAuthLimit
+    ntsPim
+    obd
+    obdBtAddr
+    obdBtName
+    odometer
+    protocol
+    receiptNbr
+    recvPort
+    resendWait
+    rfid
+    sendPort
+    serverIP
+    uploadLogs
+    vehicleId
+    vehicleNbr
+    verifone
+    verifoneBTConn
+    vin
+    virtualMeter
+    webServerIP
+    zapDistAcc
+    zapFareAcc
+    zapFarePerMile
+    zapFareStart
+  }
+}
+mutation UpdateStatus($parameters: updateStatusInput) {
+  updateStatus(parameters: $parameters) {
+    driverId
+    error
+    errorCode
+    gpsDirection
+    lat
+    lng
+    locationTimeStamp
+    meterPaidDist
+    meterRate1Set
+    meterRate2Set
+    meterStatus
+    meterTotalDist
+    meterTotalTrips
+    pimStatus
+    postedStatus
+    tripId
+    tripStatus
+    vehicleId
+  }
+}
+mutation UpdateTrip($parameters: updateTripInput) {
+  updateTrip(parameters: $parameters) {
+    airportFee
+    appliedFareMin
+    appliedFareRate
+    cardInfo
+    discountAmt
+    discountPercent
+    dropoffAddress {
+      apt
+      city
+      state
+      street
+      zip
+    }
+    dropoffLocation {
+      lat
+      lng
+    }
+    error
+    errorCode
+    meterDistFare
+    meterDistance
+    meterError
+    meterFare
+    meterRate
+    meterState
+    meterTimeFare
+    meterWaitTime
+    owedPrice
+    owedPriceSource
+    paidAmount
+    paymentType
+    pickupAddress {
+      apt
+      city
+      state
+      street
+      zip
+    }
+    pickupLocation {
+      lat
+      lng
+    }
+    tipAmt
+    tipPercent
+    toll
+    tripEndTime
+    tripId
+    tripNbr
+    tripStartTime
+    tripStatus
+    tripTime
+    upfrontPriceAdj
+    upfrontPriceDist
+    upfrontPriceOrig
+    upfrontPriceTime
+    upfrontPriceWaitAmt
+    vehicleId
+    voucherAcctNbr
+    voucherEnteredAmt
+    voucherNbr
+  }
+}
+mutation UpdateTripStatus($parameters: updateTripStatusInput) {
+  updateTripStatus(parameters: $parameters) {
+    driverId
+    error
+    errorCode
+    gpsDirection
+    lat
+    lng
+    locationTimeStamp
+    meterPaidDist
+    meterRate1Set
+    meterRate2Set
+    meterStatus
+    meterTotalDist
+    meterTotalTrips
+    pimStatus
+    postedStatus
+    tripId
+    tripStatus
+    vehicleId
+  }
+}
+mutation UploadSettings($parameters: updateSettingsInput) {
+  uploadSettings(parameters: $parameters) {
+    airportControl
+    autoPrint
+    autoPrintPremium
+    autoStart
+    blockTyping
+    bluetoothProx
+    callEntryForm
+    clarenPim
+    deviceId
+    error
+    errorCode
+    fleetGroup
+    fleetNbr
+    hideStartTrip
+    lisnr
+    locReport
+    log
+    meter
+    meterBtAddr
+    meterBtName
+    meterLocked
+    meterPing
+    meterPrinter
+    meterZap
+    mustSignIn
+    noAuthLimit
+    ntsPim
+    obd
+    obdBtAddr
+    obdBtName
+    odometer
+    protocol
+    receiptNbr
+    recvPort
+    resendWait
+    rfid
+    sendPort
+    serverIP
+    uploadLogs
+    vehicleId
+    vehicleNbr
+    verifone
+    verifoneBTConn
+    vin
+    virtualMeter
+    webServerIP
+    zapDistAcc
+    zapFareAcc
+    zapFarePerMile
+    zapFareStart
+  }
+}
+mutation TriggerMeterTrips($tripId: String!) {
+  triggerMeterTrips(tripId: $tripId) {
+    airportFee
+    appliedFareMin
+    appliedFareRate
+    cardInfo
+    discountAmt
+    discountPercent
+    dropoffAddress {
+      apt
+      city
+      state
+      street
+      zip
+    }
+    dropoffLocation {
+      lat
+      lng
+    }
+    error
+    errorCode
+    meterDistFare
+    meterDistance
+    meterError
+    meterFare
+    meterRate
+    meterState
+    meterTimeFare
+    meterWaitTime
+    owedPrice
+    owedPriceSource
+    paidAmount
+    paymentType
+    pickupAddress {
+      apt
+      city
+      state
+      street
+      zip
+    }
+    pickupLocation {
+      lat
+      lng
+    }
+    tipAmt
+    tipPercent
+    toll
+    tripEndTime
+    tripId
+    tripNbr
+    tripStartTime
+    tripStatus
+    tripTime
+    upfrontPriceAdj
+    upfrontPriceDist
+    upfrontPriceOrig
+    upfrontPriceTime
+    upfrontPriceWaitAmt
+    vehicleId
+    voucherAcctNbr
+    voucherEnteredAmt
+    voucherNbr
+  }
+}

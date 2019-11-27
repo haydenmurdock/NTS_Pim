@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              android:orientation="vertical"
+              android:layout_width="match_parent"
+              android:layout_height="match_parent"
+              android:background="@color/screenBackgroundColor">
+
+    <TextView
+            android:id="@+id/taxi_number_text_view"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_weight="0"
+            android:alpha="0.0"
+            android:fontFamily="@font/source_sans_pro"
+            android:gravity="center"
+            android:text="Your Taxi Number is %7865"
+            android:textColor="#FFFFFF"
+            android:textSize="60sp" />
+
+</LinearLayout>
