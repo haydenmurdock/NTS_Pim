@@ -8,223 +8,144 @@
         android:background="@color/screenBackgroundColor"
         tools:context="fragments_viewmodel.email_or_text.EmailOrTextFragment">
 
-    <Button
-            android:id="@+id/email_btn"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginEnd="10dp"
-            android:background="@drawable/email_or_text_button"
-            android:enabled="false"
-            android:fontFamily="@font/source_sans_pro"
-            android:text="Send"
-            android:textColor="@color/buttonTextPressed"
-            android:textSize="18sp"
-            app:layout_constraintBaseline_toBaselineOf="@+id/email_editText"
-            app:layout_constraintEnd_toEndOf="@+id/email_editText" />
-
-    <Button
+    <ImageView
             android:id="@+id/text_message_btn"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:background="@drawable/email_or_text_button"
-            android:enabled="false"
+            android:layout_width="242dp"
+            android:layout_height="175dp"
+            android:layout_marginBottom="180dp"
+            android:background="@drawable/square_tip_btn"
+            android:enabled="true"
+            android:fadeScrollbars="false"
             android:fontFamily="@font/source_sans_pro"
-            android:text="Send"
             android:textColor="@color/buttonTextPressed"
             android:textSize="18sp"
-            app:layout_constraintBaseline_toBaselineOf="@+id/phone_number_editText"
-            app:layout_constraintEnd_toEndOf="@+id/email_btn" />
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="@+id/no_receipt_btn" />
+
+    <ImageView
+            android:id="@+id/email_btn"
+            android:layout_width="250dp"
+            android:layout_height="175dp"
+            android:layout_marginBottom="180dp"
+            android:background="@drawable/square_tip_btn"
+            android:enabled="true"
+            android:fontFamily="@font/source_sans_pro"
+            android:textColor="@color/buttonTextPressed"
+            android:textSize="18sp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="@+id/no_receipt_btn" />
 
     <Button
             android:id="@+id/no_receipt_btn"
-            android:layout_width="565dp"
-            android:layout_height="55dp"
-            android:layout_marginTop="16dp"
-            android:background="@color/screenBackgroundColor"
-            android:drawableLeft="@android:drawable/ic_menu_close_clear_cancel"
+            android:layout_width="581dp"
+            android:layout_height="63dp"
+            android:layout_marginBottom="80dp"
+            android:background="@drawable/square_tip_btn"
             android:fontFamily="@font/source_sans_pro"
-            android:text="                                    No Thanks "
-            android:textAlignment="textStart"
+            android:text="No Receipt"
+            android:textAlignment="center"
             android:textAllCaps="false"
-            android:textColor="#FFFFFF"
+            android:textColor="@color/whiteTextColor"
             android:textSize="24sp"
+            app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/email_editText" />
-
-    <TextView
-            android:id="@+id/textView3"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="127dp"
-            android:layout_marginEnd="127dp"
-            android:fontFamily="@font/source_sans_pro"
-            android:text="Total: "
-            android:textColor="#FFFFFF"
-            android:textSize="36sp"
-            app:layout_constraintBaseline_toBaselineOf="@+id/amount_text_View"
-            app:layout_constraintEnd_toStartOf="@+id/text_message_btn"
-            app:layout_constraintHorizontal_bias="0.19"
-            app:layout_constraintStart_toStartOf="@+id/textView" />
+            app:layout_constraintHorizontal_bias="0.501"
+            app:layout_constraintStart_toStartOf="parent" />
 
     <TextView
             android:id="@+id/amount_text_View"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:fontFamily="@font/source_sans_pro"
+            android:fontFamily="@font/source_sans_pro_semibold"
             android:text="TextView"
-            android:textColor="#FFFFFF"
+            android:textColor="@color/red"
             android:textSize="36sp"
-            app:layout_constraintStart_toEndOf="@+id/textView3"
-            app:layout_constraintTop_toTopOf="parent" />
+            app:layout_constraintStart_toStartOf="@+id/textView"
+            app:layout_constraintTop_toBottomOf="@+id/textView" />
 
     <TextView
             android:id="@+id/textView"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="25dp"
-            android:fontFamily="@font/source_sans_pro"
-            android:text="How would you like to receive your receipt?"
+            android:layout_marginTop="70dp"
+            android:fontFamily="@font/source_sans_pro_semibold"
+            android:text="How would you like your e-receipt?"
             android:textColor="#FFFFFF"
-            android:textSize="24sp"
+            android:textSize="40sp"
             app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.19"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/textView3" />
-
-    <ImageView
-            android:id="@+id/imageView"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="19dp"
-            app:layout_constraintBottom_toTopOf="@+id/email_editText"
-            app:layout_constraintStart_toStartOf="@+id/imageView2"
-            app:srcCompat="@android:drawable/sym_action_chat" />
-
-    <ImageView
-            android:id="@+id/imageView2"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="23dp"
-            app:layout_constraintBottom_toBottomOf="@+id/email_editText"
-            app:layout_constraintStart_toStartOf="@+id/email_editText"
-            app:srcCompat="@android:drawable/ic_dialog_email" />
-
-    <EditText
-            android:id="@+id/phone_number_editText"
-            android:layout_width="233dp"
-            android:layout_height="64dp"
-            android:layout_marginTop="96dp"
-            android:background="@null"
-            android:clickable="false"
-            android:ems="10"
-            android:fontFamily="@font/source_sans_pro"
-            android:hint="Phone Receipt"
-            android:inputType="phone"
-            android:textAlignment="textStart"
-            android:textColor="#FFFFFF"
-            android:textColorHint="#FFFFFF"
-            android:textIsSelectable="true"
-            app:layout_constraintBottom_toBottomOf="@+id/imageView"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="0.58"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/textView" />
-
-    <EditText
-            android:id="@+id/email_editText"
-            android:layout_width="565dp"
-            android:layout_height="80dp"
-            android:clickable="false"
-            android:ems="10"
-            android:fontFamily="@font/source_sans_pro"
-            android:hint="Email Receipt"
-            android:textAlignment="center"
-            android:background="@null"
-            android:textColor="#FFFFFF"
-            android:textColorHint="#FFFFFF"
-            android:textIsSelectable="true"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="0.503"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintVertical_bias="0.525" />
-
-    <androidx.core.widget.NestedScrollView
-            android:id="@+id/qwertyKeyboardScrollView"
-            android:layout_width="953dp"
-            android:layout_height="240dp"
-            android:visibility="invisible"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent">
-
-        <LinearLayout
-                android:id="@+id/qwertyKeyboardBackground"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:background="#e7ebee"
-                android:orientation="horizontal"
-                android:visibility="visible">
-
-            <com.example.nts_pim.utilities.keyboards.QwertyKeyboard
-                    android:id="@+id/qwertyKeyboard"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:orientation="horizontal"
-                    android:visibility="visible"
-                    tools:visibility="visible">
-
-            </com.example.nts_pim.utilities.keyboards.QwertyKeyboard>
-        </LinearLayout>
-
-    </androidx.core.widget.NestedScrollView>
-
-    <androidx.core.widget.NestedScrollView
-            android:id="@+id/phoneKeyboardScrollView"
-            android:layout_width="400dp"
-            android:layout_height="200dp"
-            android:layout_marginStart="8dp"
-            android:layout_marginEnd="8dp"
-            android:visibility="invisible"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="0.5"
-            app:layout_constraintStart_toStartOf="parent">
-
-        <LinearLayout
-                android:id="@+id/phoneKeyboardBackgroud"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:background="#e7ebee"
-                android:orientation="horizontal"
-                android:visibility="visible"
-                tools:visibility="gone">
-
-
-            <com.example.nts_pim.utilities.keyboards.PhoneKeyboard
-                    android:id="@+id/phoneKeyboard"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:orientation="horizontal"
-                    android:visibility="visible"
-                    tools:visibility="gone">
-
-            </com.example.nts_pim.utilities.keyboards.PhoneKeyboard>
-        </LinearLayout>
-    </androidx.core.widget.NestedScrollView>
+            app:layout_constraintTop_toTopOf="parent" />
 
     <ImageView
             android:id="@+id/email_or_text_back_btn"
-            android:layout_width="81dp"
-            android:layout_height="53dp"
-            android:layout_marginStart="16dp"
+            android:layout_width="79dp"
+            android:layout_height="43dp"
+            android:layout_marginTop="24dp"
             android:src="@drawable/ic_left_arrow_2"
-            app:layout_constraintBottom_toBottomOf="@+id/email_editText"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.02"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintVertical_bias="0.06999999" />
+            app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+            android:id="@+id/email_textView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="@font/source_sans_pro"
+            android:text="Email"
+            android:textColor="@color/whiteTextColor"
+            android:textSize="50sp"
+            app:layout_constraintBottom_toBottomOf="@+id/email_btn"
+            app:layout_constraintEnd_toEndOf="@+id/email_btn"
+            app:layout_constraintStart_toStartOf="@+id/email_btn" />
+
+    <TextView
+            android:id="@+id/text_textView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="@font/source_sans_pro"
+            android:text="Text"
+            android:textColor="@color/whiteTextColor"
+            android:textSize="50sp"
+            app:layout_constraintBottom_toBottomOf="@+id/text_message_btn"
+            app:layout_constraintEnd_toEndOf="@+id/text_message_btn"
+            app:layout_constraintStart_toStartOf="@+id/text_message_btn" />
+
+    <ImageView
+            android:id="@+id/email_icon_imageView"
+            android:layout_width="100dp"
+            android:layout_height="100dp"
+            android:src="@drawable/ic_email_icon_white"
+            app:layout_constraintBottom_toBottomOf="@+id/email_btn"
+            app:layout_constraintEnd_toEndOf="@+id/email_btn"
+            app:layout_constraintHorizontal_bias="0.532"
+            app:layout_constraintStart_toStartOf="@+id/email_btn"
+            app:layout_constraintTop_toTopOf="@+id/email_btn"
+            app:layout_constraintVertical_bias="0.135" />
+
+    <ImageView
+            android:id="@+id/text_message_icon_imageView"
+            android:layout_width="95dp"
+            android:layout_height="73dp"
+            android:src="@drawable/ic_text_message_icon_white"
+            app:layout_constraintBottom_toBottomOf="@+id/text_message_btn"
+            app:layout_constraintEnd_toEndOf="@+id/text_message_btn"
+            app:layout_constraintHorizontal_bias="0.51"
+            app:layout_constraintStart_toStartOf="@+id/text_message_btn"
+            app:layout_constraintTop_toTopOf="@+id/text_message_btn"
+            app:layout_constraintVertical_bias="0.313" />
+
+    <Button
+            android:id="@+id/button3"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Button"
+            android:visibility="invisible"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
 
 
 </androidx.constraintlayout.widget.ConstraintLayout>

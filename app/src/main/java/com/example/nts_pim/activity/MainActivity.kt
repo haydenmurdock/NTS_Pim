@@ -1,5 +1,6 @@
 package com.example.nts_pim.activity
 
+import android.bluetooth.BluetoothAdapter
 import android.content.ContentValues
 import android.content.Context
 import android.media.*
@@ -37,6 +38,9 @@ import com.example.nts_pim.utilities.enums.PIMStatusEnum
 import com.example.nts_pim.utilities.enums.SharedPrefEnum
 import com.example.nts_pim.utilities.mutation_helper.PIMMutationHelper
 import com.example.nts_pim.utilities.sound_helper.SoundHelper
+import com.amazonaws.mobileconnectors.appsync.fetcher.AppSyncResponseFetchers
+import com.apollographql.apollo.GraphQLCall
+import com.example.nts_pim.BuildConfig
 
 
 class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
@@ -49,19 +53,17 @@ class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
     override val coroutineContext: CoroutineContext
         get() = mJob + Dispatchers.Main
     private lateinit var callbackViewModel: CallBackViewModel
-
     private var internetConnection = false
     private var resync = false
-
+    private var meterStateQueryComplete = false
+    private var mSuccessfulSetup = false
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         //This is for screen wake
         window.addFlags(FLAG_KEEP_SCREEN_ON)
-        ViewHelper.hideSystemUI(this)
         UnlockScreenLock()
         mJob = Job()
-
         Navigation.findNavController(this, R.id.nav_host_fragment)
 
         mAWSAppSyncClient = ClientFactory.getInstance(applicationContext)
@@ -76,6 +78,7 @@ class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
 
         viewModel.watchSetUpComplete().observe(this, Observer {successfulSetup ->
             if (successfulSetup){
+                mSuccessfulSetup = successfulSetup
                 vehicleId = viewModel.getVehicleID()
                 internetConnection = isOnline(this)
                 if (internetConnection){
@@ -85,7 +88,9 @@ class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                 }
             }
         })
-        forceSpeaker()
+//        forceSpeaker()
+        setUpBluetooth()
+        findVersionNumberOfBuild()
         callbackViewModel.getReSyncStatus().observe(this, Observer { reSync ->
             if (reSync){
                 resync = reSync
@@ -117,7 +122,7 @@ class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
             Log.i("Results", "Successful subscription callback for Trip Status - ${response.data()}")
 
             val tripStatus = response.data()?.onStatusUpdate()?.tripStatus() as String
-            val tripId = response.data()?.onStatusUpdate()?.tripId() as String
+            val tripId = response.data()?.onStatusUpdate()?.tripId()
             val pimStatus = response.data()?.onStatusUpdate()?.pimStatus() as String
 
             if(pimStatus == "_"){
@@ -125,20 +130,21 @@ class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                 sendPIMStatus()
             }
 
-            if (tripStatus.isNotEmpty()) {
+            if (!tripStatus.isNullOrBlank()) {
                 insertTripStatus(tripStatus)
             }
 
-            if(tripId.isNotEmpty()) {
+            if(!tripId.isNullOrBlank()) {
                 insertTripId(tripId)
                 startSubscriptionTripUpdate(tripId)
+                getMeterStateQuery(tripId)
               launch(Dispatchers.Main.immediate) {
                    viewModel.watchSetUpComplete().removeObservers(this@MainActivity)
                }
             }
         }
 
-        override fun onFailure(e: ApolloException) {
+            override fun onFailure(e: ApolloException) {
             Log.i("Error", "Error in callback for tripStatusUpdate: $e.")
         }
 
@@ -170,6 +176,9 @@ class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
             val meterState = response.data()?.onTripUpdate()?.meterState()
             val owedPriceForMeter = response.data()?.onTripUpdate()?.owedPrice()
             val transactionId = response.data()?.onTripUpdate()?.pimTransId()
+            val pimPaymentAmount = response.data()?.onTripUpdate()?.pimPayAmt()
+            val pimNoReceipt = response.data()?.onTripUpdate()?.pimNoReceipt()
+
             if (tripNumber != null){
                 insertTripNumber(tripNumber)
                 //we get the transactionId when we get the trip number.
@@ -177,11 +186,18 @@ class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                     insertTransactionID(transactionId)
                 }
             }
-            if (meterState is String) {
+                if (meterState != null) {
                insertMeterState(meterState)
              }
             if (owedPriceForMeter != null){
                 insertMeterValue(owedPriceForMeter)
+            }
+            if(pimPaymentAmount != null){
+                insertPimPayAmount(pimPaymentAmount)
+            }
+            if(pimNoReceipt != null
+                && pimNoReceipt.trim() == "Y"){
+                insertPimNoReceipt(true)
             }
         }
         override fun onFailure(e: ApolloException) {
@@ -189,6 +205,27 @@ class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
         }
         override fun onCompleted() {
             Log.i("Results", "Subscription completed")
+        }
+    }
+    private fun getMeterStateQuery(tripId: String) = launch(Dispatchers.IO){
+        mAWSAppSyncClient?.query(GetTripQuery.builder().tripId(tripId).build())
+            ?.responseFetcher(AppSyncResponseFetchers.CACHE_AND_NETWORK)
+            ?.enqueue(getTripQueryCallBack)
+    }
+    private var getTripQueryCallBack = object: GraphQLCall.Callback<GetTripQuery.Data>(){
+        override fun onResponse(response: Response<GetTripQuery.Data>) {
+            if (response.data()?.trip != null) {
+                val initialMeterState = response.data()!!.trip.meterState()
+
+                if (!initialMeterState.isNullOrBlank() &&
+                        !meterStateQueryComplete) {
+                    insertMeterState(initialMeterState)
+                    meterStateQueryComplete = true
+                }
+            }
+        }
+        override fun onFailure(e: ApolloException) {
+            Log.e("ERROR", e.toString())
         }
     }
     //Coroutine to insert Meter Value
@@ -204,6 +241,13 @@ class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
     private fun insertTransactionID(transactionId: String) = launch {
         callbackViewModel.setTransactionId(transactionId)
     }
+    private fun insertPimPayAmount(pimPayAmount:Double) = launch{
+        callbackViewModel.setPimPayAmount(pimPayAmount)
+    }
+    private fun insertPimNoReceipt(boolean: Boolean) = launch{
+        callbackViewModel.pimDoesNotNeedToDoReceipt(boolean)
+    }
+
     private fun sendPIMStatus() = launch{
         val pimStatus = VehicleTripArrayHolder.getInternalPIMStatus()
         if(pimStatus != ""){
@@ -214,10 +258,11 @@ class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
     }
     override fun onWindowFocusChanged(hasFocus:Boolean) {
         super.onWindowFocusChanged(hasFocus)
-        if (hasFocus) {
-            ViewHelper.hideSystemUI(this)
+        if (hasFocus && mSuccessfulSetup) {
+           ViewHelper.hideSystemUI(this)
             }
         }
+
     private fun forceSpeaker() {
         try {
           playTestSound()
@@ -239,7 +284,7 @@ class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
         val request = audioManager.requestAudioFocus(focusRequest)
         when(request) {
             AudioManager.AUDIOFOCUS_REQUEST_GRANTED -> {
-//               mediaPlayer.start()
+               mediaPlayer.start()
              }
         }
         mediaPlayer.setOnCompletionListener {
@@ -276,6 +321,17 @@ class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
             }
          }
         } .start()
+    }
+    private fun setUpBluetooth(){
+        val mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
+        if (!mBluetoothAdapter.isEnabled) {
+            mBluetoothAdapter.enable()
+        }
+    }
+    private fun findVersionNumberOfBuild(){
+        val buildName = BuildConfig.VERSION_NAME
+        val buildNumber = BuildConfig.VERSION_CODE
+        Log.i("Version", "Build name: $buildName| Build version: $buildNumber")
     }
     override fun onDestroy() {
         super.onDestroy()

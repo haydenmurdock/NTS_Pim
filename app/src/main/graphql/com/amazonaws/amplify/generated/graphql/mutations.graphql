@@ -266,6 +266,8 @@ mutation UpdateTrip($parameters: updateTripInput) {
     owedPriceSource
     paidAmt
     paymentType
+    pimNoReceipt
+    pimPayAmt
     pimPaidAmt
     pimTransId
     pimTransDate
@@ -411,6 +413,8 @@ mutation TriggerMeterTrips($tripId: String!) {
     owedPriceSource
     paidAmt
     paymentType
+    pimNoReceipt
+    pimPayAmt
     pimPaidAmt
     pimTransId
     pimTransDate

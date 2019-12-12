@@ -7,6 +7,18 @@
         android:layout_height="match_parent"
         android:background="@color/screenBackgroundColor">
 
+    <TextView
+            android:id="@+id/custom_tip_screen_tip_breakdown_textView2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="@font/source_sans_pro"
+            android:text="tipBreakDown"
+            android:textColor="@color/red"
+            android:textSize="30sp"
+            android:visibility="invisible"
+            app:layout_constraintStart_toEndOf="@+id/custom_tip_screen_trip_total_textView"
+            app:layout_constraintTop_toBottomOf="@+id/textView6" />
+
     <EditText
             android:id="@+id/custom_tip_screen_editText"
             android:layout_width="345dp"
@@ -348,7 +360,6 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="20dp"
-            android:layout_marginEnd="-10dp"
             android:fontFamily="@font/source_sans_pro"
             android:text="Give a tip?"
             android:textAlignment="center"
@@ -356,7 +367,7 @@
             android:textColor="@color/whiteTextColor"
             android:textSize="54sp"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="0.11"
+            app:layout_constraintHorizontal_bias="0.06"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/close_custom_tip_screen_btn" />
 
@@ -364,13 +375,13 @@
             android:id="@+id/custom_tip_screen_trip_total_textView"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:fontFamily="@font/source_sans_pro"
+            android:fontFamily="@font/source_sans_pro_semibold"
             android:text="$"
             android:textAlignment="center"
             android:textColor="@color/red"
-            android:textSize="36sp"
+            android:textSize="30sp"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="0.086"
+            app:layout_constraintHorizontal_bias="0.06"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/textView6" />
 
@@ -431,5 +442,19 @@
             app:layout_constraintEnd_toStartOf="@+id/custom_tip_screen_editText"
             app:layout_constraintHorizontal_bias="0.39"
             app:layout_constraintStart_toEndOf="@+id/custom_tip_screen_editText" />
+
+    <TextView
+            android:id="@+id/custom_tip_screen_tip_breakdown_textView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="@font/source_sans_pro"
+            android:text="tipBreakDown"
+            android:textColor="@color/red"
+            android:textSize="30sp"
+            android:visibility="invisible"
+            app:layout_constraintEnd_toStartOf="@+id/dollar_textView"
+            app:layout_constraintHorizontal_bias="0.14"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/custom_tip_screen_trip_total_textView" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

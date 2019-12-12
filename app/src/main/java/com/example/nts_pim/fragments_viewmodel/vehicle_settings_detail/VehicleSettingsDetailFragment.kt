@@ -35,16 +35,10 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
 
     //kodein and viewModel/Factory
     override val kodein by closestKodein()
-
     private val viewModelFactory: VehicleSettingsDetailViewModelFactory by instance()
-
     private lateinit var callBackViewModel: CallBackViewModel
-
     private lateinit var viewModel: VehicleSettingsDetailViewModel
-
     private var readerSettingsCallbackRef: CallbackReference? = null
-
-
     //Local Variables
 
 
@@ -69,7 +63,7 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
 
         val batteryStatus = callBackViewModel.batteryPowerStatePermission()
         updateUI(batteryStatus)
-        var myVib = context!!.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+        val myVib = context!!.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
         activity_indicator_vehicle_detail.visibility = View.INVISIBLE
 
         check_bluetooth_btn.setOnClickListener {
@@ -119,8 +113,6 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
                 Toast.makeText(context, "Vibrate Set to " + seekBar.progress, Toast.LENGTH_SHORT).show()
                 myVib.vibrate(VibrationEffect.createOneShot(250, seekBar.progress))
             }
-
-
         })
     }
     private fun onReaderSettingsResult(result: Result<Void, ResultError<ReaderSettingsErrorCode>>) {

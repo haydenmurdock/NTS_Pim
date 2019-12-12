@@ -83,9 +83,7 @@
             android:text="1.00"
             android:textColor="@color/red"
             android:textSize="36sp"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="0.1"
-            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintStart_toStartOf="@+id/how_to_pay_text_view"
             app:layout_constraintTop_toBottomOf="@+id/how_to_pay_text_view" />
 
     <androidx.constraintlayout.widget.Guideline

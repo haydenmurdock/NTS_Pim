@@ -1,5 +1,7 @@
 package com.example.nts_pim.fragments_viewmodel.safety_warning
 
+import android.content.Context
+import android.media.AudioManager
 import android.media.MediaPlayer
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -8,6 +10,7 @@ import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.navigation.Navigation
 import com.example.nts_pim.R
+import com.example.nts_pim.utilities.sound_helper.SoundHelper
 import kotlinx.android.synthetic.main.safety_warning_screen.*
 import java.util.*
 import kotlin.concurrent.timerTask
@@ -15,7 +18,6 @@ import kotlin.concurrent.timerTask
 class SafetyWarningFragment : Fragment() {
 
     private var screenIsReadyToTransition = false
-
     //This Fragment does not need ViewModel/Factory since it doesn't touch the Repo
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?,
@@ -45,16 +47,16 @@ class SafetyWarningFragment : Fragment() {
         val animationIsOn = resources.getBoolean(R.bool.animationIsOn)
 
         if (animationIsOn) {
-            playSafetyMessage()
-           buckle_up_text_view.animate().alpha(1f).setDuration(2500).withEndAction(Runnable {
-
-                buckle_up_text_view.animate().alpha(0.0f).setDuration(2500).withEndAction(Runnable {
-                    if (screenIsReadyToTransition){
-                        navigate(view)
+//            playSafetyMessage()
+            if (buckle_up_text_view != null){
+                buckle_up_text_view.animate().alpha(1f).setDuration(2500).withEndAction(Runnable {
+                    if (buckle_up_text_view != null){
+                        buckle_up_text_view.animate().alpha(0.0f).setDuration(2500).withEndAction(Runnable {
+                                navigate(view)
+                        })
                     }
                 })
-            })
-
+            }
         } else {
             toNextScreen(view)
         }
@@ -62,13 +64,22 @@ class SafetyWarningFragment : Fragment() {
 
     private fun playSafetyMessage(){
         val mediaPlayer = MediaPlayer.create(context, R.raw.saftey_message_test)
+        val audioManager = context?.getSystemService(Context.AUDIO_SERVICE) as AudioManager
         mediaPlayer.setOnCompletionListener {
-            screenIsReadyToTransition = true
             mediaPlayer.release()
             if(buckle_up_text_view.alpha == 0.0f){
                 navigate(view!!)
             }
         }
-       mediaPlayer.start()
+        if (!audioManager.isMicrophoneMute){
+            screenIsReadyToTransition = true
+            mediaPlayer.start()
+        } else {
+            screenIsReadyToTransition = true
+            if(buckle_up_text_view != null &&
+                buckle_up_text_view.alpha == 0.0f){
+                navigate(view!!)
+            }
+        }
     }
 }

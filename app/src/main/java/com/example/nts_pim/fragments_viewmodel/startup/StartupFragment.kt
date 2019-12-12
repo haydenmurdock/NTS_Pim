@@ -50,7 +50,7 @@ class StartupFragment: ScopedFragment(), KodeinAware {
     }
 
     private fun checkDrawPermission(): Boolean {
-        var retValue = Settings.canDrawOverlays(context)
+        val retValue = Settings.canDrawOverlays(context)
         if(!retValue){
             openDrawPermissionsMenu()
         }

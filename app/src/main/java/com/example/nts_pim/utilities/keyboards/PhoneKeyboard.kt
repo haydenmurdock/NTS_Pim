@@ -96,7 +96,6 @@ class PhoneKeyboard @JvmOverloads constructor(
 
         // do nothing if the InputConnection has not been set yet
         if (inputConnection == null) return
-           playKeyboardSound()
         if (v.id == R.id.button_enter) {
             KeyboardWatcher.enterButtonPressed("phone")
         }
@@ -127,15 +126,5 @@ class PhoneKeyboard @JvmOverloads constructor(
     // a reference to the current EditText's InputConnection
     fun setInputConnection(ic: InputConnection) {
         this.inputConnection = ic
-    }
-    private fun playKeyboardSound(){
-//        val mediaPlayer = MediaPlayer.create(context, R.raw.keyboard_click_1)
-//        mediaPlayer.start()
-//        mediaPlayer.setOnCompletionListener {
-//            it.release()
-//        }
-        var myVib = context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
-
-        myVib.vibrate(50)
     }
 }// constructors

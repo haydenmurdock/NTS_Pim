@@ -10,5 +10,6 @@ enum class PIMStatusEnum(val status: String) {
     CANCELED_SQUARE_PAYMENT("ENDED_SQUARE_PAYMENT|Passenger has canceled Square payment"),
     SQUARE_PAYMENT_COMPLETE("PAYMENT_COMPLETE|Passenger has completed payment"),
     PAYMENT_ERROR("PAYMENT_ERROR|There was an error during Passenger payment"),
+    RECEIPT_SCREEN("RECEIPT_SCREEN| Passenger is viewing a receipt screen"),
     ERROR_UPDATING("ERROR| Syncing error. Try again")
 }

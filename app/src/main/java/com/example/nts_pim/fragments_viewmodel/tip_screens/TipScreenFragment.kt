@@ -79,12 +79,6 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
         override fun onTick(millisUntilFinished: Long) {
         }
         override fun onFinish() {
-            if (!resources.getBoolean(R.bool.isSquareBuildOn)){
-//                val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
-//                if(navController.currentDestination?.id == (R.id.tipScreenFragment)){
-//                    val action = TipScreenFragmentDirections.backToTripReview(tripTotal.toFloat()).setMeterOwedPrice(tripTotal.toFloat())
-//                    navController.navigate(action)
-            }
         }
     }
 
@@ -110,7 +104,6 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
 
         vehicleId = viewModel.getVehicleID()
         tripID = callbackViewModel.getTripId()
-        transactionId = callbackViewModel.getTransactionId()
         val checkoutManager = ReaderSdk.checkoutManager()
         checkoutCallbackRef = checkoutManager.addCheckoutActivityCallback(this::onCheckoutResult)
 
@@ -598,23 +591,33 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
     }
     private fun showCheckoutResult(checkoutResult: CheckoutResult) {
         val tenders = checkoutResult.tenders
+        if(checkoutResult.transactionId != null){
+//            callbackViewModel.setTransactionId(transactionId)
+//            callbackViewModel.setTransactionId(transactionId)
+        }
         transactionDate = checkoutResult.createdAt
-        println("Square Checkout date $transactionDate")
         val updatedTransactionDate = ViewHelper.formatDateUtcIso(transactionDate)
         for (i in tenders){
+            transactionId = i.tenderId
+            callbackViewModel.setTransactionId(transactionId)
             val cardName = i.cardDetails.card.brand.name
             cardInfo = cardName + " " + i.cardDetails.card.lastFourDigits
             tripTotalBackFromSquare = i.totalMoney.amount.toDouble()
         }
 
         if (cardInfo != ""){
-            updateTransactionInfo(tipAmountPassedToSquare,
+            updateLocalTripDetails()
+            updateTransactionInfo(
+                tipAmountPassedToSquare,
                 cardInfo,
                 tipPercentPicked,
                 tripTotal,
                 updatedTransactionDate,
                 transactionId)
         }
+    }
+    private fun updateLocalTripDetails(){
+        callbackViewModel.setTipAmount(tipAmountPassedToSquare)
     }
     private fun resetScreen() = launch(Dispatchers.Main.immediate){
         val originalTripValue = tripTotal - tipAmountPassedToSquare

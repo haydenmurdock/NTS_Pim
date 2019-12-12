@@ -51,6 +51,9 @@
         <argument
                 android:name="meterTotal"
                 app:argType="float" />
+        <action
+                android:id="@+id/toEmailorTextFromLiveMeter"
+                app:destination="@id/email_or_text_fragment" />
     </fragment>
 
     <fragment
@@ -87,6 +90,12 @@
         <action
                 android:id="@+id/emailOrTextBackToTripReview"
                 app:destination="@id/trip_review_fragment" />
+        <action
+                android:id="@+id/action_email_or_text_fragment_to_receiptInformationEmailFragment"
+                app:destination="@id/receiptInformationEmailFragment" />
+        <action
+                android:id="@+id/action_email_or_text_fragment_to_receiptInformationTextFragment2"
+                app:destination="@id/receiptInformationTextFragment" />
     </fragment>
 
     <fragment
@@ -172,6 +181,69 @@
         <argument
                 android:name="tripTotalFromTipScreen"
                 app:argType="float" />
+    </fragment>
+    <fragment
+            android:id="@+id/receiptInformationEmailFragment"
+            android:name="com.example.nts_pim.fragments_viewmodel.receipt_information.ReceiptInformationEmailFragment"
+            android:label="ReceiptInformationEmailFragment" >
+        <action
+                android:id="@+id/action_receiptInformationEmailFragment_to_email_or_text_fragment"
+                app:destination="@id/email_or_text_fragment" />
+        <argument
+                android:name="paymentType"
+                app:argType="string" />
+        <argument
+                android:name="tripTotal"
+                app:argType="float" />
+        <argument
+                android:name="previousEmail"
+                app:argType="string" />
+        <action
+                android:id="@+id/action_receiptInformationEmailFragment_to_interaction_complete_fragment"
+                app:destination="@id/interaction_complete_fragment" />
+        <action
+                android:id="@+id/action_receiptInformationEmailFragment_to_confirmationFragment"
+                app:destination="@id/confirmationFragment" />
+    </fragment>
+    <fragment
+            android:id="@+id/receiptInformationTextFragment"
+            android:name="com.example.nts_pim.fragments_viewmodel.receipt_information.ReceiptInformationTextFragment"
+            android:label="ReceiptInformationTextFragment" >
+        <action
+                android:id="@+id/action_receiptInformationTextFragment2_to_email_or_text_fragment"
+                app:destination="@id/email_or_text_fragment" />
+        <argument
+                android:name="paymentType"
+                app:argType="string" />
+        <argument
+                android:name="tripTotal"
+                app:argType="float" />
+        <argument
+                android:name="previousPhoneNumber"
+                app:argType="string" />
+        <action
+                android:id="@+id/action_receiptInformationTextFragment_to_interaction_complete_fragment"
+                app:destination="@id/interaction_complete_fragment" />
+        <action
+                android:id="@+id/action_receiptInformationTextFragment_to_confirmationFragment"
+                app:destination="@id/confirmationFragment" />
+    </fragment>
+    <fragment
+            android:id="@+id/confirmationFragment"
+            android:name="com.example.nts_pim.fragments_viewmodel.confirmation.ConfirmationFragment"
+            android:label="ConfirmationFragment" >
+        <argument
+                android:name="emailOrPhoneNumber"
+                app:argType="string" />
+        <action
+                android:id="@+id/action_confirmationFragment_to_welcome_fragment"
+                app:destination="@id/welcome_fragment" />
+        <argument
+                android:name="tripTotal"
+                app:argType="float" />
+        <argument
+                android:name="receiptType"
+                app:argType="string" />
     </fragment>
 
 

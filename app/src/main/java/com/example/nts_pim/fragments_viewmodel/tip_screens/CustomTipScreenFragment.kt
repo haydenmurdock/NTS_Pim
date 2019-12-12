@@ -14,7 +14,6 @@ import com.example.nts_pim.fragments_viewmodel.base.ScopedFragment
 import kotlinx.android.synthetic.main.custom_tip_screen.*
 import java.text.DecimalFormat
 import android.os.Handler
-import kotlinx.android.synthetic.main.tip_screen.*
 import java.util.*
 
 
@@ -31,22 +30,11 @@ class CustomTipScreenFragment : ScopedFragment() {
     private lateinit var handler: Handler
     private var cursorTimer: CountDownTimer? = null
 
-
-
     val screenTimeOutTimer = object: CountDownTimer(45000, 1000) {
         // this is set to 45 seconds.
         override fun onTick(millisUntilFinished: Long) {
         }
         override fun onFinish() {
-//                val noTipChosen = 00.00.toFloat()
-//                val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
-//                val action = CustomTipScreenFragmentDirections.backToTipScreenFragment(tripTotalWithTip.toFloat(), noTipChosen)
-//                    .setTipScreenTripTotal(tripTotal.toFloat())
-//                    .setDoneButtonTouchedOnCustomTipScreen(false)
-//                    .setTipChosenFromCustomTipScreen(noTipChosen)
-//                if (navController.currentDestination?.id == (R.id.customTipScreenFragment)) {
-//                    navController.navigate(action)
-//                }
         }
     }
 
@@ -486,6 +474,12 @@ class CustomTipScreenFragment : ScopedFragment() {
                     customTipViewAmountString = ""
                     custom_tip_screen_done_btn.isEnabled = false
                     addBeginningCursor()
+                    if(custom_tip_screen_tip_breakdown_textView.isVisible){
+                        custom_tip_screen_tip_breakdown_textView.visibility = View.INVISIBLE
+                    }
+                    if(custom_tip_screen_tip_breakdown_textView2.isVisible){
+                        custom_tip_screen_tip_breakdown_textView2.visibility = View.INVISIBLE
+                    }
                 }
             }
 
@@ -520,7 +514,7 @@ class CustomTipScreenFragment : ScopedFragment() {
                 val formattedArgs = tripTotalDFUnderTen.format(args)
                 tripTotal = formattedArgs.toDouble()
                 val tripTotalToString = formattedArgs.toString()
-                custom_tip_screen_trip_total_textView.text = "$$tripTotalToString"
+                custom_tip_screen_trip_total_textView.text = "$tripTotalToString"
             } else {
                 val formattedArgs = tripTotalDF.format(args)
                 tripTotal = formattedArgs.toDouble()
@@ -528,40 +522,78 @@ class CustomTipScreenFragment : ScopedFragment() {
                 custom_tip_screen_trip_total_textView.text = "$tripTotalToString"
             }
         }
-
     }
     private fun updateTripWithTip() {
         //customTipAmount = editTextField
         //tripTotal = amount passed along
         //tripTotalWithTip = customTipAmount and tripTotal combined
         if (customTipViewPercentageMode && customTipViewAmountString != "") {
+            //this is for tip amount set for percentage
             val percentage = customTipViewAmountString.toDouble() * 00.01
             val tripTotalPercent = tripTotal * percentage
+            val triptotalPercentFormatted = formatString(tripTotalPercent)
+            val tripTotalFormatted = formatString(tripTotal)
             tripTotalWithTip = tripTotal + tripTotalPercent
             if (tripTotalWithTip < 10) {
                 val formattedTripTotal = tripTotalDFUnderTen.format(tripTotalWithTip)
                 custom_tip_screen_trip_total_textView.text = "$$formattedTripTotal"
+                if(!custom_tip_screen_tip_breakdown_textView2.isVisible){
+                    custom_tip_screen_tip_breakdown_textView2.visibility = View.VISIBLE
+                }
+                custom_tip_screen_tip_breakdown_textView2.text = (" ($$tripTotalFormatted + $$triptotalPercentFormatted tip)")
             } else {
                 val formattedTripTotal = tripTotalDF.format(tripTotalWithTip)
                 custom_tip_screen_trip_total_textView.text = "$$formattedTripTotal"
+                if (formattedTripTotal.length > 5){
+                    if(!custom_tip_screen_tip_breakdown_textView.isVisible){
+                        custom_tip_screen_tip_breakdown_textView.visibility = View.VISIBLE
+                    }
+                    custom_tip_screen_tip_breakdown_textView.text = (" ($$tripTotalFormatted + $$triptotalPercentFormatted tip)")
+                } else {
+                    if(!custom_tip_screen_tip_breakdown_textView2.isVisible){
+                        custom_tip_screen_tip_breakdown_textView2.visibility = View.VISIBLE
+                    }
+                    custom_tip_screen_tip_breakdown_textView2.text = (" ($$tripTotalFormatted + $$triptotalPercentFormatted tip)")
+                }
             }
         } else if (!customTipViewPercentageMode && customTipViewAmountString != "") {
+           //This is for tip amount set for dollar amount
             tripTotalWithTip = tripTotal + customTipViewAmountString.toDouble()
+            val tripTotalFormatted = formatString(tripTotal)
             if (tripTotalWithTip < 10) {
                 val formattedTripTotal = tripTotalDFUnderTen.format(tripTotalWithTip)
                 custom_tip_screen_trip_total_textView.text = "$$formattedTripTotal"
+                if(!custom_tip_screen_tip_breakdown_textView2.isVisible){
+                    custom_tip_screen_tip_breakdown_textView2.visibility = View.VISIBLE
+                }
+                custom_tip_screen_tip_breakdown_textView2.text =" ($$tripTotalFormatted + $${customTipViewAmountString} tip)"
             } else {
                 val formattedTripTotal = tripTotalDF.format(tripTotalWithTip)
                 custom_tip_screen_trip_total_textView.text = "$$formattedTripTotal"
+                if(!custom_tip_screen_tip_breakdown_textView2.isVisible){
+                    custom_tip_screen_tip_breakdown_textView2.visibility = View.VISIBLE
+                }
+                custom_tip_screen_tip_breakdown_textView2.text =" ($$tripTotalFormatted + $${customTipViewAmountString} tip)"
             }
         } else {
             if (tripTotal < 10) {
                 val formattedTripTotal = tripTotalDFUnderTen.format(tripTotal)
                 custom_tip_screen_trip_total_textView.text = "$$formattedTripTotal"
+                if(custom_tip_screen_tip_breakdown_textView.isVisible){
+                    custom_tip_screen_tip_breakdown_textView.visibility = View.INVISIBLE
+                }
+                if(custom_tip_screen_tip_breakdown_textView2.isVisible){
+                    custom_tip_screen_tip_breakdown_textView2.visibility = View.VISIBLE
+                }
             } else {
                 val formattedTripTotal = tripTotalDF.format(tripTotal)
                 custom_tip_screen_trip_total_textView.text = "$$formattedTripTotal"
-
+                if(custom_tip_screen_tip_breakdown_textView.isVisible){
+                    custom_tip_screen_tip_breakdown_textView.visibility = View.INVISIBLE
+                }
+                if(custom_tip_screen_tip_breakdown_textView2.isVisible){
+                    custom_tip_screen_tip_breakdown_textView2.visibility = View.INVISIBLE
+                }
             }
         }
     }
@@ -624,6 +656,12 @@ class CustomTipScreenFragment : ScopedFragment() {
     }
     private fun setTextToWhite(button:Button){
         button.setTextColor((ContextCompat.getColor(context!!, R.color.whiteTextColor)))
+    }
+    private fun formatString(enteredDouble: Double):String{
+        if(enteredDouble < 10){
+            return tripTotalDFUnderTen.format(enteredDouble)
+        }
+        return tripTotalDF.format(enteredDouble)
     }
     private fun backSpaceLogic(){
         val tipLength = customTipViewAmountString.length

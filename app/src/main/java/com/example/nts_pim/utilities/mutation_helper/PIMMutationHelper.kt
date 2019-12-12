@@ -11,6 +11,7 @@ import com.apollographql.apollo.GraphQLCall
 import com.apollographql.apollo.api.Response
 import com.apollographql.apollo.exception.ApolloException
 import com.example.nts_pim.data.repository.VehicleTripArrayHolder
+import com.example.nts_pim.utilities.sms_helper.SmsHelper
 import type.UpdatePimStatusInput
 import type.UpdateStatusInput
 import type.UpdateTripInput
@@ -19,7 +20,7 @@ import type.UpdateTripStatusInput
 object PIMMutationHelper {
 
     fun updatePIMStatus(vehicleId: String, pimStatusUpdate: String, appSyncClient: AWSAppSyncClient){
-        var updatePimStatusInput = UpdatePimStatusInput.builder()?.vehicleId(vehicleId)?.pimStatus(pimStatusUpdate)?.build()
+        val updatePimStatusInput = UpdatePimStatusInput.builder()?.vehicleId(vehicleId)?.pimStatus(pimStatusUpdate)?.build()
 
         appSyncClient.mutate(UpdatePimStatusMutation.builder().parameters(updatePimStatusInput).build())
             ?.enqueue(mutationCallbackOnPIM)
@@ -38,7 +39,7 @@ object PIMMutationHelper {
     }
 
     fun updatePaymentType(vehicleId: String, paymentType: String, appSyncClient: AWSAppSyncClient, tripId: String){
-        var updatePaymentTypeInput = UpdateTripInput.builder().vehicleId(vehicleId).tripId(tripId).paymentType(paymentType).build()
+        val updatePaymentTypeInput = UpdateTripInput.builder().vehicleId(vehicleId).tripId(tripId).paymentType(paymentType).build()
 
         appSyncClient.mutate(UpdateTripMutation.builder().parameters(updatePaymentTypeInput).build())
             ?.enqueue(mutationCallbackPaymentType)
@@ -56,7 +57,7 @@ object PIMMutationHelper {
     }
 
     fun updateTripStatus(vehicleId: String, tripUpdate: String, appSyncClient: AWSAppSyncClient, tripId: String){
-        var updateStatusInput = UpdateTripStatusInput.builder()?.vehicleId(vehicleId)?.tripStatus(tripUpdate)?.tripId(tripId)?.build()
+        val updateStatusInput = UpdateTripStatusInput.builder()?.vehicleId(vehicleId)?.tripStatus(tripUpdate)?.tripId(tripId)?.build()
 
         appSyncClient.mutate(UpdateTripStatusMutation.builder().parameters(updateStatusInput).build())
             ?.enqueue(mutationCallbackOnTripStatus)
@@ -72,5 +73,6 @@ object PIMMutationHelper {
             Log.e("Error", "There was an issue updating the vehicle Status: $e")
         }
     }
+
 
 }

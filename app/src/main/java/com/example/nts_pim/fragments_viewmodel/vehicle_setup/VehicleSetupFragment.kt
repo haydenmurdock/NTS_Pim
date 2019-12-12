@@ -44,7 +44,6 @@ import com.example.nts_pim.utilities.view_helper.ViewHelper
 import com.github.ybq.android.spinkit.style.DoubleBounce
 import com.github.ybq.android.spinkit.style.ThreeBounce
 import com.google.gson.Gson
-import com.sdsmdg.tastytoast.TastyToast
 import com.squareup.sdk.reader.ReaderSdk
 import com.squareup.sdk.reader.authorization.AuthorizationManager
 import com.squareup.sdk.reader.authorization.AuthorizeErrorCode
@@ -78,25 +77,23 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
     private var mAWSAppSyncClient: AWSAppSyncClient? = null
     private var authorizeCallbackRef: CallbackReference? = null
     private var readerSettingsCallbackRef: CallbackReference? = null
-
+    private val authManager = ReaderSdk.authorizationManager()
 
     private val setNamesArray =
-        arrayOf("UUID", "PIN", "Vehicle ID", "Authorization", "Bluetooth Setup")
-    private val setBooleanArray = arrayOf(false, false, false, false, false)
-
+        arrayOf("UUID", "PIN", "Vehicle ID", "Authorization","Knox Startup", "Bluetooth Setup")
+    private val setBooleanArray = arrayOf(false, false, false, false, false,false)
     private var uuid = ""
-
     private var pin = ""
-
     private var vehicleID = ""
-
     private var authCode = ""
     private var authorized = false
+    private val currentFragment = R.id.vehicleSetupFragment
+    private val alreadyAuthString = "authorize_already_authorized"
     var pinEntered = false
     var incorrectPin = ""
     var adapter: Adapter? = null
     var doesVehicleIdExist = false
-    val authManager = ReaderSdk.authorizationManager()
+
 
 
     override fun onCreateView(
@@ -111,8 +108,6 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
         super.onViewCreated(view, savedInstanceState)
         adapter = MyCustomAdapter(context!!, setNamesArray, setBooleanArray)
         listView.adapter = adapter as MyCustomAdapter
-
-
         authorizeCallbackRef =
             authManager.addAuthorizeCallback(this::onAuthorizeResult)
         val readerManager = ReaderSdk.readerManager()
@@ -139,13 +134,7 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
             if (it)
                 pinEntered = true
             if (!it && pinEntered) {
-                val enteredPin = enter_pin_editText.text.toString()
-                pin = enteredPin
-                println(uuid)
-                vehicle_id_progressBar.isVisible = true
-                vehicle_id_progressBar.animate()
-                queryVehicleId(uuid, pin, adapter as MyCustomAdapter)
-                pinEntered = false
+                showUIForEnterPIN()
                 keyboardViewModel.qwertyKeyboardisUp()
             }
         })
@@ -155,16 +144,8 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
                 checkDeviceID(view, adapter as MyCustomAdapter)
                 checkForPin(adapter as MyCustomAdapter)
             } else {
-                updateChecklist(0, true, adapter as MyCustomAdapter)
-                updateChecklist(1, true, adapter as MyCustomAdapter)
-                updateChecklist(2, true, adapter as MyCustomAdapter)
-                vehicle_id_progressBar.isVisible = false
-                pin_detail_scrollView.isVisible = false
-                setup_detail_scrollView.isVisible = true
-                setup_detail_text_view.text = ""
-                Thread {
-                    checkAuthorization(vehicleID, authManager)
-                }.start()
+                showUIForSavedVehicleID()
+                checkAuthorization(vehicleID, authManager)
             }
 
         viewModel.isThereAuthCode().observe(this, Observer {
@@ -178,33 +159,21 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
 
         viewModel.isSquareAuthorized().observe(this, Observer {
             if (it) {
-                updateChecklist(3, true, adapter as MyCustomAdapter)
-                pin_detail_scrollView.isVisible = false
-                setup_detail_scrollView.isVisible = true
-                setup_complete_btn.isVisible = false
-                setup_complete_btn.isEnabled = false
-                setup_complete_btn.isVisible = true
-                setup_complete_btn.text = "DONE"
-                authorized = true
-                auth_progressBar.isVisible = false
-                auth_progressBar.clearAnimation()
-                setup_detail_text_view.text = "Bluetooth setup complete"
-                setup_detail_text_view.isVisible = true
-                SoundHelper.turnOffSound(context!!)
+
+                //This is where we would put the knox code
+                updateChecklist(4, true, adapter as MyCustomAdapter)
                 startReaderSettings(adapter as MyCustomAdapter)
+                showUIForSquareAuthorizationSuccess()
+                SoundHelper.turnOffSound(context!!)
             }
         })
 
         viewModel.isPinEnteredWrong().observe(this, Observer {
             val isPinWrong = it
             if (isPinWrong) {
-                enter_pin_editText.setText("")
-                val toast = Toast.makeText(context, "$incorrectPin is incorrect", Toast.LENGTH_SHORT)
-                toast.setGravity(Gravity.TOP or Gravity.CENTER_HORIZONTAL, 145, 0)
-                toast.show()
+                showUIForWrongPin()
+                showErrorToastPinEnteredIncorrect()
                 viewModel.pinWasEnteredWrong()
-                vehicle_id_progressBar.isVisible = false
-                vehicle_id_progressBar.clearAnimation()
             }
         })
 
@@ -213,10 +182,8 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
             if (authorized) {
                 setUpComplete()
                 SoundHelper.turnOnSound(context!!)
-                val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
-                if (navController.currentDestination?.id == R.id.vehicleSetupFragment){
-                    navController.navigate(R.id.toCheckVehicleInfoFragment)
-                }
+                toCheckVehicleInfo()
+
             } else {
                 setup_detail_text_view.isVisible = false
                 setup_complete_btn.isVisible = false
@@ -266,7 +233,6 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
             setup_detail_text_view.text = "No pin in settings"
             setup_detail_scrollView.isVisible = false
             pin_detail_scrollView.isVisible = true
-            Log.i(LogEnums.PIM_SETTING.tag, "No Pin In Settings")
         } else {
             // There is a pin found so we will get the Vehicle ID
             setup_detail_text_view.text = "Pin: $pin found in settings"
@@ -274,47 +240,21 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
             if (uuid != "") {
                 queryVehicleId(uuid, pin, adapter)
             }
-            Log.i(LogEnums.PIM_SETTING.tag, "Pin: $pin found in settings")
         }
     }
 
     private fun createPin(enteredPin: String, adapter: MyCustomAdapter) {
         val pin = PIN(enteredPin)
         // Puts pin into preferences and updates listView
-        ModelPreferences(context!!).putObject(SharedPrefEnum.PIN_PASSWORD.key, pin)
+        ModelPreferences(context!!)
+            .putObject(SharedPrefEnum
+                .PIN_PASSWORD.key,
+                pin)
         launch(Dispatchers.Main.immediate) {
             updateChecklist(1, true, adapter)
+            showVehicleIDToast(vehicleID)
         }
-        Log.i(LogEnums.PIM_SETTING.tag, "Pin Password: $enteredPin saved to Shared Preferences")
     }
-
-
-    private fun queryVehicleId(deviceID: String, pin: String, adapter: MyCustomAdapter) = launch {
-        var pimSettingsQueryCallBack = object : GraphQLCall.Callback<GetPimSettingsQuery.Data>() {
-            override fun onResponse(response: Response<GetPimSettingsQuery.Data>) {
-                val callBackVehicleID = response.data()?.pimSettings?.vehicleId()
-                if (callBackVehicleID != null) {
-                    createPin(pin, adapter)
-                    vehicleID = callBackVehicleID
-                    saveVehicleID(vehicleID)
-                }
-                if (callBackVehicleID == null) {
-                    pinIsWrong(pin)
-                }
-                Log.i(LogEnums.PIM_SETTING.tag, "Vehicle Id from call back is $callBackVehicleID")
-            }
-
-            override fun onFailure(e: ApolloException) {
-                PIMDialogComposer.showNoVehicleIDError(activity!!)
-                Log.e("ERROR", e.toString())
-            }
-        }
-        mAWSAppSyncClient?.query(GetPimSettingsQuery.builder().deviceId(deviceID).pin(pin).build())
-            ?.responseFetcher(AppSyncResponseFetchers.CACHE_AND_NETWORK)
-            ?.enqueue(pimSettingsQueryCallBack)
-        Log.i("Results", "data used for callback was $deviceID and $pin")
-    }
-
     private fun pinIsWrong(pin: String) {
         incorrectPin = pin
         launch(Dispatchers.Main.immediate) {
@@ -322,18 +262,36 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
         }
     }
 
+    private fun queryVehicleId(deviceID: String, pin: String, adapter: MyCustomAdapter)
+            = launch(Dispatchers.IO) {
+        val pimSettingsQueryCallBack = object : GraphQLCall.Callback<GetPimSettingsQuery.Data>() {
+            override fun onResponse(response: Response<GetPimSettingsQuery.Data>) {
+                val callBackVehicleID = response.data()?.pimSettings?.vehicleId()
+                if (callBackVehicleID != null) {
+                    vehicleID = callBackVehicleID
+                    saveVehicleID(vehicleID)
+                    createPin(pin, adapter)
+                }
+                if (callBackVehicleID == null) {
+                    pinIsWrong(pin)
+                }
+            }
+
+            override fun onFailure(e: ApolloException) {
+                PIMDialogComposer.showNoVehicleIDError(activity!!)
+            }
+        }
+        mAWSAppSyncClient?.query(GetPimSettingsQuery.builder().deviceId(deviceID).pin(pin).build())
+            ?.responseFetcher(AppSyncResponseFetchers.CACHE_AND_NETWORK)
+            ?.enqueue(pimSettingsQueryCallBack)
+    }
+
     private fun saveVehicleID(vehicleId: String) {
         val vehicleID = VehicleID(vehicleId)
         ModelPreferences(context!!).putObject(SharedPrefEnum.VEHICLE_ID.key, vehicleID)
         launch(Dispatchers.Main.immediate) {
             viewModel.vehicleIDExists()
-            updateChecklist(0, true, adapter as MyCustomAdapter)
-            updateChecklist(1, true, adapter as MyCustomAdapter)
-            updateChecklist(2, true, adapter as MyCustomAdapter)
-            vehicle_id_progressBar.isVisible = false
-            pin_detail_scrollView.isVisible = false
-            setup_detail_scrollView.isVisible = true
-            setup_detail_text_view.text = ""
+            showUIForSavedVehicleID()
             checkAuthorization(vehicleId, authManager)
         }
         Log.i(
@@ -341,15 +299,12 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
             "Vehicle ID: ${vehicleID.vehicleID} saved to System Preferences"
         )
     }
-
-    private fun checkAuthorization(vehicleID: String, authManager: AuthorizationManager) {
+    private fun checkAuthorization(vehicleID: String, authManager: AuthorizationManager)
+            = launch(Dispatchers.IO) {
         if (authManager.authorizationState.isAuthorized) {
-            launch {
+            launch(Dispatchers.Main.immediate) {
                 viewModel.squareIsAuthorized()
-                val toast =
-                    Toast.makeText(context, "Successful authorization of Square", Toast.LENGTH_LONG)
-                toast.setGravity(Gravity.TOP, 125, 0)
-                toast.show()
+                showAuthorizationToast()
             }
         } else {
             launch {
@@ -357,108 +312,55 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
             }
         }
     }
-
-    private fun goToAuthWebView(vehicleID: String) {
-        pin_detail_scrollView.isVisible = false
-        setup_detail_scrollView.isVisible = true
-        setup_complete_btn.isVisible = true
-        setup_complete_btn.isClickable = true
-        setup_detail_text_view.text =
-            "First Vehicle in Fleet for Authorization. Get Authorization"
-        setup_complete_btn.text = "Authorization"
-        setUpWebView(vehicleID)
-
-    }
-
-    private fun retrieveAuthorizationCode(authCode: String) {
+    private fun retrieveAuthorizationCode(authCode: String) = launch {
         onAuthorizationCodeRetrieved(authCode)
     }
-
-    private fun onAuthorizationCodeRetrieved(authorizationCode: String) = launch {
+    private fun onAuthorizationCodeRetrieved(authorizationCode: String)
+            = launch {
         ReaderSdk.authorizationManager().authorize(authorizationCode)
     }
-
+    //onResults
     private fun onAuthorizeResult(result: Result<Location, ResultError<AuthorizeErrorCode>>) {
         if (result.isSuccess) {
-            val toast =
-                TastyToast.makeText(context, "Successful Square Authorization", TastyToast.LENGTH_LONG, TastyToast.SUCCESS)
-            toast.setGravity(Gravity.TOP, 125, 0)
-            toast.show()
+            showAuthorizationToast()
             launch(Dispatchers.Main.immediate) {
                 viewModel.squareIsAuthorized()
             }
         } else {
             val error = result.error
             if (error.code == AuthorizeErrorCode.NO_NETWORK) {
-                Toast.makeText(
-                    context!!,
-                    "No Network ${error.message}", Toast.LENGTH_LONG
-                ).show()
+                showErrorToastNoNetworkToast()
             }
             if (error.code == AuthorizeErrorCode.USAGE_ERROR) {
-                if (error.debugCode == "authorize_already_authorized") {
-                    TastyToast.makeText(context, "Square SDK already authorized for vehicle", TastyToast.LENGTH_LONG, TastyToast.ERROR).show()
+                if (error.debugCode == alreadyAuthString) {
+                    showErrorToastAlreadyAuthorized()
                     launch(Dispatchers.Main.immediate) {
                         viewModel.squareIsAuthorized()
                     }
                 } else {
-                    Toast.makeText(
-                        context!!,
-                        " Usage_Error: ${error.message}", Toast.LENGTH_LONG
-                    ).show()
+                    showErrorToastUsage(error)
                 }
             }
         }
     }
-
-    private fun setUpWebView(vehicleID: String) {
-        val url =
-            "https://connect.squareup.com/oauth2/authorize?client_id=sq0idp-HJ_x8bWoeez4H7q5Cfnjug&scope=MERCHANT_PROFILE_READ+PAYMENTS_WRITE_IN_PERSON&state=$vehicleID&session=false"
-        val browser = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-        startActivity(browser)
-        Log.i("URL", "$url")
-    }
-
     private fun onReaderSettingsResult(result: Result<Void, ResultError<ReaderSettingsErrorCode>>) {
-
-        if (result.isSuccess){
-        }
         if (result.isError) {
             val error = result.error
             when (error.code) {
-                ReaderSettingsErrorCode.SDK_NOT_AUTHORIZED -> Toast.makeText(
-                    context!!,
-                    "SDK not authorized${error.message}", Toast.LENGTH_LONG
-                ).show()
-                ReaderSettingsErrorCode.USAGE_ERROR -> Toast.makeText(
-                    context!!,
-                    "Usage error ${error.message}", Toast.LENGTH_LONG
-                ).show()
+                ReaderSettingsErrorCode.SDK_NOT_AUTHORIZED ->
+                    showErrorToastNotAuthorized()
+               ReaderSettingsErrorCode.USAGE_ERROR ->
+                    showErrorToastUsageReader(error)
             }
         }
-    }
-
-    private fun startReaderSettings(adapter: MyCustomAdapter) {
-        setup_complete_btn.isEnabled = true
-        setup_complete_btn.isVisible = true
-        val readerManager = ReaderSdk.readerManager()
-        readerManager.startReaderSettingsActivity(context!!)
-        updateChecklist(4, true, adapter)
-    }
-
-    private fun setUpKeyboard() {
-        enter_pin_editText.setRawInputType(InputType.TYPE_CLASS_TEXT)
-        enter_pin_editText.setTextIsSelectable(false)
-
-        val qwertyKeyboard = qwertyKeyboard as QwertyKeyboard
-        val ic = enter_pin_editText.onCreateInputConnection(EditorInfo())
-        qwertyKeyboard.setInputConnection(ic)
-        ViewHelper.hideSystemUI(activity!!)
-    }
-
-    private fun updateChecklist(position: Int, boolean: Boolean, adapter: MyCustomAdapter) {
-        setBooleanArray[position] = boolean
-        adapter.notifyDataSetChanged()
+        if(result.isSuccess){
+            if(setup_complete_btn != null){
+                launch(Dispatchers.Main.immediate) {
+                    setup_complete_btn.isEnabled = true
+                    updateChecklist(5, true, adapter as MyCustomAdapter)
+                }
+            }
+        }
     }
     private fun getAuthorizationCode(vehicleID: String) {
         val url =
@@ -480,10 +382,22 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
                         }
                     }
                     if (response.code == 404) {
-                        Log.i("URL", "Vehicle not found in fleet")
+                        launch(Dispatchers.Main.immediate) {
+                            Toast.makeText(
+                                context!!,
+                                "Vehicle not found in fleet, check fleet management portal",
+                                Toast.LENGTH_LONG
+                            ).show()
+                        }
                     }
                     if (response.code == 401) {
-                        Log.i("URL", "Need to authorize fleet with log in")
+                        launch(Dispatchers.Main.immediate){
+                            Toast.makeText(
+                                context!!,
+                                "Need to authorize fleet with log In",
+                                Toast.LENGTH_LONG
+                            ).show()
+                        }
                         launch {
                             goToAuthWebView(vehicleID)
                         }
@@ -498,6 +412,144 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
         }
     }
 
+    //UI updates
+    private fun showUIForEnterPIN(){
+        val enteredPin = enter_pin_editText.text.toString()
+        pin = enteredPin
+        println(uuid)
+        vehicle_id_progressBar.isVisible = true
+        vehicle_id_progressBar.animate()
+        queryVehicleId(uuid, pin, adapter as MyCustomAdapter)
+        pinEntered = false
+    }
+    private fun showUIForAuthWebView(){
+        pin_detail_scrollView.isVisible = false
+        setup_detail_scrollView.isVisible = true
+        setup_complete_btn.isVisible = true
+        setup_complete_btn.isClickable = true
+        setup_detail_text_view.text =
+            "First Vehicle in Fleet for Authorization. Get Authorization"
+        setup_complete_btn.text = "Authorization"
+    }
+    private fun showUIForSavedVehicleID(){
+        updateChecklist(0, true, adapter as MyCustomAdapter)
+        updateChecklist(1, true, adapter as MyCustomAdapter)
+        updateChecklist(2, true, adapter as MyCustomAdapter)
+        vehicle_id_progressBar.isVisible = false
+        pin_detail_scrollView.isVisible = false
+        setup_detail_scrollView.isVisible = true
+        setup_detail_text_view.text = ""
+    }
+    private fun showUIForWrongPin(){
+        enter_pin_editText.setText("")
+        vehicle_id_progressBar.isVisible = false
+        vehicle_id_progressBar.clearAnimation()
+    }
+    private fun showUIForSquareAuthorizationSuccess(){
+        updateChecklist(3, true, adapter as MyCustomAdapter)
+        pin_detail_scrollView.isVisible = false
+        setup_detail_scrollView.isVisible = true
+        setup_complete_btn.isVisible = false
+        setup_complete_btn.isEnabled = false
+        setup_complete_btn.isVisible = true
+        setup_complete_btn.text = "DONE"
+        authorized = true
+        auth_progressBar.isVisible = false
+        auth_progressBar.clearAnimation()
+        setup_detail_text_view.text = "Bluetooth setup complete"
+        setup_detail_text_view.isVisible = true
+    }
+    private fun setUpWebView(vehicleID: String) {
+        val url =
+            "https://connect.squareup.com/oauth2/authorize?client_id=sq0idp-HJ_x8bWoeez4H7q5Cfnjug&scope=MERCHANT_PROFILE_READ+PAYMENTS_WRITE_IN_PERSON&state=$vehicleID&session=false"
+        val browser = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+        startActivity(browser)
+        Log.i("URL", "$url")
+    }
+
+    //Toasts
+    private fun showVehicleIDToast(vehicleID: String){
+        if(!vehicleID.isNullOrBlank()){
+            val toast =
+                Toast.makeText(context,
+                    "Connected to $vehicleID"
+                    , Toast.LENGTH_LONG)
+            toast.setGravity(Gravity.TOP, 125, 0)
+            toast.show()
+        }
+    }
+
+    private fun showAuthorizationToast(){
+        val toast =
+            Toast.makeText(context,
+                "Successful authorization of Square"
+                , Toast.LENGTH_LONG)
+        toast.setGravity(Gravity.TOP, 125, 0)
+        toast.show()
+    }
+    private fun showErrorToastNotAuthorized(){
+        Toast.makeText(
+        context!!,
+        "SDK not authorized", Toast.LENGTH_LONG)
+            .show()
+    }
+    private fun showErrorToastAlreadyAuthorized(){
+       Toast.makeText(context,
+           "Square SDK already authorized for $vehicleID",
+            Toast.LENGTH_LONG)
+            .show()
+    }
+    private fun showErrorToastUsage(error: ResultError<AuthorizeErrorCode>){
+        Toast.makeText(
+            context!!,
+            "Usage error: ${error.message}",
+            Toast.LENGTH_LONG
+        ).show()
+    }
+    private fun showErrorToastUsageReader(error: ResultError<ReaderSettingsErrorCode>){
+        Toast.makeText(
+            context!!,
+            "Usage error: ${error.message}",
+            Toast.LENGTH_LONG
+        ).show()
+    }
+    private fun showErrorToastNoNetworkToast(){
+        Toast.makeText(
+            context!!,
+            "No Network",
+            Toast.LENGTH_LONG
+
+        ).show()
+    }
+    private fun showErrorToastPinEnteredIncorrect(){
+        val toast = Toast.makeText(context,
+            "$incorrectPin is incorrect",
+            Toast.LENGTH_SHORT)
+        toast.setGravity(Gravity.TOP or Gravity.CENTER_HORIZONTAL, 145, 0)
+        toast.show()
+    }
+    private fun startReaderSettings(adapter: MyCustomAdapter) {
+        setup_complete_btn.isEnabled = true
+        setup_complete_btn.isVisible = true
+        val readerManager = ReaderSdk.readerManager()
+        readerManager.startReaderSettingsActivity(context!!)
+        updateChecklist(4, true, adapter)
+    }
+    private fun setUpKeyboard() {
+        enter_pin_editText.setRawInputType(InputType.TYPE_CLASS_TEXT)
+        enter_pin_editText.setTextIsSelectable(false)
+
+        val qwertyKeyboard = qwertyKeyboard as QwertyKeyboard
+        val ic = enter_pin_editText.onCreateInputConnection(EditorInfo())
+        qwertyKeyboard.setInputConnection(ic)
+        ViewHelper.hideSystemUI(activity!!)
+    }
+
+    private fun updateChecklist(position: Int, boolean: Boolean, adapter: MyCustomAdapter) {
+        setBooleanArray[position] = boolean
+        adapter.notifyDataSetChanged()
+    }
+
     private fun requestMic() {
         val REQUEST_RECORD_AUDIO_PERMISSION = 200
         if (ContextCompat.checkSelfPermission(activity!!, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
@@ -509,11 +561,34 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
         }
     }
 
-    private fun setUpComplete(){
-        val setUpStatus = SetupComplete(true)
-        ModelPreferences(context!!).putObject(SharedPrefEnum.SETUP_COMPLETE.key, setUpStatus)
+    private fun sendKnoxIntent(){
+        val intent = Intent()
+        intent.action = "com.claren.tablet_control.shutdown"
+        intent.`package` = "com.claren.tablet_control"
+        intent.putExtra("nowait", 1)
+        intent.putExtra("interval", 1)
+        intent.putExtra("window", 0)
+        activity!!.sendBroadcast(intent)
     }
 
+    private fun setUpComplete(){
+        val setUpStatus = SetupComplete(true)
+        ModelPreferences(context!!).
+            putObject(
+                SharedPrefEnum.SETUP_COMPLETE.key,
+                setUpStatus)
+    }
+    //Navigation
+    private fun goToAuthWebView(vehicleID: String) {
+        showUIForAuthWebView()
+        setUpWebView(vehicleID)
+    }
+    private fun toCheckVehicleInfo(){
+        val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
+        if (navController.currentDestination?.id == currentFragment){
+            navController.navigate(R.id.toCheckVehicleInfoFragment)
+        }
+    }
     override fun onResume() {
         super.onResume()
         requestMic()

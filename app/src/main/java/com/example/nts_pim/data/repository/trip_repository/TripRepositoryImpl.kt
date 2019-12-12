@@ -30,7 +30,7 @@ class TripRepositoryImpl(
     private var pinWasEnteredWrong = false
     private var pinWasEnteredWrongLiveData = MutableLiveData<Boolean>()
 
-    var isSetupCompleteLiveData = MutableLiveData<Boolean>()
+    private var isSetupCompleteLiveData = MutableLiveData<Boolean>()
 
     private val appContext = context.applicationContext
 
@@ -42,7 +42,7 @@ class TripRepositoryImpl(
     }
 
     override suspend fun checkForVehicleID(): Boolean {
-        var vehicleID = ModelPreferences(appContext.applicationContext)
+        val vehicleID = ModelPreferences(appContext.applicationContext)
             .getObject(SharedPrefEnum.VEHICLE_ID.key,
                 VehicleID::class.java)
 

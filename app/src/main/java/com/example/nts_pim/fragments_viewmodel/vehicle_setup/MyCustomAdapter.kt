@@ -25,7 +25,7 @@ class MyCustomAdapter(context: Context,
     }
 
     override fun getCount(): Int {
-        return 5
+        return mArrayNames.size
     }
 
     override fun getItemId(arg0: Int): Long {

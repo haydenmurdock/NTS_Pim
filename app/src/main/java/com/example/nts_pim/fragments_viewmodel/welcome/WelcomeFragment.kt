@@ -1,5 +1,6 @@
 package com.example.nts_pim.fragments_viewmodel.welcome
 
+import android.bluetooth.BluetoothAdapter
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
@@ -7,10 +8,7 @@ import android.media.AudioManager
 import android.os.*
 import android.provider.Settings
 import android.text.InputType
-import android.view.Gravity
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
+import android.view.*
 import android.view.inputmethod.EditorInfo
 import android.widget.Toast
 import androidx.annotation.MainThread
@@ -129,7 +127,6 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
         // checks for animation and navigates to next Screen
         setUpKeyboard()
         checkSquareMode()
-        updatePimStatus()
 
          if (checkToSeeIfOnTrip().first != null) {
              isOnActiveTrip = checkToSeeIfOnTrip().first!!
@@ -138,6 +135,7 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
         viewModel.isSetupComplete()
         vehicleId = viewModel.getVehicleId()
         updateVehicleInfoUI()
+        updatePimStatus()
         batteryStatusCheck()
         batteryCheckTimer.start()
         dimScreenTimer.start()
@@ -153,6 +151,19 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
             if (!it && isPasswordEntered) {
                 checkPassword()
                 isPasswordEntered = false
+            }
+        })
+
+        view.setOnTouchListener(object : View.OnTouchListener {
+            override fun onTouch(v: View?, event: MotionEvent?): Boolean {
+                when (event?.action) {
+                    MotionEvent.ACTION_DOWN -> {
+                        dimScreenTimer.cancel()
+                        changeScreenBrightness(fullBrightness)
+                        dimScreenTimer.start()
+                    }
+                }
+                return v?.onTouchEvent(event) ?: true
             }
         })
 
@@ -217,7 +228,6 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
         } else {
             toNextScreen()
         }
-
     }
     private fun tripIsCurrentlyRunning(isTripActive: Boolean){
         if (!isTripActive){
@@ -330,7 +340,8 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
     private fun checkToSeeIfOnTrip(): Pair<Boolean?, String>{
         if (!resources.getBoolean(R.bool.isDevModeOn)){
             val currentTrip = ModelPreferences(context!!)
-                .getObject(SharedPrefEnum.CURRENT_TRIP.key,CurrentTrip::class.java)
+                .getObject(SharedPrefEnum.CURRENT_TRIP.key,
+                    CurrentTrip::class.java)
             if (currentTrip == null){
                 return Pair(false, "")
             }
@@ -390,6 +401,9 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
             updateUI(companyName)
         }
     }
+
+
+
     private fun updatePimStatus(){
         PIMMutationHelper.updatePIMStatus(
             vehicleId,

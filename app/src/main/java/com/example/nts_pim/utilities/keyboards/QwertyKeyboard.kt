@@ -441,10 +441,4 @@ class QwertyKeyboard @JvmOverloads constructor(
     fun setInputConnection(ic1: InputConnection) {
         this.inputConnection = ic1
     }
-
-    private fun playKeyboardSound(){
-        var myVib = context.getSystemService(VIBRATOR_SERVICE) as Vibrator
-
-        myVib.vibrate(50)
-    }
-}// constructors
+}

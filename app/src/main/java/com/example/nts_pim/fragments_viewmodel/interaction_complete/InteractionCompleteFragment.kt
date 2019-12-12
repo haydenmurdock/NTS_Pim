@@ -25,8 +25,6 @@ import org.kodein.di.KodeinAware
 import org.kodein.di.android.x.closestKodein
 import org.kodein.di.generic.instance
 
-
-
 class InteractionCompleteFragment : ScopedFragment(), KodeinAware {
     override val kodein by closestKodein()
     private val viewModelFactory: InteractionCompleteViewModelFactory by instance()
@@ -90,6 +88,11 @@ class InteractionCompleteFragment : ScopedFragment(), KodeinAware {
 
     override fun onPause() {
         super.onPause()
+        callbackViewModel.clearAllTripValues()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
         callbackViewModel.clearAllTripValues()
     }
 }

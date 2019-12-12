@@ -62,29 +62,6 @@ object ViewHelper {
         view.startAnimation(animate)
     }
 
-    fun viewSlideDownTaxiView(view: View, duration: Int){
-        val downAmount = (view.height + 150).toFloat()
-        val animate = TranslateAnimation(0f, 0f, 0f, downAmount)
-        animate.duration = duration.toLong()
-        animate.fillAfter = true
-        animate.setAnimationListener(object : Animation.AnimationListener {
-            override fun onAnimationStart(p0: Animation?) {
-//                not implemented
-            }
-
-            override fun onAnimationRepeat(p0: Animation?) {
-//                not implemented
-            }
-
-            override fun onAnimationEnd(p0: Animation?) {
-                view.clearAnimation()
-                view.visibility = View.GONE
-            }
-        })
-        view.startAnimation(animate)
-
-    }
-
     fun disableButton(imageView: ImageView){
         if (imageView.isVisible){
            imageView.isEnabled = false
@@ -114,7 +91,6 @@ object ViewHelper {
                 // Hide the nav bar and status bar
                 or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
                 or View.SYSTEM_UI_FLAG_FULLSCREEN)
-
     }
 
 }

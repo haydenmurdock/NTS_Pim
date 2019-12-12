@@ -25,7 +25,7 @@ object VehicleTripArrayHolder {
     private var meterOwed = 00.00
     private var meterOwedMutableLiveData = MutableLiveData<Double>()
 
-    private var meterStatePIM = "off"
+     private var meterStatePIM = "off"
     private val meterStatePIMMutableLiveData = MutableLiveData<String>()
 
     private var batteryPowerIsSafe = false
@@ -49,6 +49,12 @@ object VehicleTripArrayHolder {
     private var squareHasTimedOutMutableLiveData = MutableLiveData<Boolean>()
 
     private var transactionID = ""
+
+    private var tripTipAmount:Double = 0.0
+
+    private var pimPayAmount:Double = 0.0
+
+    private var pimNoReceipt = false
 
 
 // Adds the status from the main activity app sync subscription. It goes to a live data array to be watched for changes. There is only 1 status in the array at all times.
@@ -139,10 +145,13 @@ object VehicleTripArrayHolder {
 // clears arrays.
     fun clearAllNonPersistentData(){
         meterOwed = 00.00
+        tripTipAmount = 0.0
+        pimPayAmount = 0.0
+        pimNoReceipt = false
         meterOwedMutableLiveData.value = meterOwed
         isSquareTransactionComplete = false
         tripNumber = 0
-        Log.i("Results", "All Arrays have been cleared")
+        Log.i("Results", "All Trip Information has been cleared")
     }
 
     fun updateInternalPIMStatus(pimStatus: String){
@@ -154,7 +163,14 @@ object VehicleTripArrayHolder {
     fun createCurrentTrip(isTripActive: Boolean, tripID: String, context: Context){
         val currentTrip = CurrentTrip(isTripActive, tripID)
         val oldTrip = ModelPreferences(context).getObject(SharedPrefEnum.CURRENT_TRIP.key, CurrentTrip::class.java)
-        if(currentTrip.tripID != oldTrip?.tripID){
+        if (oldTrip == null){
+            // This is the first trip so it is current
+            ModelPreferences(context)
+                .putObject(SharedPrefEnum.CURRENT_TRIP.key, currentTrip)
+        }
+        if(currentTrip.tripID != oldTrip?.tripID && currentTrip.tripID != ""){
+            // this is a new trip and needs to update Trip id
+            Log.i("currentTrip", "Current Trip Created: ${currentTrip.tripID}")
             ModelPreferences(context)
                 .putObject(SharedPrefEnum.CURRENT_TRIP.key, currentTrip)
         }
@@ -193,7 +209,6 @@ object VehicleTripArrayHolder {
 
     fun getReSyncStatus() = tabletNeedsReySyncMutableLiveData as LiveData<Boolean>
 
-    fun internetConnectionStatus() = internetIsConnected
 
     fun squareHasTimedOut(){
         squareHasTimedOut = true
@@ -210,6 +225,20 @@ object VehicleTripArrayHolder {
             transactionID = awsTransactionId
         }
     }
-    fun getTransactionId() = transactionID
+
+    fun setTipAmount(tip: Double){
+        tripTipAmount = tip
+    }
+    fun getTipAmount() = tripTipAmount
+
+    fun setPimPayment(awsPimPayAmount: Double){
+        pimPayAmount = awsPimPayAmount
+    }
+    fun getPimPayment() = pimPayAmount
+
+    fun pimDoesNotNeedToDoReceipt(boolean: Boolean){
+        pimNoReceipt = boolean
+    }
+    fun getPimNoReceipt() = pimNoReceipt
 }
 

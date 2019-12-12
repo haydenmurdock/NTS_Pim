@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:app="http://schemas.android.com/apk/res-auto"
+        xmlns:tools="http://schemas.android.com/tools"
+        android:id="@+id/linearLayout9"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/screenBackgroundColor">
+    <androidx.constraintlayout.widget.Group
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+
+            app:constraint_referenced_ids="beginning_Parentheses_TextView,areaCode_textView,ending_Parentheses_textView,middle_three_phone_number_textView,last_four_phone_number_textView"
+            android:id="@+id/phoneNumberGroup" />
+
+    <TextView
+            android:id="@+id/confirmation_type_textView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="46dp"
+            android:fontFamily="@font/source_sans_pro_semibold"
+            android:text="sent. You're all done!"
+            android:textColor="@color/whiteTextColor"
+            android:textSize="40sp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.11"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+            android:id="@+id/tripTotal_textView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="@font/source_sans_pro_bold"
+            android:text="tripTotal(total + tip)"
+            android:textColor="@color/red"
+            android:textSize="36sp"
+            app:layout_constraintStart_toStartOf="@+id/confirmation_type_textView"
+            app:layout_constraintTop_toBottomOf="@+id/confirmation_type_textView" />
+
+    <TextView
+            android:id="@+id/email_detail_textView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="@font/source_sans_pro"
+            android:textColor="@color/whiteTextColor"
+            android:textSize="36sp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="@+id/tripTotal_textView"
+            app:layout_constraintTop_toTopOf="parent"
+            tools:visibility="gone" />
+
+    <TextView
+            android:id="@+id/last_four_phone_number_textView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="@font/source_sans_pro"
+            android:text="lastFour"
+            android:textColor="@color/whiteTextColor"
+            android:textSize="36sp"
+            app:layout_constraintBottom_toBottomOf="@+id/middle_three_phone_number_textView"
+            app:layout_constraintStart_toEndOf="@+id/middle_three_phone_number_textView" />
+
+    <TextView
+            android:id="@+id/beginning_Parentheses_TextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="@font/source_sans_pro"
+            android:text="("
+            android:textColor="@color/whiteTextColor"
+            android:textSize="36sp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="@+id/tripTotal_textView"
+            app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+            android:id="@+id/areaCode_textView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="@font/source_sans_pro"
+            android:text="areaCode"
+            android:textColor="@color/whiteTextColor"
+            android:textSize="36sp"
+            app:layout_constraintBottom_toBottomOf="@+id/beginning_Parentheses_TextView"
+            app:layout_constraintStart_toEndOf="@+id/beginning_Parentheses_TextView" />
+
+    <TextView
+            android:id="@+id/ending_Parentheses_textView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="@font/source_sans_pro"
+            android:text=")"
+            android:textColor="@color/whiteTextColor"
+            android:textSize="36sp"
+            app:layout_constraintBottom_toBottomOf="@+id/areaCode_textView"
+            app:layout_constraintStart_toEndOf="@+id/areaCode_textView" />
+
+    <TextView
+            android:id="@+id/middle_three_phone_number_textView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="@font/source_sans_pro"
+            android:text="Middle "
+            android:textColor="@color/whiteTextColor"
+            android:textSize="36sp"
+            app:layout_constraintBottom_toBottomOf="@+id/ending_Parentheses_textView"
+            app:layout_constraintStart_toEndOf="@+id/ending_Parentheses_textView" />
+</androidx.constraintlayout.widget.ConstraintLayout>

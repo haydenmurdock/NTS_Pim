@@ -69,7 +69,6 @@ class CallBackViewModel(
 
     internal fun reSyncTrip() = vehicleTripArrayHolder.reSyncTrip()
 
-    internal fun isConnectedToInternet() = vehicleTripArrayHolder.internetConnectionStatus()
 
     internal fun hasSquareTimedOut() = vehicleTripArrayHolder.hasSquareTimedOut()
 
@@ -79,5 +78,20 @@ class CallBackViewModel(
         vehicleTripArrayHolder.setTransactionID(string)
     }
 
-    internal fun getTransactionId() = vehicleTripArrayHolder.getTransactionId()
+    internal fun setTipAmount(enteredTip: Double){
+        vehicleTripArrayHolder.setTipAmount(enteredTip)
+    }
+    internal fun getTipAmount() = vehicleTripArrayHolder.getTipAmount()
+
+    internal fun setPimPayAmount(enterPayAmount: Double){
+        vehicleTripArrayHolder.setPimPayment(enterPayAmount)
+    }
+    internal fun getPimPayAmount() = vehicleTripArrayHolder.getPimPayment()
+
+    internal fun pimDoesNotNeedToDoReceipt(boolean: Boolean){
+       vehicleTripArrayHolder.pimDoesNotNeedToDoReceipt(boolean)
+    }
+
+    internal fun getPimNoReceipt() = vehicleTripArrayHolder.getPimNoReceipt()
+
 }

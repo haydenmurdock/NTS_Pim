@@ -14,6 +14,7 @@ import android.view.ViewGroup
 import android.view.View.OnLayoutChangeListener
 import android.widget.ImageView
 import androidx.core.view.isVisible
+import com.bumptech.glide.Glide
 import com.example.nts_pim.R
 import com.example.nts_pim.data.repository.VehicleTripArrayHolder
 import com.example.nts_pim.data.repository.model_objects.SetupComplete
@@ -34,20 +35,13 @@ class SquareService : OnLayoutChangeListener,
     private var state = SqUIState.INIT_STATE
     private var squareActivity: Activity? = null
     private var viewGroup:ViewGroup? = null
-    private var img: ImageView? = null
-    private var toggle: Boolean = true
     private var mTransactionMode = false
-
     private var removeCardView: View? = null
     private var insertCardView: View? = null
-
     private var timeout: CountDownTimer? = null
     private var removeCardTimer: CountDownTimer? = null
-    private var startVoiceTimer: CountDownTimer? = null
     private var closeSquareForSoundCheckTimer: CountDownTimer? = null
     private var mSuccessPlayed = false
-    private var extendCount = 0
-    private var mStateMachineCount = 0
     private var userHasRemovedCard = false
     private var successfulSoundHasBeenPlayed = false
 
@@ -310,8 +304,8 @@ class SquareService : OnLayoutChangeListener,
             }
 
             override fun onFinish() {
-                timeout?.cancel()
                 pressCancelButtonForSquareCheck()
+                timeout?.cancel()
             }
         }.start()
     }

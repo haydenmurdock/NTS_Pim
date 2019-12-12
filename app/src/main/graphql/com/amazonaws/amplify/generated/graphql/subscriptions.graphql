@@ -110,6 +110,8 @@ subscription OnTripUpdate($tripId: String) {
     owedPriceSource
     paidAmt
     paymentType
+    pimNoReceipt
+    pimPayAmt
     pimPaidAmt
     pimTransId
     pimTransDate

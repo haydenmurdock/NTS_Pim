@@ -7,6 +7,7 @@ import com.example.nts_pim.fragments_viewmodel.check_vehicle_info.CheckVehicleIn
 import com.example.nts_pim.fragments_viewmodel.email_or_text.EmailOrTextViewModelFactory
 import com.example.nts_pim.fragments_viewmodel.interaction_complete.InteractionCompleteViewModelFactory
 import com.example.nts_pim.fragments_viewmodel.live_meter.LiveMeterViewModelFactory
+import com.example.nts_pim.fragments_viewmodel.receipt_information.ReceiptInformationViewModelFactory
 import com.example.nts_pim.fragments_viewmodel.taxi_number.TaxiNumberViewModelFactory
 import com.example.nts_pim.fragments_viewmodel.trip_review.TripReviewViewModelFactory
 import com.example.nts_pim.fragments_viewmodel.vehicle_settings_detail.VehicleSettingsDetailViewModelFactory
@@ -43,6 +44,7 @@ class PimApplication : Application(), KodeinAware{
         bind() from provider { VehicleSetupModelFactory(instance()) }
         bind() from provider { TripReviewViewModelFactory(instance()) }
         bind() from provider { EmailOrTextViewModelFactory(instance()) }
+        bind() from provider { ReceiptInformationViewModelFactory(instance()) }
         bind() from provider { InteractionCompleteViewModelFactory(instance()) }
         }
 

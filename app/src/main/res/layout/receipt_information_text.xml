@@ -1,0 +1,377 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:app="http://schemas.android.com/apk/res-auto"
+        xmlns:tools="http://schemas.android.com/tools"
+        android:id="@+id/receipt_information_text_layout"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/screenBackgroundColor">
+
+    <LinearLayout
+            android:id="@+id/buttonLinerLayout"
+            android:layout_width="500dp"
+            android:layout_height="292dp"
+            android:layout_marginBottom="8dp"
+            android:clipChildren="false"
+            android:orientation="vertical"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.5"
+            app:layout_constraintStart_toStartOf="parent">
+
+        <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="80dp"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:orientation="horizontal">
+
+            <Button
+                    android:id="@+id/text_receipt_screen_one_btn"
+                    android:layout_width="154dp"
+                    android:layout_height="60dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/square_tip_btn"
+                    android:fontFamily="@font/source_sans_pro"
+                    android:text="1"
+                    android:textColor="@color/whiteTextColor"
+                    android:textSize="30sp" />
+
+            <Button
+                    android:id="@+id/button16"
+                    android:layout_width="20sp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:clickable="false"
+                    android:text="Button"
+                    android:visibility="invisible" />
+
+            <Button
+                    android:id="@+id/text_receipt_screen_two_btn"
+                    android:layout_width="154dp"
+                    android:layout_height="60dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/square_tip_btn"
+                    android:fontFamily="@font/source_sans_pro"
+                    android:text="2"
+                    android:textColor="@color/whiteTextColor"
+                    android:textSize="30sp" />
+
+            <Button
+                    android:id="@+id/button17"
+                    android:layout_width="20dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:clickable="false"
+                    android:text="Button"
+                    android:visibility="invisible" />
+
+            <Button
+                    android:id="@+id/text_receipt_screen_three_btn"
+                    android:layout_width="154dp"
+                    android:layout_height="60dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/square_tip_btn"
+                    android:fontFamily="@font/source_sans_pro"
+                    android:text="3"
+                    android:textColor="@color/whiteTextColor"
+                    android:textSize="30sp" />
+        </LinearLayout>
+
+        <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="80dp"
+                android:layout_weight="1"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+            <Button
+                    android:id="@+id/text_receipt_screen_four_btn"
+                    android:layout_width="154dp"
+                    android:layout_height="60dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/square_tip_btn"
+                    android:fontFamily="@font/source_sans_pro"
+                    android:text="4"
+                    android:textColor="@color/whiteTextColor"
+                    android:textSize="30sp" />
+
+            <Button
+                    android:id="@+id/button18"
+                    android:layout_width="20sp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:clickable="false"
+                    android:text="Button"
+                    android:visibility="invisible" />
+
+            <Button
+                    android:id="@+id/text_receipt_screen_five_btn"
+                    android:layout_width="154dp"
+                    android:layout_height="60dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/square_tip_btn"
+                    android:fontFamily="@font/source_sans_pro"
+                    android:text="5"
+                    android:textColor="@color/whiteTextColor"
+                    android:textSize="30sp" />
+
+            <Button
+                    android:id="@+id/button19"
+                    android:layout_width="20sp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:clickable="false"
+                    android:text="Button"
+                    android:visibility="invisible" />
+
+            <Button
+                    android:id="@+id/text_receipt_screen_six_btn"
+                    android:layout_width="154dp"
+                    android:layout_height="60dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/square_tip_btn"
+                    android:fontFamily="@font/source_sans_pro"
+                    android:text="6"
+                    android:textColor="@color/whiteTextColor"
+                    android:textSize="30sp" />
+
+        </LinearLayout>
+
+        <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="80dp"
+                android:layout_weight="1"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+            <Button
+                    android:id="@+id/text_receipt_screen_seven_btn"
+                    android:layout_width="154dp"
+                    android:layout_height="60dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/square_tip_btn"
+                    android:fontFamily="@font/source_sans_pro"
+                    android:text="7"
+                    android:textColor="@color/whiteTextColor"
+                    android:textSize="30sp" />
+
+            <Button
+                    android:id="@+id/button20"
+                    android:layout_width="20sp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:clickable="false"
+                    android:text="Button"
+                    android:visibility="invisible" />
+
+            <Button
+                    android:id="@+id/text_receipt_screen_eight_btn"
+                    android:layout_width="154dp"
+                    android:layout_height="60dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/square_tip_btn"
+                    android:fontFamily="@font/source_sans_pro"
+                    android:text="8"
+                    android:textColor="@color/whiteTextColor"
+                    android:textSize="30sp" />
+
+            <Button
+                    android:id="@+id/button21"
+                    android:layout_width="20sp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:clickable="false"
+                    android:text="Button"
+                    android:visibility="invisible" />
+
+            <Button
+                    android:id="@+id/text_receipt_screen_nine_btn"
+                    android:layout_width="154dp"
+                    android:layout_height="60dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/square_tip_btn"
+                    android:fontFamily="@font/source_sans_pro"
+                    android:text="9"
+                    android:textColor="@color/whiteTextColor"
+                    android:textSize="30sp" />
+
+        </LinearLayout>
+
+        <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="80dp"
+                android:layout_weight="1"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+            <Button
+                    android:layout_width="154dp"
+                    android:layout_height="60dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/square_tip_btn"
+                    android:fontFamily="@font/source_sans_pro" />
+
+            <Button
+                    android:id="@+id/button23"
+                    android:layout_width="20sp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:clickable="false"
+                    android:text="Button"
+                    android:visibility="invisible" />
+
+            <Button
+                    android:id="@+id/text_receipt_screen_zero_btn"
+                    android:layout_width="154dp"
+                    android:layout_height="60dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/square_tip_btn"
+                    android:fontFamily="@font/source_sans_pro"
+                    android:text="0"
+                    android:textAppearance="@style/TextAppearance.AppCompat.Medium"
+                    android:textColor="@color/whiteTextColor"
+                    android:textSize="30sp" />
+
+            <Button
+                    android:id="@+id/button22"
+                    android:layout_width="20sp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:clickable="false"
+                    android:text="Button"
+                    android:visibility="invisible" />
+
+            <ImageButton
+                    android:id="@+id/text_receipt_screen_backspace_btn"
+                    android:layout_width="154dp"
+                    android:layout_height="60dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/square_tip_btn"
+                    app:srcCompat="@drawable/ic_backspace_arrow_white" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <ImageView
+            android:id="@+id/back_btn_text_receipt"
+            android:layout_width="79dp"
+            android:layout_height="43dp"
+            android:layout_marginTop="30dp"
+            android:focusable="true"
+            android:forceHasOverlappingRendering="false"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.02"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:srcCompat="@drawable/ic_left_arrow_2" />
+
+    <Button
+            android:id="@+id/no_receipt_btn_text"
+            android:layout_width="175dp"
+            android:layout_height="50dp"
+            android:layout_marginTop="30dp"
+            android:layout_marginEnd="24dp"
+            android:background="@drawable/no_receipt_button"
+            android:fontFamily="@font/source_sans_pro"
+            android:text="No Receipt"
+            android:textAllCaps="false"
+            android:textColor="@color/whiteTextColor"
+            android:textSize="30sp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+            android:id="@+id/textView3"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:fontFamily="@font/source_sans_pro_semibold"
+            android:text="Get a text message receipt"
+            android:textColor="@color/whiteTextColor"
+            android:textSize="40sp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.11"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/back_btn_text_receipt" />
+
+    <EditText
+            android:id="@+id/text_editText"
+            android:layout_width="749dp"
+            android:layout_height="82dp"
+            android:layout_marginStart="16dp"
+            android:layout_marginBottom="16dp"
+            android:background="@null"
+            android:clickable="false"
+            android:ems="10"
+            android:fadeScrollbars="true"
+            android:focusable="true"
+            android:focusedByDefault="false"
+            android:fontFamily="@font/source_sans_pro"
+            android:hint="Enter Phone Number"
+            android:inputType="phone"
+            android:selectAllOnFocus="false"
+            android:textColor="@color/whiteTextColor"
+            android:textColorHint="@color/grey"
+            android:textCursorDrawable="@drawable/cursor_color"
+            android:textSize="36sp"
+            app:layout_constraintBottom_toTopOf="@+id/buttonLinerLayout"
+            app:layout_constraintStart_toEndOf="@+id/country_code_editText">
+
+        <requestFocus />
+    </EditText>
+
+    <Button
+            android:id="@+id/send_text_btn_receipt"
+            android:layout_width="146dp"
+            android:layout_height="72dp"
+            android:layout_marginEnd="24dp"
+            android:layout_marginBottom="32dp"
+            android:background="@drawable/custom_tip_done_button"
+            android:enabled="false"
+            android:fontFamily="@font/source_sans_pro"
+            android:text="Send"
+            android:textAllCaps="false"
+            android:textColor="@color/whiteTextColor"
+            android:textSize="24sp"
+            app:layout_constraintBottom_toTopOf="@+id/buttonLinerLayout"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+    <EditText
+            android:id="@+id/country_code_editText"
+            android:layout_width="98dp"
+            android:layout_height="83dp"
+            android:layout_marginStart="16dp"
+            android:layout_marginBottom="16dp"
+            android:background="@null"
+            android:ems="10"
+            android:fontFamily="@font/source_sans_pro"
+            android:inputType="phone"
+            android:text="1"
+            android:textAlignment="center"
+            android:textColor="@color/whiteTextColor"
+            android:textSize="36sp"
+            app:layout_constraintBottom_toTopOf="@+id/buttonLinerLayout"
+            app:layout_constraintStart_toStartOf="parent" />
+
+    <ImageView
+            android:id="@+id/imageView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="10dp"
+            android:layout_marginBottom="16dp"
+            app:layout_constraintBottom_toBottomOf="@+id/country_code_editText"
+            app:layout_constraintEnd_toEndOf="@+id/country_code_editText"
+            app:srcCompat="@drawable/ic_country_code_down_arrow" />
+
+    <ListView
+            android:id="@+id/listView"
+            android:layout_width="500dp"
+            android:layout_height="310dp"
+            android:layout_marginStart="8dp"
+            android:background="@color/grey"
+            android:visibility="gone"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>
+

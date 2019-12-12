@@ -16,13 +16,12 @@ class SettingsKeyboardViewModel(
 
     internal fun bothKeyboardsDown() = keyboardWatcher.bothKeyboardsareDown()
 
-    internal fun enterBtnPressed(enterString: String){
-        keyboardWatcher.enterButtonPressed(enterString)
-    }
+    internal fun keyboardIsGoingBackword() = keyboardWatcher.phoneNumberKeyboardIsGoingBackward()
 
-    internal fun isEnterBtnPressed() = keyboardWatcher.getWhatEnterButtonPressed()
+    internal fun keyboardIsGoingForward() = keyboardWatcher.phoneNumberIsGoingForward()
 
     internal fun isKeyboardGoingForward() = keyboardWatcher.isphoneNumberKeyboardIsGoingForward()
+
 
 
 }
