@@ -15,6 +15,7 @@ import com.example.nts_pim.R
 import com.example.nts_pim.fragments_viewmodel.base.ScopedFragment
 import com.example.nts_pim.fragments_viewmodel.vehicle_setup.VehicleSetupModelFactory
 import com.example.nts_pim.fragments_viewmodel.vehicle_setup.VehicleSetupViewModel
+import com.example.nts_pim.utilities.power_cycle.PowerAccessibilityService
 import org.kodein.di.KodeinAware
 import org.kodein.di.android.x.closestKodein
 import org.kodein.di.generic.instance
@@ -27,6 +28,7 @@ class StartupFragment: ScopedFragment(), KodeinAware {
     private val fullBrightness = 255
     private var permissionDraw = false
     private var permissionWrite = false
+    private var permissionAccessibility = false
     private var setupStatus = false
     private var navController: NavController? = null
 
@@ -49,6 +51,13 @@ class StartupFragment: ScopedFragment(), KodeinAware {
 
     }
 
+    private fun checkAccessibilityPermission():Boolean {
+        var retVal = PowerAccessibilityService().isAccessibilitySettingsOn(context!!)
+        if(!retVal){
+            startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+        }
+        return retVal
+    }
     private fun checkDrawPermission(): Boolean {
         val retValue = Settings.canDrawOverlays(context)
         if(!retValue){
@@ -106,14 +115,15 @@ class StartupFragment: ScopedFragment(), KodeinAware {
     private fun checkPermissions() {
         permissionDraw = checkDrawPermission()
         permissionWrite = checkSystemWritePermission()
+        permissionAccessibility = checkAccessibilityPermission()
         setupStatus = viewModel.isSetUpComplete()
     }
 
     private fun checkDestinations(navController: NavController){
-        if (setupStatus && permissionWrite && permissionDraw){
+        if (setupStatus && permissionWrite && permissionDraw && permissionAccessibility){
             viewModel.vehicleIDExists()
             navController.navigate(R.id.toWelcomeScreenFromStartUP)
-        } else if(permissionDraw && permissionWrite) {
+        } else if(permissionDraw && permissionWrite && permissionAccessibility) {
             navController.navigate(R.id.toVehicleSetupFragment)
         }
 
@@ -121,9 +131,9 @@ class StartupFragment: ScopedFragment(), KodeinAware {
 
     override fun onResume() {
         super.onResume()
-        if (!permissionDraw || !permissionWrite) {
+        if (!permissionDraw || !permissionWrite || !permissionAccessibility) {
             checkPermissions()
-        } else if (permissionWrite && permissionDraw){
+        } else if (permissionWrite && permissionDraw && permissionAccessibility){
             checkDestinations(navController!!)
         }
         checkDestinations(navController!!)

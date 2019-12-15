@@ -9,6 +9,7 @@ import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.os.CountDownTimer
 import android.util.Log
+import android.view.View
 import android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProviders
@@ -19,7 +20,6 @@ import com.example.nts_pim.fragments_viewmodel.base.ClientFactory
 import com.apollographql.apollo.exception.ApolloException
 import com.amazonaws.mobileconnectors.appsync.AWSAppSyncClient
 import com.apollographql.apollo.api.Response
-import com.example.nts_pim.UnlockScreenLock
 import com.example.nts_pim.fragments_viewmodel.callback.CallBackViewModel
 import com.example.nts_pim.fragments_viewmodel.InjectorUtiles
 import com.example.nts_pim.fragments_viewmodel.vehicle_setup.VehicleSetupModelFactory
@@ -30,7 +30,6 @@ import org.kodein.di.KodeinAware
 import org.kodein.di.android.closestKodein
 import org.kodein.di.generic.instance
 import kotlin.coroutines.CoroutineContext
-import com.example.nts_pim.R
 import com.example.nts_pim.data.repository.VehicleTripArrayHolder
 import com.example.nts_pim.data.repository.model_objects.CurrentTrip
 import com.example.nts_pim.data.repository.providers.ModelPreferences
@@ -40,7 +39,7 @@ import com.example.nts_pim.utilities.mutation_helper.PIMMutationHelper
 import com.example.nts_pim.utilities.sound_helper.SoundHelper
 import com.amazonaws.mobileconnectors.appsync.fetcher.AppSyncResponseFetchers
 import com.apollographql.apollo.GraphQLCall
-import com.example.nts_pim.BuildConfig
+import com.example.nts_pim.*
 
 
 class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
@@ -65,7 +64,6 @@ class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
         UnlockScreenLock()
         mJob = Job()
         Navigation.findNavController(this, R.id.nav_host_fragment)
-
         mAWSAppSyncClient = ClientFactory.getInstance(applicationContext)
 
         val factory = InjectorUtiles.provideCallBackModelFactory()
@@ -88,9 +86,10 @@ class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                 }
             }
         })
-//        forceSpeaker()
+      //  forceSpeaker()
         setUpBluetooth()
         findVersionNumberOfBuild()
+        checkNavBar()
         callbackViewModel.getReSyncStatus().observe(this, Observer { reSync ->
             if (reSync){
                 resync = reSync
@@ -312,7 +311,7 @@ class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                     .getObject(SharedPrefEnum.CURRENT_TRIP.key, CurrentTrip::class.java)
                 startOnStatusUpdateSubscription(vehicleId)
                 if (currentTrip != null && currentTrip.tripID != "" && internetConnection){
-                    startSubscriptionTripUpdate(currentTrip.tripID)
+                    startSubscriptionTripUpdate(currentTrip .tripID)
                     resync = false
                 }
             } else {
@@ -322,6 +321,17 @@ class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
          }
         } .start()
     }
+
+    private fun checkNavBar(){
+        val decorView = window.decorView
+        decorView.setOnSystemUiVisibilityChangeListener((object: View.OnSystemUiVisibilityChangeListener{
+            override fun onSystemUiVisibilityChange(visibility: Int) {
+                if(mSuccessfulSetup){
+                    ViewHelper.hideSystemUI(this@MainActivity)
+                }
+            }
+        }))
+    }
     private fun setUpBluetooth(){
         val mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
         if (!mBluetoothAdapter.isEnabled) {
@@ -330,12 +340,25 @@ class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
     }
     private fun findVersionNumberOfBuild(){
         val buildName = BuildConfig.VERSION_NAME
-        val buildNumber = BuildConfig.VERSION_CODE
-        Log.i("Version", "Build name: $buildName| Build version: $buildNumber")
+        Log.i("Version", "Build name: $buildName")
     }
     override fun onDestroy() {
         super.onDestroy()
         viewModel.isSquareAuthorized().removeObservers(this)
+    }
+
+    override fun onPause() {
+        super.onPause()
+        if(mSuccessfulSetup){
+            ViewHelper.hideSystemUI(this)
+        }
+    }
+
+    override fun onResume() {
+        if(mSuccessfulSetup){
+            ViewHelper.hideSystemUI(this)
+        }
+        super.onResume()
     }
 }
 

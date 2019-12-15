@@ -29,7 +29,6 @@ import com.example.nts_pim.utilities.enums.PIMStatusEnum
 import com.example.nts_pim.utilities.mutation_helper.PIMMutationHelper
 import com.example.nts_pim.utilities.sound_helper.SoundHelper
 import com.example.nts_pim.utilities.view_helper.ViewHelper
-import com.sdsmdg.tastytoast.TastyToast
 import com.squareup.sdk.reader.ReaderSdk
 import com.squareup.sdk.reader.checkout.*
 import com.squareup.sdk.reader.core.CallbackReference
@@ -106,8 +105,20 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
         tripID = callbackViewModel.getTripId()
         val checkoutManager = ReaderSdk.checkoutManager()
         checkoutCallbackRef = checkoutManager.addCheckoutActivityCallback(this::onCheckoutResult)
+        PIMMutationHelper.updatePIMStatus(vehicleId, PIMStatusEnum.TIP_SCREEN.status, mAWSAppSyncClient!!)
 
-        fifteen_percent_btn.setOnTouchListener(View.OnTouchListener { v, event ->
+        view.setOnTouchListener(object : View.OnTouchListener {
+            override fun onTouch(v: View?, event: MotionEvent?): Boolean {
+                when (event?.action) {
+                    MotionEvent.ACTION_DOWN -> {
+                        screenTimeOutTimer.cancel()
+                        screenTimeOutTimer.start()
+                    }
+                }
+                return v?.onTouchEvent(event) ?: true
+            }
+        })
+        fifteen_percent_btn.setOnTouchListener((View.OnTouchListener { v, event ->
             when(event?.action) {
                 MotionEvent.ACTION_DOWN -> {
                     setTextToGreyForButtonPress(fifteen_percent_tip_amount_text_view)
@@ -122,9 +133,9 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
                     false
                 }
             }
-        })
+        }))
 
-        twenty_percent_btn.setOnTouchListener(View.OnTouchListener { v, event ->
+        twenty_percent_btn.setOnTouchListener((View.OnTouchListener { v, event ->
             when(event?.action) {
                 MotionEvent.ACTION_DOWN -> {
                     setTextToGreyForButtonPress(twenty_percent_tip_amount_text_view)
@@ -139,9 +150,9 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
                     false
                 }
             }
-        })
+        }))
 
-        twenty_five_percent_btn.setOnTouchListener(View.OnTouchListener { v, event ->
+        twenty_five_percent_btn.setOnTouchListener((View.OnTouchListener { v, event ->
             when(event?.action) {
                 MotionEvent.ACTION_DOWN -> {
                     setTextToGreyForButtonPress(twenty_five_percent_tip_amount_text_view)
@@ -156,9 +167,9 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
                     false
                 }
             }
-        })
+        }))
 
-        thirty_percent_btn.setOnTouchListener(View.OnTouchListener { v, event ->
+        thirty_percent_btn.setOnTouchListener((View.OnTouchListener { v, event ->
             when(event?.action) {
                 MotionEvent.ACTION_DOWN -> {
                     setTextToGreyForButtonPress(thirty_percent_tip_amount_text_view)
@@ -173,9 +184,9 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
                     false
                 }
             }
-        })
+        }))
 
-        customTipAmountBtn.setOnTouchListener(View.OnTouchListener { v, event ->
+        customTipAmountBtn.setOnTouchListener((View.OnTouchListener { v, event ->
             when(event?.action) {
                 MotionEvent.ACTION_DOWN -> {
                     customTipAmountBtn.setTextColor(ContextCompat.getColor(context!!, R.color.grey))
@@ -189,9 +200,9 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
                     false
                 }
             }
-        })
+        }))
 
-        no_tip_btn.setOnTouchListener(View.OnTouchListener { v, event ->
+        no_tip_btn.setOnTouchListener((View.OnTouchListener { v, event ->
             when (event?.action) {
                 MotionEvent.ACTION_DOWN -> {
                     no_tip_btn.setTextColor(ContextCompat.getColor(context!!, R.color.grey))
@@ -205,18 +216,8 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
                     false
                 }
             }
-        })
+        }))
 
-        PIMMutationHelper.updatePIMStatus(vehicleId, PIMStatusEnum.TIP_SCREEN.status, mAWSAppSyncClient!!)
-        callbackViewModel.getMeterState().observe(this, Observer {meterState ->
-            if (meterState == MeterEnum.METER_ON.state){
-                val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
-                if(navController.currentDestination?.id == (R.id.tipScreenFragment)){
-                    val action = TipScreenFragmentDirections.backToTripReview(tripTotal.toFloat()).setMeterOwedPrice(tripTotal.toFloat())
-                    navController.navigate(action)
-                }
-            }
-        })
 
 
         closeTipScreenBtn.setOnClickListener {
@@ -235,7 +236,6 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
                 lowerAlpha()
 
         }
-
         twenty_percent_btn.setOnClickListener {
                 tripTotal = tripTotalOption2
                 squareCheckout(tripTotalOption2)
@@ -253,7 +253,6 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
                 lowerAlpha()
 
         }
-
         thirty_percent_btn.setOnClickListener {
             tripTotal = tripTotalOption4
             squareCheckout(tripTotalOption4)
@@ -262,7 +261,6 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
             tipPercentPicked = 00.30
             lowerAlpha()
         }
-
         customTipAmountBtn.setOnClickListener {
             customTipAmountBtn.setTextColor(ContextCompat.getColor(context!!, R.color.grey))
             val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
@@ -271,25 +269,22 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
                 navController.navigate(action)
             }
         }
-
         no_tip_btn.setOnClickListener {
             squareCheckout(tripTotal)
             lowerAlpha()
         }
 
-        view.setOnTouchListener(object : View.OnTouchListener {
-            override fun onTouch(v: View?, event: MotionEvent?): Boolean {
-                when (event?.action) {
-                    MotionEvent.ACTION_DOWN -> {
-                        screenTimeOutTimer.cancel()
-                        screenTimeOutTimer.start()
-                    }
+
+        callbackViewModel.getMeterState().observe(this, Observer { meterState ->
+            if (meterState == MeterEnum.METER_ON.state){
+                val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
+                if(navController.currentDestination?.id == (R.id.tipScreenFragment)){
+                    val action = TipScreenFragmentDirections.backToTripReview(tripTotal.toFloat()).setMeterOwedPrice(tripTotal.toFloat())
+                    navController.navigate(action)
                 }
-                return v?.onTouchEvent(event) ?: true
             }
         })
-        callbackViewModel.getIsTransactionComplete().observe(this, Observer {
-            val transactionIsComplete = it
+        callbackViewModel.getIsTransactionComplete().observe(this, Observer {transactionIsComplete ->
             if(transactionIsComplete){
                 val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
                 if(navController.currentDestination?.id == (R.id.tipScreenFragment)){
@@ -300,7 +295,6 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
             }
         })
     }
-
     private fun updateUI() {
         if(tripTotal < 10.00){
             if (fifteen_percent_text_view != null &&
@@ -437,25 +431,27 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
     }
     private fun getArgsFromCustomTipScreen(){
         val hasCustomTipBeingPicked = arguments?.getBoolean("doneButtonTouchedOnCustomTipScreen")
-        val totalWithTip = arguments?.getFloat("tipScreenTripTotal")
+        val tripTotalBeforeTip = arguments?.getFloat("tipScreenTripTotal")
         val tipAmount = arguments?.getFloat("tipChosenFromCustomTipScreen")
-        if (totalWithTip != null && tipAmount != null) {
-            if (totalWithTip < 10.00) {
-                val formattedArgs = tripTotalDFUnderTen.format(totalWithTip)
-                tripTotal = formattedArgs.toDouble()
+        val amountForSquare = tripTotalBeforeTip!! + tipAmount!!.toFloat()
+        if (tripTotalBeforeTip != null &&
+            tipAmount != null) {
+            if (amountForSquare < 10.00) {
+                tripTotal = tripTotalBeforeTip.toDouble()
                 tipAmountPassedToSquare = tipAmount.toDouble()
+                val formattedArgs = tripTotalDFUnderTen.format(amountForSquare)
                 val tripTotalToString = formattedArgs.toString()
                 tip_screen_trip_total_textView.text = "$$tripTotalToString"
             } else {
-                val formattedArgs = tripTotalDF.format(totalWithTip)
-                tripTotal = formattedArgs.toDouble()
+                tripTotal = tripTotalBeforeTip.toDouble()
                 tipAmountPassedToSquare = tipAmount.toDouble()
+                val formattedArgs = tripTotalDF.format(amountForSquare)
                 val tripTotalToString = formattedArgs.toString()
                 tip_screen_trip_total_textView.text = "$$tripTotalToString"
             }
         }
         if(hasCustomTipBeingPicked!!) {
-            squareCheckout(tripTotal)
+            squareCheckout(amountForSquare.toDouble())
             lowerAlpha()
         }
     }
@@ -491,10 +487,13 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
         thirty_percent_btn.isEnabled = isClickable
         customTipAmountBtn.isEnabled = isClickable
         no_tip_btn.isEnabled = isClickable
+        screenTimeOutTimer.cancel()
+        screenTimeOutTimer.start()
     }
     private fun raiseAlphaUI(){
         val alpha = 1.0f
         val isClickable = true
+        screenTimeOutTimer.cancel()
         //Changes the alpha
         if(fifteen_percent_frameLayout != null){
             fifteen_percent_frameLayout.alpha = alpha
@@ -591,10 +590,6 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
     }
     private fun showCheckoutResult(checkoutResult: CheckoutResult) {
         val tenders = checkoutResult.tenders
-        if(checkoutResult.transactionId != null){
-//            callbackViewModel.setTransactionId(transactionId)
-//            callbackViewModel.setTransactionId(transactionId)
-        }
         transactionDate = checkoutResult.createdAt
         val updatedTransactionDate = ViewHelper.formatDateUtcIso(transactionDate)
         for (i in tenders){
@@ -620,9 +615,7 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
         callbackViewModel.setTipAmount(tipAmountPassedToSquare)
     }
     private fun resetScreen() = launch(Dispatchers.Main.immediate){
-        val originalTripValue = tripTotal - tipAmountPassedToSquare
-        tripTotal = originalTripValue
-        updateTripTotalTextField(originalTripValue)
+        updateTripTotalTextField(tripTotal)
         tipAmountPassedToSquare = 00.00
         updateUI()
     }

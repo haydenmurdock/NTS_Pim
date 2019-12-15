@@ -45,6 +45,7 @@ import com.example.nts_pim.utilities.view_helper.ViewHelper
 import com.example.nts_pim.utilities.enums.PIMStatusEnum
 import com.example.nts_pim.utilities.enums.SharedPrefEnum
 import com.example.nts_pim.utilities.mutation_helper.PIMMutationHelper
+import com.example.nts_pim.utilities.power_cycle.PowerAccessibilityService
 import com.example.nts_pim.utilities.sound_helper.SoundHelper
 import com.sdsmdg.tastytoast.TastyToast
 import com.squareup.sdk.reader.ReaderSdk
@@ -293,13 +294,10 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
             //We change the audio to avoid a static sound when turing off
             val audioManager = context!!.getSystemService(Context.AUDIO_SERVICE) as AudioManager
             audioManager.mode = (AudioManager.MODE_NORMAL)
-            val intent = Intent()
+            val intent = Intent(activity, PowerAccessibilityService::class.java)
             intent.action = "com.claren.tablet_control.shutdown"
-            intent.`package` = "com.claren.tablet_control"
-            intent.putExtra("nowait", 1)
-            intent.putExtra("interval", 1)
-            intent.putExtra("window", 0)
-            activity!!.sendBroadcast(intent)
+            intent.addFlags(Intent.FLAG_INCLUDE_STOPPED_PACKAGES)
+            activity!!.startService(intent)
         }
 
         if (isCharging) {
@@ -427,6 +425,7 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
 
     override fun onResume() {
         super.onResume()
+        ViewHelper.hideSystemUI(activity!!)
         vehicleId = viewModel.getVehicleId()
         batteryCheckTimer.cancel()
         batteryCheckTimer.start()

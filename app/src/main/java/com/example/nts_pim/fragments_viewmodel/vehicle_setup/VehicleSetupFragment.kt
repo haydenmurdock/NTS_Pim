@@ -2,6 +2,8 @@ package com.example.nts_pim.fragments_viewmodel.vehicle_setup
 
 
 import android.Manifest
+import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothDevice
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -65,6 +67,7 @@ import org.kodein.di.android.x.closestKodein
 import org.kodein.di.generic.instance
 import java.io.IOException
 import java.lang.Error
+import java.util.*
 
 
 class VehicleSetupFragment:ScopedFragment(), KodeinAware {
@@ -124,11 +127,11 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
         keyboardViewModel = ViewModelProviders.of(this, keyboardFactory)
             .get(SettingsKeyboardViewModel::class.java)
         setUpKeyboard()
+        allOtherPermissions()
         val doubleBounce = DoubleBounce()
         auth_progressBar.setIndeterminateDrawable(doubleBounce)
         val threeBounce = ThreeBounce()
         vehicle_id_progressBar.setIndeterminateDrawable(threeBounce)
-        requestMic()
         keyboardViewModel.isQwertyKeyboardUp().observe(this, Observer {
             //Once a pin has been created we will try to pull the vehicle_Id from AWS
             if (it)
@@ -356,8 +359,7 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
         if(result.isSuccess){
             if(setup_complete_btn != null){
                 launch(Dispatchers.Main.immediate) {
-                    setup_complete_btn.isEnabled = true
-                    updateChecklist(5, true, adapter as MyCustomAdapter)
+                    checkIfBlueToothReaderIsConnected()
                 }
             }
         }
@@ -561,14 +563,94 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
         }
     }
 
-    private fun sendKnoxIntent(){
-        val intent = Intent()
-        intent.action = "com.claren.tablet_control.shutdown"
-        intent.`package` = "com.claren.tablet_control"
-        intent.putExtra("nowait", 1)
-        intent.putExtra("interval", 1)
-        intent.putExtra("window", 0)
-        activity!!.sendBroadcast(intent)
+    private fun requestStorage(){
+        val REQUEST_STORAGE_PERMSSION_CODE = 1
+        if (ContextCompat.checkSelfPermission(activity!!, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(
+                activity!!,
+                arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE),
+                REQUEST_STORAGE_PERMSSION_CODE)
+        }
+    }
+    private fun requestLocation() {
+        val REQUEST_FINE_LOCATION_PERMSSION_CODE = 1
+        if (ContextCompat.checkSelfPermission(activity!!, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(
+                activity!!,
+                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
+                REQUEST_FINE_LOCATION_PERMSSION_CODE)
+        }
+    }
+
+    private fun requestPhoneState(){
+        val REQUEST_PHONE_STATE_PERMSSION_CODE = 1
+        if (ContextCompat.checkSelfPermission(activity!!, Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(
+                activity!!,
+                arrayOf(Manifest.permission.READ_PHONE_STATE),
+                REQUEST_PHONE_STATE_PERMSSION_CODE)
+        }
+    }
+    private fun allOtherPermissions(){
+        val REQUEST_CODE_ASK_PERMISSIONS = 1
+        val REQUIRED_SDK_PERMISSIONS = arrayOf(
+            Manifest.permission.INTERNET,
+            Manifest.permission.ACCESS_NETWORK_STATE,
+            //Manifest.permission.REQUEST_INSTALL_PACKAGES,
+            Manifest.permission.WRITE_EXTERNAL_STORAGE,
+            Manifest.permission.READ_EXTERNAL_STORAGE,
+            Manifest.permission.EXPAND_STATUS_BAR,
+            Manifest.permission.ACCESS_NETWORK_STATE,
+            Manifest.permission.RECEIVE_BOOT_COMPLETED,
+            Manifest.permission.BLUETOOTH_ADMIN,
+            Manifest.permission.BLUETOOTH
+        )//,Manifest.permission.BIND_ACCESSIBILITY_SERVICE
+
+        val missingPermissions = ArrayList<String>()
+        // check all required dynamic permissions
+        for (permission in REQUIRED_SDK_PERMISSIONS) {
+            val result = ContextCompat.checkSelfPermission(context!!, permission)
+            if (result != PackageManager.PERMISSION_GRANTED) {
+                missingPermissions.add(permission)
+            }
+        }
+        if (!missingPermissions.isEmpty()) {
+            // request all missing permissions
+            val permissions = missingPermissions
+                .toTypedArray()
+            ActivityCompat.requestPermissions(this.activity!!, permissions, REQUEST_CODE_ASK_PERMISSIONS)
+        } else {
+            val grantResults = IntArray(REQUIRED_SDK_PERMISSIONS.size)
+            Arrays.fill(grantResults, PackageManager.PERMISSION_GRANTED)
+            onRequestPermissionsResult(
+                REQUEST_CODE_ASK_PERMISSIONS, REQUIRED_SDK_PERMISSIONS,
+                grantResults)
+        }
+    }
+
+
+    private fun checkIfBlueToothReaderIsConnected(){
+        val mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
+        val connectedDevices = mBluetoothAdapter.bondedDevices
+        val squareReaderString = "Square"
+        var blueToothDevice: BluetoothDevice? = null
+        if (!mBluetoothAdapter.isEnabled) {
+            mBluetoothAdapter.enable()
+        }
+        for (i in connectedDevices){
+            Log.i("BlueTooth", "Device connected: ${i.name}")
+            if (i.name.contains(squareReaderString)){
+                blueToothDevice = i
+            }
+        }
+        if (blueToothDevice!!.name.contains(squareReaderString))
+            Log.i("BlueTooth", "Square Reader is Connected")
+                if (setup_complete_btn != null){
+                    setup_complete_btn.isEnabled = true
+                    updateChecklist(5,true, adapter as MyCustomAdapter)
+                } else {
+            startReaderSettings(adapter as MyCustomAdapter)
+        }
     }
 
     private fun setUpComplete(){
@@ -592,13 +674,12 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
     override fun onResume() {
         super.onResume()
         requestMic()
+        requestStorage()
+        requestLocation()
+        requestPhoneState()
         ViewHelper.hideSystemUI(activity!!)
     }
 
-    override fun onPause() {
-        super.onPause()
-        ViewHelper.hideSystemUI(activity!!)
-    }
 
     override fun onDestroy() {
         super.onDestroy()

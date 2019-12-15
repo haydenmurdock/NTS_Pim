@@ -1,16 +1,14 @@
 package com.example.nts_pim.fragments_viewmodel.vehicle_settings_detail
 
+import android.Manifest
 import android.app.AlertDialog
-import android.content.Context
-import android.content.Intent
+import android.app.admin.DevicePolicyManager
+import android.content.*
 import android.media.AudioManager
 import android.os.Bundle
-import android.os.VibrationEffect
-import android.os.Vibrator
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.SeekBar
 import android.widget.Toast
 import androidx.lifecycle.ViewModelProviders
 import androidx.navigation.Navigation
@@ -19,8 +17,8 @@ import com.example.nts_pim.fragments_viewmodel.InjectorUtiles
 import com.example.nts_pim.fragments_viewmodel.base.ScopedFragment
 import com.example.nts_pim.fragments_viewmodel.callback.CallBackViewModel
 import com.example.nts_pim.utilities.dialog_composer.PIMDialogComposer
+import com.example.nts_pim.utilities.power_cycle.PowerAccessibilityService
 import com.example.nts_pim.utilities.sound_helper.SoundHelper
-import com.example.nts_pim.utilities.view_helper.ViewHelper
 import com.squareup.sdk.reader.ReaderSdk
 import com.squareup.sdk.reader.core.CallbackReference
 import com.squareup.sdk.reader.core.Result
@@ -30,6 +28,12 @@ import kotlinx.android.synthetic.main.vehicle_settings_detail.*
 import org.kodein.di.KodeinAware
 import org.kodein.di.android.x.closestKodein
 import org.kodein.di.generic.instance
+import android.content.Intent
+import android.content.pm.PackageManager
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
+import java.util.*
+
 
 class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
 
@@ -52,18 +56,18 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        val factory =  InjectorUtiles.provideCallBackModelFactory()
+        val factory = InjectorUtiles.provideCallBackModelFactory()
         viewModel = ViewModelProviders.of(this, viewModelFactory)
             .get(VehicleSettingsDetailViewModel::class.java)
         callBackViewModel = ViewModelProviders.of(this, factory)
             .get(CallBackViewModel::class.java)
 
         val readerManager = ReaderSdk.readerManager()
-        readerSettingsCallbackRef = readerManager.addReaderSettingsActivityCallback(this::onReaderSettingsResult)
+        readerSettingsCallbackRef =
+            readerManager.addReaderSettingsActivityCallback(this::onReaderSettingsResult)
 
         val batteryStatus = callBackViewModel.batteryPowerStatePermission()
         updateUI(batteryStatus)
-        val myVib = context!!.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
         activity_indicator_vehicle_detail.visibility = View.INVISIBLE
 
         check_bluetooth_btn.setOnClickListener {
@@ -81,11 +85,11 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
         exit_app_btn.setOnClickListener {
             PIMDialogComposer.exitApplication(activity!!)
         }
-        power_Off_PIM_btn.setOnClickListener{
+        power_Off_PIM_btn.setOnClickListener {
             showPowerOffDialog()
         }
 
-        battery_btn.setOnClickListener{
+        battery_btn.setOnClickListener {
             callBackViewModel.enableOrDisableBatteryPower()
             val batteryPermission = callBackViewModel.batteryPowerStatePermission()
 
@@ -95,25 +99,6 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
             ).show()
             updatePowerButtonUI(batteryPermission)
         }
-
-        dev_mode_btn.setOnClickListener {
-        }
-
-        vibrateSeekBar?.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
-                // Write code to perform some action when progress is changed.
-            }
-
-            override fun onStartTrackingTouch(seekBar: SeekBar) {
-                // Write code to perform some action when touch is started.
-            }
-
-            override fun onStopTrackingTouch(seekBar: SeekBar) {
-                // Write code to perform some action when touch is stopped.
-                Toast.makeText(context, "Vibrate Set to " + seekBar.progress, Toast.LENGTH_SHORT).show()
-                myVib.vibrate(VibrationEffect.createOneShot(250, seekBar.progress))
-            }
-        })
     }
     private fun onReaderSettingsResult(result: Result<Void, ResultError<ReaderSettingsErrorCode>>) {
         if (result.isSuccess){
@@ -180,13 +165,11 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
                 .setPositiveButton("Yes"){ _, _->
                     val audioManager = context!!.getSystemService(Context.AUDIO_SERVICE) as AudioManager
                     audioManager.mode = (AudioManager.MODE_NORMAL)
-                    val intent = Intent()
+                    val intent = Intent(activity, PowerAccessibilityService::class.java)
                     intent.action = "com.claren.tablet_control.shutdown"
-                    intent.`package` = "com.claren.tablet_control"
-                    intent.putExtra("nowait", 1)
-                    intent.putExtra("interval", 1)
-                    intent.putExtra("window", 0)
-                    activity!!.sendBroadcast(intent)
+                    intent.addFlags(Intent.FLAG_INCLUDE_STOPPED_PACKAGES)
+                    activity!!.startService(intent)
+
                 }
                 .setNegativeButton("Cancel",null)
                 .show()
@@ -218,15 +201,6 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
         power_Off_PIM_btn.isEnabled = enabled
         setting_detail_back_btn.isEnabled = enabled
         battery_btn.isEnabled = enabled
-    }
-    override fun onResume() {
-        super.onResume()
-        ViewHelper.hideSystemUI(activity!!)
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        readerSettingsCallbackRef?.clear()
     }
 
 }

@@ -83,19 +83,6 @@
             app:srcCompat="@drawable/ic_battery_2"
             tools:srcCompat="@drawable/ic_battery_2" />
 
-    <SeekBar
-            android:id="@+id/vibrateSeekBar"
-            android:layout_width="280dp"
-            android:layout_height="46dp"
-            android:layout_marginTop="129dp"
-            android:layout_marginBottom="206dp"
-            android:max="255"
-            android:visibility="invisible"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/setting_detail_back_btn" />
-
     <ProgressBar
             android:id="@+id/activity_indicator_vehicle_detail"
             style="?android:attr/progressBarStyle"
@@ -134,4 +121,5 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/settings_detail_textView"
             app:layout_constraintVertical_bias="0.01999998" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>

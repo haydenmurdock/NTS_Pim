@@ -453,9 +453,9 @@ class CustomTipScreenFragment : ScopedFragment() {
             } else {
                 tipPicked = tipAmountInEditText.toFloat()
             }
-            val tripTotalWithTip = custom_tip_screen_trip_total_textView.text.toString().removePrefix("$")
-            val action = CustomTipScreenFragmentDirections.backToTipScreenFragment(tripTotalWithTip.toFloat(), tipPicked)
-                .setTipScreenTripTotal(tripTotalWithTip.toFloat())
+
+            val action = CustomTipScreenFragmentDirections.backToTipScreenFragment(tripTotal.toFloat(), tipPicked)
+                .setTipScreenTripTotal(tripTotal.toFloat())
                 .setDoneButtonTouchedOnCustomTipScreen(true)
                 .setTipChosenFromCustomTipScreen(tipPicked)
             val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
@@ -672,7 +672,9 @@ class CustomTipScreenFragment : ScopedFragment() {
             custom_tip_screen_backspace_btn.isEnabled = true
         }
     }
+    private fun toTipScreenWithTip(){
 
+    }
     override fun onDestroy() {
         cursorTimer?.cancel()
         super.onDestroy()

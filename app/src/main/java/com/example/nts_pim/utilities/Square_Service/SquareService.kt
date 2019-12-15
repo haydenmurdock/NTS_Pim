@@ -191,6 +191,11 @@ class SquareService : OnLayoutChangeListener,
                 SqUIState.SWIPE_STATE -> {
                     turnUpVolume()
                     insertCardView = View.inflate(activity, R.layout.insert_card, viewGroup)
+                    if (insertCardView != null){
+                        val imageView = activity.findViewById<ImageView>(R.id.insert_card_imageView)
+                        Glide.with(activity.applicationContext)
+                            .load(R.raw.insert_swipe_card).into(imageView)
+                    }
                     startTimeout()
                 }
                 SqUIState.SUCCESSFUL_PAYMENT -> {
@@ -385,11 +390,47 @@ class SquareService : OnLayoutChangeListener,
         }
     }
 
-    private fun pressCancelButtonForSquareCheck(){
-        val cancelButton5 = getButton(squareActivity!!, com.squareup.sdk.reader.api.R.id.cancel_button, "cancelButton5")
-        if(cancelButton5 != null) {
+    private fun pressCancelButtonForSquareCheck() {
+        val cancelButton1 =
+            getButton(
+                squareActivity!!,
+                com.squareup.sdk.reader.api.R.id.select_payment_up_button,
+                "cancelButton1"
+            )
+        val cancelButton2 = getButton(
+            squareActivity!!,
+            com.squareup.sdk.reader.api.R.id.tutorial_bar_cancel,
+            "cancelButton2"
+        )
+        val cancelButton3 = getButton(
+            squareActivity!!,
+            com.squareup.sdk.reader.api.R.id.tutorial2_cancel,
+            "cancelButton3"
+        )
+        val cancelButton4 =
+            getButton(
+                squareActivity!!,
+                com.squareup.sdk.reader.api.R.id.reader_warning_bottom_default_button,
+                "cancelButton4"
+            )
+        val cancelButton5 = getButton(
+            squareActivity!!,
+            com.squareup.sdk.reader.api.R.id.cancel_button,
+            "cancelButton5"
+        )
+
+        if (cancelButton5 != null) {
             cancelButton5.performClick()
-        } else {
+        } else if (cancelButton4 != null)
+            cancelButton4.performClick()
+        else {
+            if (cancelButton1 != null)
+                cancelButton1.performClick()
+            if (cancelButton2 != null)
+                cancelButton2.performClick()
+            if (cancelButton3 != null)
+                cancelButton3.performClick()
+
             if (squareActivity != null){
                 VehicleTripArrayHolder.squareHasBeenSetUp = true
                 SoundHelper.turnOnSound(squareActivity!!.applicationContext)
@@ -493,14 +534,15 @@ class SquareService : OnLayoutChangeListener,
 
     // Make the square activties "full screen mode"
     private fun fullScreenMode(activity: Activity) {
-            val decorView = activity.window.decorView
-            decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_LOW_PROFILE or
-                    View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
-                    View.SYSTEM_UI_FLAG_LAYOUT_STABLE or
-                    View.SYSTEM_UI_FLAG_LOW_PROFILE or
-                    View.SYSTEM_UI_FLAG_FULLSCREEN or
-                    View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or
-                    View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                val decorView = activity.window.decorView
+                decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_LOW_PROFILE or
+                        View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
+                        View.SYSTEM_UI_FLAG_LAYOUT_STABLE or
+                        View.SYSTEM_UI_FLAG_LOW_PROFILE or
+                        View.SYSTEM_UI_FLAG_FULLSCREEN or
+                        View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or
+                        View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+
     }
 
     private fun turnUpVolume(){

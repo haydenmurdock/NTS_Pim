@@ -24,4 +24,45 @@
     <string name="error_unspecified">Point of Sale API Encountered an Error</string>
     <string name="install_point_of_sale_confirm">Open Play Store</string>
     <string name="try_again">Please try again</string>
+    <string name="enterprise_device_admin">Claren AutoStart</string>
+    <string name="enterprise_device_admin_description">Claren AutoStart</string>
+    <string name="activate_admin">Activate Admin</string>
+    <string name="deactivate_admin">Deactivate Admin</string>
+    <string name="activate_license">Activate license</string>
+    <string name="grant_permissions">Grant Permissions</string>
+    <string name="toggle_camera">Toggle Camera</string>
+
+    <!-- UI elements -->
+    <string name="license_progress">Activating ELM license</string>
+    <string name="permissions_failed">Failed to grant runtime permissions %1$s to package</string>
+    <string name="permissions_granted">Granted runtime permissions %1$s to package</string>
+    <string name="admin_cancelled">Device admin activation cancelled</string>
+    <string name="admin_activated">Device administrator activated</string>
+    <string name="activating_admin">Activating device administrator</string>
+    <string name="deactivating_admin">Deactivating device administrator </string>
+    <string name="camera_state">Set camera enabled to: %1$b</string>
+    <string name="permission1">com.samsung.android.knox.permission.KNOX_CUSTOM_SYSTEM</string>
+    <string name="permission2">com.sec.enterprise.knox.permission.CUSTOM_SYSTEM</string>
+    <string name="permission3">com.samsung.android.knox.permission.KNOX_HW_CONTROL</string>
+
+    <!-- License activation messages -->
+    <string name="no_intent">License activation intent is not available</string>
+    <string name="no_intent_action">License activation intent action is not available</string>
+    <string name="elm_activated_succesfully">ELM activated successfully</string>
+
+    <!-- ELM License Error Codes -->
+    <string name="err_elm_internal">ELM: Internal error</string>
+    <string name="err_elm_internal_server">ELM: Internal server error</string>
+    <string name="err_elm_licence_invalid_license">ELM: Invalid license</string>
+    <string name="err_elm_invalid_package_name">ELM: Invalid package name</string>
+    <string name="err_elm_licence_terminated">ELM: License terminated</string>
+    <string name="err_elm_network_disconnected">ELM: Network disconnected</string>
+    <string name="err_elm_network_general">ELM: Network general error</string>
+    <string name="err_elm_unknown">ELM: Error unknown</string>
+    <string name="err_elm_code_unknown">ELM: Error code unknown %1$s, status %2$s</string>
+    <string name="err_elm_not_current_date">ELM: Not current date</string>
+    <string name="err_elm_sig_mismatch">ELM: Caller package signature mismatch</string>
+    <string name="err_elm_ver_code_mismatch">ELM: Caller package version code mismatch</string>
+    <string name="err_elm_null_params">ELM: NULL params</string>
+    <string name="err_elm_user_disagrees_license_agreement">ELM: User disagrees EULA</string>
 </resources>

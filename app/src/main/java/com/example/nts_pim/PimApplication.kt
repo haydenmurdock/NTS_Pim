@@ -25,6 +25,7 @@ import org.kodein.di.generic.provider
 import org.kodein.di.generic.singleton
 
 class PimApplication : Application(), KodeinAware{
+
     override val kodein = Kodein.lazy {
         import(androidXModule(this@PimApplication))
 
@@ -56,4 +57,5 @@ class PimApplication : Application(), KodeinAware{
             registerActivityLifecycleCallbacks(LifeCycleCallBacks())
 
         }
-    }
+
+}
