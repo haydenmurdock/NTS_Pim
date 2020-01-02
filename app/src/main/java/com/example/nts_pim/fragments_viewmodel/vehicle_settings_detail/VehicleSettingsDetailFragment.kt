@@ -29,10 +29,9 @@ import org.kodein.di.KodeinAware
 import org.kodein.di.android.x.closestKodein
 import org.kodein.di.generic.instance
 import android.content.Intent
-import android.content.pm.PackageManager
-import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
-import java.util.*
+import android.util.Log
+import com.example.nts_pim.BuildConfig
+import kotlinx.android.synthetic.main.recent_trip_aws_screen.*
 
 
 class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
@@ -43,8 +42,8 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
     private lateinit var callBackViewModel: CallBackViewModel
     private lateinit var viewModel: VehicleSettingsDetailViewModel
     private var readerSettingsCallbackRef: CallbackReference? = null
+    private val currentFragmentId = R.id.vehicle_settings_detail_fragment
     //Local Variables
-
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -88,6 +87,9 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
         power_Off_PIM_btn.setOnClickListener {
             showPowerOffDialog()
         }
+        recent_trip_button.setOnClickListener {
+            toRecentTrip()
+        }
 
         battery_btn.setOnClickListener {
             callBackViewModel.enableOrDisableBatteryPower()
@@ -100,6 +102,8 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
             updatePowerButtonUI(batteryPermission)
         }
     }
+
+
     private fun onReaderSettingsResult(result: Result<Void, ResultError<ReaderSettingsErrorCode>>) {
         if (result.isSuccess){
             println("success")
@@ -129,17 +133,22 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
         val duration = 500.toLong()
         val vehicleID = viewModel.getVehicleID()
         val tripID = callBackViewModel.getTripId()
+        val buildName = BuildConfig.VERSION_NAME
+
         settings_detail_textView.text = "Vehicle ID: $vehicleID"
+        build_version_textView.text = "Build Version: $buildName"
         if(tripID.isNotEmpty()){
             last_trip_id_textView.text = "Trip Id: $tripID"
         } else {
             last_trip_id_textView.text = "Trip Id: none"
         }
 
+
         check_bluetooth_btn.animate().alpha(alpha).setDuration(duration)
         setting_detail_back_btn.animate().alpha(alpha).setDuration(duration)
         exit_app_btn.animate().alpha(alpha).setDuration(duration)
         power_Off_PIM_btn.animate().alpha(alpha).setDuration(duration)
+        recent_trip_button.animate().alpha(alpha).setDuration(duration)
         updatePowerButtonUI(batteryStatus)
         updateDevButtonUI()
     }
@@ -181,12 +190,14 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
         check_bluetooth_btn.alpha = lowerAlpha
         power_Off_PIM_btn.alpha = lowerAlpha
         setting_detail_back_btn.alpha = lowerAlpha
+        recent_trip_button.alpha = lowerAlpha
 
         exit_app_btn.isEnabled = notEnabled
         check_bluetooth_btn.isEnabled = notEnabled
         power_Off_PIM_btn.isEnabled = notEnabled
         setting_detail_back_btn.isEnabled = notEnabled
         battery_btn.isEnabled = notEnabled
+        recent_trip_button.isEnabled = notEnabled
     }
     private fun screenEnabled(){
         val normalAlpha = 1.0f
@@ -195,12 +206,21 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
         check_bluetooth_btn.alpha = normalAlpha
         power_Off_PIM_btn.alpha = normalAlpha
         setting_detail_back_btn.alpha = normalAlpha
+        recent_trip_button.alpha = normalAlpha
 
         exit_app_btn.isEnabled = enabled
         check_bluetooth_btn.isEnabled = enabled
         power_Off_PIM_btn.isEnabled = enabled
         setting_detail_back_btn.isEnabled = enabled
         battery_btn.isEnabled = enabled
+        recent_trip_button.isEnabled = enabled
+    }
+
+    private fun toRecentTrip(){
+        val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
+        if (navController.currentDestination?.id == currentFragmentId){
+            navController.navigate(R.id.action_vehicle_settings_detail_fragment_to_recentTripAWSFragment)
+        }
     }
 
 }

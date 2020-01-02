@@ -61,6 +61,7 @@ class EmailOrTextFragment : ScopedFragment(), KodeinAware {
     private var pimNoReceipt = false
     private val decimalFormatter = DecimalFormat("####0.00")
     private var inactiveScreenTimer: CountDownTimer? = null
+    private val currentFragmentId = R.id.email_or_text_fragment
 
 
     override fun onCreateView(
@@ -192,11 +193,15 @@ class EmailOrTextFragment : ScopedFragment(), KodeinAware {
     private fun setUpUI() {
         val tripPriceArgs = arguments?.getFloat("tripTotal")
         val paymentTypeArgs = arguments?.getString("paymentType")
+        val meterOwedPrice = callBackViewModel.getMeterOwed().value
         if (tripPriceArgs != null && paymentTypeArgs != null) {
             tripTotal = tripPriceArgs.toDouble()
             if (tripTotal == 0.0 ||
                 tripTotal == 0.toDouble()){
-                tripTotal = callBackViewModel.getPimPayAmount()
+                if(meterOwedPrice != null){
+                    //The pimPayAmount is 0 so we will use the meter owed for receipt.
+                    tripTotal = meterOwedPrice
+                }
             }
             paymentType = paymentTypeArgs
             val df = decimalFormatter.format(tripTotal)
@@ -204,9 +209,15 @@ class EmailOrTextFragment : ScopedFragment(), KodeinAware {
             amount_text_View.text = "$$tripTotalAsString"
         }
         if(paymentTypeArgs == "CASH"){
-
+            val transactionId = UUID.randomUUID().toString()
+            callBackViewModel.setTransactionId(transactionId)
+            updatePaymentDetail(transactionId,tripNumber,vehicleId, mAWSAppSyncClient!!)
         }
         SoundHelper.turnOnSound(context!!)
+    }
+
+    private fun updatePaymentDetail(transactionId: String, tripNumber: Int, vehicleId: String, awsAppSyncClient: AWSAppSyncClient) = launch(Dispatchers.IO){
+        PIMMutationHelper.updatePaymentDetails(transactionId, tripNumber, vehicleId, awsAppSyncClient)
     }
 
     private fun pimStatusUpdate() = launch(Dispatchers.IO){
@@ -216,10 +227,7 @@ class EmailOrTextFragment : ScopedFragment(), KodeinAware {
             mAWSAppSyncClient!!
         )
     }
-    private fun sendCashTransactionID()=launch(Dispatchers.IO){
-        val transactionId = UUID.randomUUID()
 
-    }
     private fun startInactivityTimeout(){
       inactiveScreenTimer = object: CountDownTimer(60000, 1000) {
             // this is set to 1 min and will finish if a new trip is started.
@@ -236,43 +244,7 @@ class EmailOrTextFragment : ScopedFragment(), KodeinAware {
             }
         }.start()
     }
-    private fun backToCreditOrCash(){
-        val action = EmailOrTextFragmentDirections.EmailOrTextBackToTripReview(tripTotal.toFloat()).setMeterOwedPrice(tripTotal.toFloat())
-        val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
-        if (navController.currentDestination?.id == (R.id.email_or_text_fragment)){
-            navController.navigate(action)
-        }
-    }
 
-    private fun toEmailReceipt()= launch(Dispatchers.Main.immediate){
-        val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
-        val action = EmailOrTextFragmentDirections.actionEmailOrTextFragmentToReceiptInformationEmailFragment(paymentType,tripTotal.toFloat(),previousEmail)
-            .setPaymentType(paymentType)
-            .setTripTotal(tripTotal.toFloat())
-            .setPreviousEmail(previousEmail)
-        if (navController.currentDestination?.id == (R.id.email_or_text_fragment)){
-            navController.navigate(action)
-        }
-    }
-
-    private fun toTextReceipt(){
-        val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
-        val action = EmailOrTextFragmentDirections.actionEmailOrTextFragmentToReceiptInformationTextFragment2(
-            paymentType,tripTotal.toFloat(),previousPhoneNumber)
-            .setPaymentType(paymentType)
-            .setTripTotal(tripTotal.toFloat())
-            .setPreviousPhoneNumber(previousPhoneNumber)
-        if (navController.currentDestination?.id == (R.id.email_or_text_fragment)){
-            navController.navigate(action)
-        }
-    }
-
-    private fun toThankYou(){
-        val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
-        if (navController.currentDestination?.id == (R.id.email_or_text_fragment)){
-            navController.navigate(R.id.toInteractionComplete)
-        }
-    }
     //We are going to check to see if they need a receipt and if a email/phoneNumber is on file for them
     private fun checkCustomerDetailsAWS(tripID: String) = launch(Dispatchers.IO){
         if (mAWSAppSyncClient == null) {
@@ -306,7 +278,44 @@ class EmailOrTextFragment : ScopedFragment(), KodeinAware {
             toThankYou()
         }
     }
+    //Navigation
+    private fun backToCreditOrCash(){
+        val action = EmailOrTextFragmentDirections.EmailOrTextBackToTripReview(tripTotal.toFloat()).setMeterOwedPrice(tripTotal.toFloat())
+        val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
+        if (navController.currentDestination?.id == (currentFragmentId)){
+            navController.navigate(action)
+        }
+    }
 
+    private fun toEmailReceipt()= launch(Dispatchers.Main.immediate){
+        val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
+        val action = EmailOrTextFragmentDirections.actionEmailOrTextFragmentToReceiptInformationEmailFragment(paymentType,tripTotal.toFloat(),previousEmail)
+            .setPaymentType(paymentType)
+            .setTripTotal(tripTotal.toFloat())
+            .setPreviousEmail(previousEmail)
+        if (navController.currentDestination?.id == (currentFragmentId)){
+            navController.navigate(action)
+        }
+    }
+
+    private fun toTextReceipt(){
+        val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
+        val action = EmailOrTextFragmentDirections.actionEmailOrTextFragmentToReceiptInformationTextFragment2(
+            paymentType,tripTotal.toFloat(),previousPhoneNumber)
+            .setPaymentType(paymentType)
+            .setTripTotal(tripTotal.toFloat())
+            .setPreviousPhoneNumber(previousPhoneNumber)
+        if (navController.currentDestination?.id == (currentFragmentId)){
+            navController.navigate(action)
+        }
+    }
+
+    private fun toThankYou(){
+        val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
+        if (navController.currentDestination?.id == (currentFragmentId)){
+            navController.navigate(R.id.toInteractionComplete)
+        }
+    }
 
     override fun onPause() {
         super.onPause()

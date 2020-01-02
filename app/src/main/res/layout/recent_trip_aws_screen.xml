@@ -1,0 +1,511 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:app="http://schemas.android.com/apk/res-auto"
+        xmlns:tools="http://schemas.android.com/tools"
+        android:id="@+id/linearLayout10"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/screenBackgroundColor"
+        android:orientation="horizontal">
+
+    <ProgressBar
+            android:id="@+id/awsProgressBar"
+            style="?android:attr/progressBarStyle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.5"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+    <ScrollView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:visibility="visible"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.5"
+            app:layout_constraintStart_toStartOf="parent"
+        >
+
+        <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="vertical"
+                android:id="@+id/linearLayout11">
+
+            <ImageView
+                    android:id="@+id/recentTrip_back_btn"
+                    android:layout_width="wrap_content"
+                    android:layout_height="55dp"
+                    android:src="@drawable/ic_left_arrow_2"
+                    tools:layout_conversion_absoluteHeight="43dp"
+                    tools:layout_conversion_absoluteWidth="79dp"
+                    tools:layout_editor_absoluteX="0dp"
+                    tools:layout_editor_absoluteY="-65dp" />
+
+            <TextView
+                    android:id="@+id/tripId_textView"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/source_sans_pro"
+                    android:text="tripId:"
+                    android:textColor="@color/whiteTextColor"
+                    android:textSize="18sp"
+                    tools:layout_conversion_absoluteHeight="25dp"
+                    tools:layout_conversion_absoluteWidth="1008dp"
+                    tools:layout_editor_absoluteX="16dp"
+                    tools:layout_editor_absoluteY="-22dp" />
+
+            <TextView
+                    android:id="@+id/airportFee_textView"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/source_sans_pro"
+                    android:text="airPortFee:"
+                    android:textColor="@color/whiteTextColor"
+                    android:textSize="18sp"
+                    tools:layout_conversion_absoluteHeight="19dp"
+                    tools:layout_conversion_absoluteWidth="1008dp"
+                    tools:layout_editor_absoluteX="16dp"
+                    tools:layout_editor_absoluteY="18dp" />
+
+            <TextView
+                    android:id="@+id/appliedFairMin_textView"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/source_sans_pro"
+                    android:text="appliedFairMin:"
+                    android:textColor="@color/whiteTextColor"
+                    android:textSize="18sp"
+                    tools:layout_conversion_absoluteHeight="19dp"
+                    tools:layout_conversion_absoluteWidth="1008dp"
+                    tools:layout_editor_absoluteX="16dp"
+                    tools:layout_editor_absoluteY="37dp" />
+
+            <TextView
+                    android:id="@+id/appliedFairRate_textView"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/source_sans_pro"
+                    android:text="appliedFareRate:"
+                    android:textColor="@color/whiteTextColor"
+                    android:textSize="18sp"
+                    tools:layout_conversion_absoluteHeight="19dp"
+                    tools:layout_conversion_absoluteWidth="1008dp"
+                    tools:layout_editor_absoluteX="16dp"
+                    tools:layout_editor_absoluteY="55dp" />
+
+            <TextView
+                    android:id="@+id/cardInfo_textView"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/source_sans_pro"
+                    android:text="cardInfo:"
+                    android:textColor="@color/whiteTextColor"
+                    android:textSize="18sp"
+                    tools:layout_conversion_absoluteHeight="19dp"
+                    tools:layout_conversion_absoluteWidth="1008dp"
+                    tools:layout_editor_absoluteX="16dp"
+                    tools:layout_editor_absoluteY="74dp" />
+
+            <TextView
+                    android:id="@+id/custEmail_textView"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/source_sans_pro"
+                    android:text="custEmail:"
+                    android:textColor="@color/whiteTextColor"
+                    android:textSize="18sp"
+                    tools:layout_conversion_absoluteHeight="19dp"
+                    tools:layout_conversion_absoluteWidth="1008dp"
+                    tools:layout_editor_absoluteX="16dp"
+                    tools:layout_editor_absoluteY="92dp" />
+
+            <TextView
+                    android:id="@+id/custPhoneNumber_textView"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/source_sans_pro"
+                    android:text="custPhoneNumber:"
+                    android:textColor="@color/whiteTextColor"
+                    android:textSize="18sp"
+                    tools:layout_conversion_absoluteHeight="19dp"
+                    tools:layout_conversion_absoluteWidth="1008dp"
+                    tools:layout_editor_absoluteX="16dp"
+                    tools:layout_editor_absoluteY="111dp" />
+
+            <TextView
+                    android:id="@+id/discountAmt_textView"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/source_sans_pro"
+                    android:text="discountAmt:"
+                    android:textColor="@color/whiteTextColor"
+                    android:textSize="18sp"
+                    tools:layout_conversion_absoluteHeight="19dp"
+                    tools:layout_conversion_absoluteWidth="1008dp"
+                    tools:layout_editor_absoluteX="16dp"
+                    tools:layout_editor_absoluteY="129dp" />
+
+            <TextView
+                    android:id="@+id/discountPercent_textView"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/source_sans_pro"
+                    android:text="discountPercent:"
+                    android:textColor="@color/whiteTextColor"
+                    android:textSize="18sp"
+                    tools:layout_conversion_absoluteHeight="19dp"
+                    tools:layout_conversion_absoluteWidth="1008dp"
+                    tools:layout_editor_absoluteX="16dp"
+                    tools:layout_editor_absoluteY="148dp" />
+
+            <TextView
+                    android:id="@+id/meterDistance_textView"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/source_sans_pro"
+                    android:text="meterDistance:"
+                    android:textColor="@color/whiteTextColor"
+                    android:textSize="18sp"
+                    tools:layout_conversion_absoluteHeight="19dp"
+                    tools:layout_conversion_absoluteWidth="1008dp"
+                    tools:layout_editor_absoluteX="16dp"
+                    tools:layout_editor_absoluteY="166dp" />
+
+            <TextView
+                    android:id="@+id/meterDistFare_textView"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/source_sans_pro"
+                    android:text="meterDistFare"
+                    android:textColor="@color/whiteTextColor"
+                    android:textSize="18sp"
+                    tools:layout_conversion_absoluteHeight="19dp"
+                    tools:layout_conversion_absoluteWidth="1008dp"
+                    tools:layout_editor_absoluteX="16dp"
+                    tools:layout_editor_absoluteY="185dp" />
+
+            <TextView
+                    android:id="@+id/meterError_textView"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/source_sans_pro"
+                    android:text="meterError:"
+                    android:textColor="@color/whiteTextColor"
+                    android:textSize="18sp"
+                    tools:layout_conversion_absoluteHeight="19dp"
+                    tools:layout_conversion_absoluteWidth="1008dp"
+                    tools:layout_editor_absoluteX="16dp"
+                    tools:layout_editor_absoluteY="203dp" />
+
+            <TextView
+                    android:id="@+id/meterFare_textView"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/source_sans_pro"
+                    android:text="meterFare:"
+                    android:textColor="@color/whiteTextColor"
+                    android:textSize="18sp"
+                    tools:layout_conversion_absoluteHeight="19dp"
+                    tools:layout_conversion_absoluteWidth="1008dp"
+                    tools:layout_editor_absoluteX="16dp"
+                    tools:layout_editor_absoluteY="222dp" />
+
+            <TextView
+                    android:id="@+id/meterRate_textView"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/source_sans_pro"
+                    android:text="meterRate:"
+                    android:textColor="@color/whiteTextColor"
+                    android:textSize="18sp"
+                    tools:layout_conversion_absoluteHeight="19dp"
+                    tools:layout_conversion_absoluteWidth="1008dp"
+                    tools:layout_editor_absoluteX="16dp"
+                    tools:layout_editor_absoluteY="240dp" />
+
+            <TextView
+                    android:id="@+id/meterState_textView"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/source_sans_pro"
+                    android:text="meterState:"
+                    android:textColor="@color/whiteTextColor"
+                    android:textSize="18sp"
+                    tools:layout_conversion_absoluteHeight="19dp"
+                    tools:layout_conversion_absoluteWidth="1008dp"
+                    tools:layout_editor_absoluteX="16dp"
+                    tools:layout_editor_absoluteY="259dp" />
+
+            <TextView
+                    android:id="@+id/meterTimeFare_textView"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/source_sans_pro"
+                    android:text="meterTimeFare:"
+                    android:textColor="@color/whiteTextColor"
+                    android:textSize="18sp"
+                    tools:layout_conversion_absoluteHeight="19dp"
+                    tools:layout_conversion_absoluteWidth="1008dp"
+                    tools:layout_editor_absoluteX="16dp"
+                    tools:layout_editor_absoluteY="277dp" />
+
+            <TextView
+                    android:id="@+id/meterWaitTime_textView"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/source_sans_pro"
+                    android:text="meterWaitTime:"
+                    android:textColor="@color/whiteTextColor"
+                    android:textSize="18sp"
+                    tools:layout_conversion_absoluteHeight="19dp"
+                    tools:layout_conversion_absoluteWidth="1008dp"
+                    tools:layout_editor_absoluteX="16dp"
+                    tools:layout_editor_absoluteY="296dp" />
+
+            <TextView
+                    android:id="@+id/owedPrice_textView"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/source_sans_pro"
+                    android:text="owedPrice:"
+                    android:textColor="@color/whiteTextColor"
+                    android:textSize="18sp"
+                    tools:layout_conversion_absoluteHeight="19dp"
+                    tools:layout_conversion_absoluteWidth="1008dp"
+                    tools:layout_editor_absoluteX="16dp"
+                    tools:layout_editor_absoluteY="314dp" />
+
+            <TextView
+                    android:id="@+id/owedPriceSource_textView"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/source_sans_pro"
+                    android:text="owedPriceSource:"
+                    android:textColor="@color/whiteTextColor"
+                    android:textSize="18sp"
+                    tools:layout_conversion_absoluteHeight="19dp"
+                    tools:layout_conversion_absoluteWidth="1008dp"
+                    tools:layout_editor_absoluteX="16dp"
+                    tools:layout_editor_absoluteY="333dp" />
+
+            <TextView
+                    android:id="@+id/paidAmount_TextView"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/source_sans_pro"
+                    android:text="paidAmount:"
+                    android:textColor="@color/whiteTextColor"
+                    android:textSize="18sp"
+                    tools:layout_conversion_absoluteHeight="19dp"
+                    tools:layout_conversion_absoluteWidth="1008dp"
+                    tools:layout_editor_absoluteX="16dp"
+                    tools:layout_editor_absoluteY="351dp" />
+
+            <TextView
+                    android:id="@+id/paymentType_textView"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/source_sans_pro"
+                    android:text="paymentType:"
+                    android:textColor="@color/whiteTextColor"
+                    android:textSize="18sp"
+                    tools:layout_conversion_absoluteHeight="19dp"
+                    tools:layout_conversion_absoluteWidth="1008dp"
+                    tools:layout_editor_absoluteX="16dp"
+                    tools:layout_editor_absoluteY="370dp" />
+
+            <TextView
+                    android:id="@+id/pimPaidAmount_textView"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/source_sans_pro"
+                    android:text="pimPaidAmount:"
+                    android:textColor="@color/whiteTextColor"
+                    android:textSize="18sp"
+                    tools:layout_conversion_absoluteHeight="19dp"
+                    tools:layout_conversion_absoluteWidth="1008dp"
+                    tools:layout_editor_absoluteX="16dp"
+                    tools:layout_editor_absoluteY="388dp" />
+
+            <TextView
+                    android:id="@+id/pimTransDate_textView"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="pimTransDate:"
+                    android:textColor="@color/whiteTextColor"
+                    android:textSize="18sp"
+                    tools:layout_conversion_absoluteHeight="19dp"
+                    tools:layout_editor_absoluteY="407dp"
+                    tools:layout_editor_absoluteX="16dp"
+                    tools:layout_conversion_absoluteWidth="1008dp" />
+
+            <TextView
+                    android:id="@+id/pimTransId_textView"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="pimTransId:"
+                    android:textSize="18sp"
+                    android:textColor="@color/whiteTextColor"
+                    tools:layout_conversion_absoluteHeight="19dp"
+                    tools:layout_editor_absoluteY="425dp"
+                    tools:layout_editor_absoluteX="16dp"
+                    tools:layout_conversion_absoluteWidth="1008dp" />
+
+            <TextView
+                    android:id="@+id/tipAmount_textView"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="tipAmount:"
+                    android:textSize="18sp"
+                    android:textColor="@color/whiteTextColor"
+                    tools:layout_conversion_absoluteHeight="19dp"
+                    tools:layout_editor_absoluteY="444dp"
+                    tools:layout_editor_absoluteX="16dp"
+                    tools:layout_conversion_absoluteWidth="1008dp" />
+
+            <TextView
+                    android:id="@+id/tipPercent_textView"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="tipPercent:"
+                    android:textSize="18sp"
+                    android:textColor="@color/whiteTextColor"
+                    tools:layout_conversion_absoluteHeight="19dp"
+                    tools:layout_editor_absoluteY="462dp"
+                    tools:layout_editor_absoluteX="16dp"
+                    tools:layout_conversion_absoluteWidth="1008dp" />
+
+            <TextView
+                    android:id="@+id/toll_textView"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="toll:"
+                    android:textSize="18sp"
+                    android:textColor="@color/whiteTextColor"
+                    tools:layout_conversion_absoluteHeight="19dp"
+                    tools:layout_editor_absoluteY="481dp"
+                    tools:layout_editor_absoluteX="16dp"
+                    tools:layout_conversion_absoluteWidth="1008dp" />
+
+            <TextView
+                    android:id="@+id/tripEndTime_textView"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="tripEndTime:"
+                    android:textColor="@color/whiteTextColor"
+                    android:textSize="18sp"
+                    tools:layout_conversion_absoluteHeight="19dp"
+                    tools:layout_conversion_absoluteWidth="1008dp"
+                    tools:layout_editor_absoluteX="16dp"
+                    tools:layout_editor_absoluteY="499dp" />
+
+            <TextView
+                    android:id="@+id/tripNumber_textview"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="tripNumber:"
+                    android:textColor="@color/whiteTextColor"
+                    android:textSize="18sp"
+                    tools:layout_conversion_absoluteHeight="19dp"
+                    tools:layout_conversion_absoluteWidth="1008dp"
+                    tools:layout_editor_absoluteX="16dp"
+                    tools:layout_editor_absoluteY="518dp" />
+
+            <TextView
+                    android:id="@+id/tripStartTime_textView"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="tripStartTime:"
+                    android:textSize="18sp"
+                    android:textColor="@color/whiteTextColor"
+                    tools:layout_conversion_absoluteHeight="19dp"
+                    tools:layout_editor_absoluteY="536dp"
+                    tools:layout_editor_absoluteX="16dp"
+                    tools:layout_conversion_absoluteWidth="1008dp" />
+
+            <TextView
+                    android:id="@+id/tripStatus_textView"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="tripStatus:"
+                    android:textSize="18sp"
+                    android:textColor="@color/whiteTextColor"
+                    tools:layout_conversion_absoluteHeight="19dp"
+                    tools:layout_editor_absoluteY="555dp"
+                    tools:layout_editor_absoluteX="16dp"
+                    tools:layout_conversion_absoluteWidth="1008dp" />
+
+            <TextView
+                    android:id="@+id/tripTime_textView"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="tripTime:"
+                    android:textSize="18sp"
+                    android:textColor="@color/whiteTextColor"
+                    tools:layout_conversion_absoluteHeight="19dp"
+                    tools:layout_editor_absoluteY="573dp"
+                    tools:layout_editor_absoluteX="16dp"
+                    tools:layout_conversion_absoluteWidth="1008dp" />
+
+            <TextView
+                    android:id="@+id/voucherAcctNbr_textView"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="voucherAcctNbr:"
+                    android:textSize="18sp"
+                    android:textColor="@color/whiteTextColor"
+                    tools:layout_conversion_absoluteHeight="19dp"
+                    tools:layout_editor_absoluteY="592dp"
+                    tools:layout_editor_absoluteX="16dp"
+                    tools:layout_conversion_absoluteWidth="1008dp" />
+
+            <TextView
+                    android:id="@+id/voucherEnteredAmt_textView"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="voucherEnteredAmt:"
+                    android:textSize="18sp"
+                    android:textColor="@color/whiteTextColor"
+                    tools:layout_conversion_absoluteHeight="19dp"
+                    tools:layout_editor_absoluteY="610dp"
+                    tools:layout_editor_absoluteX="16dp"
+                    tools:layout_conversion_absoluteWidth="1008dp" />
+
+            <TextView
+                    android:id="@+id/voucherNbr_textView"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/source_sans_pro"
+                    android:text="voucherNbr:"
+                    android:textColor="@color/whiteTextColor"
+                    android:textSize="18sp"
+                    tools:layout_conversion_absoluteHeight="19dp"
+                    tools:layout_conversion_absoluteWidth="1008dp"
+                    tools:layout_editor_absoluteX="16dp"
+                    tools:layout_editor_absoluteY="629dp" />
+
+            <Button
+                    android:id="@+id/more_btn"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/custom_tip_done_button"
+                    android:fontFamily="@font/source_sans_pro"
+                    android:gravity="fill_vertical"
+                    android:lineSpacingExtra="12sp"
+                    android:text="More"
+                    android:textAlignment="center"
+                    android:textColor="@color/whiteTextColor"
+                    android:textSize="18sp"
+                    tools:layout_conversion_absoluteHeight="48dp"
+                    tools:layout_conversion_absoluteWidth="1024dp"
+                    tools:layout_editor_absoluteX="0dp"
+                    tools:layout_editor_absoluteY="647dp" />
+
+        </LinearLayout>
+    </ScrollView>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

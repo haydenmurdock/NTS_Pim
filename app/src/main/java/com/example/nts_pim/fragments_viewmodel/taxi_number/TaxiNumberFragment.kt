@@ -1,6 +1,7 @@
 package com.example.nts_pim.fragments_viewmodel.taxi_number
 
 import android.os.Bundle
+import android.provider.Settings
 
 import android.view.LayoutInflater
 import android.view.View
@@ -24,6 +25,7 @@ class TaxiNumberFragment : ScopedFragment(), KodeinAware {
     private val viewModelFactory: TaxiNumberViewModelFactory by instance()
 
     private lateinit var viewModel: TaxiNumberViewModel
+    private var fullBrightness = 255
 
     //Local Variables
 
@@ -44,6 +46,10 @@ class TaxiNumberFragment : ScopedFragment(), KodeinAware {
         if (settings != null){
             updateUI(settings.cabNumber)
             checkAnimation(view)
+        }
+        val br = Settings.System.getInt(context?.contentResolver, Settings.System.SCREEN_BRIGHTNESS)
+        if(br != fullBrightness){
+            changeScreenBrightness(fullBrightness)
         }
     }
 
@@ -69,6 +75,27 @@ class TaxiNumberFragment : ScopedFragment(), KodeinAware {
     private fun updateUI(cabNumber: String){
             taxi_number_text_view.text = "Taxi number "+ cabNumber
     }
+
+    private fun changeScreenBrightness(screenBrightness: Int) {
+        Settings.System.putInt(
+            context?.contentResolver,
+            Settings.System.SCREEN_BRIGHTNESS_MODE,
+            Settings.System.SCREEN_BRIGHTNESS_MODE_MANUAL
+        )  //this will set the manual mode (set the automatic mode off)
+        Settings.System.putInt(
+            context?.contentResolver,
+            Settings.System.SCREEN_BRIGHTNESS,
+            screenBrightness
+        )  //this will set the brightness to maximum (255)
+
+        //refreshes the screen
+        val br =
+            Settings.System.getInt(context?.contentResolver, Settings.System.SCREEN_BRIGHTNESS)
+        val lp = activity?.window?.attributes
+        lp?.screenBrightness = br.toFloat() / 255
+        activity?.window?.attributes = lp
+    }
+
 
     private fun toNextScreen(view: View) {
         // 5 seconds to next screen

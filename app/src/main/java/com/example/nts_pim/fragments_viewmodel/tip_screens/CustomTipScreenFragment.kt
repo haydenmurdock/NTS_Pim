@@ -514,12 +514,12 @@ class CustomTipScreenFragment : ScopedFragment() {
                 val formattedArgs = tripTotalDFUnderTen.format(args)
                 tripTotal = formattedArgs.toDouble()
                 val tripTotalToString = formattedArgs.toString()
-                custom_tip_screen_trip_total_textView.text = "$tripTotalToString"
+                custom_tip_screen_trip_total_textView.text = "$$tripTotalToString"
             } else {
                 val formattedArgs = tripTotalDF.format(args)
                 tripTotal = formattedArgs.toDouble()
                 val tripTotalToString = formattedArgs.toString()
-                custom_tip_screen_trip_total_textView.text = "$tripTotalToString"
+                custom_tip_screen_trip_total_textView.text = "$$tripTotalToString"
             }
         }
     }
@@ -672,9 +672,7 @@ class CustomTipScreenFragment : ScopedFragment() {
             custom_tip_screen_backspace_btn.isEnabled = true
         }
     }
-    private fun toTipScreenWithTip(){
 
-    }
     override fun onDestroy() {
         cursorTimer?.cancel()
         super.onDestroy()

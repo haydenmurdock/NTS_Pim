@@ -4,11 +4,12 @@ package com.example.nts_pim.fragments_viewmodel.vehicle_setup
 import android.Manifest
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
-import android.provider.Settings
+import android.telephony.TelephonyManager
 import android.text.InputType
 import android.util.Log
 import android.view.Gravity
@@ -85,7 +86,7 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
     private val setNamesArray =
         arrayOf("UUID", "PIN", "Vehicle ID", "Authorization","Knox Startup", "Bluetooth Setup")
     private val setBooleanArray = arrayOf(false, false, false, false, false,false)
-    private var uuid = ""
+    private var imei = ""
     private var pin = ""
     private var vehicleID = ""
     private var authCode = ""
@@ -138,7 +139,7 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
                 pinEntered = true
             if (!it && pinEntered) {
                 showUIForEnterPIN()
-                keyboardViewModel.qwertyKeyboardisUp()
+                keyboardViewModel.qwertyKeyboardIsUp()
             }
         })
 
@@ -147,6 +148,7 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
                 checkDeviceID(view, adapter as MyCustomAdapter)
                 checkForPin(adapter as MyCustomAdapter)
             } else {
+                checkDeviceID(view, adapter as MyCustomAdapter)
                 showUIForSavedVehicleID()
                 checkAuthorization(vehicleID, authManager)
             }
@@ -197,33 +199,36 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
     }
 
     private fun checkDeviceID(view: View, adapter: MyCustomAdapter) = launch {
-        uuid = viewModel.getDeviceID.await()
+        imei = viewModel.getDeviceID.await()
         // This in case there is no device ID, we make one
-        if (uuid == "") {
-            val deviceIDString = Settings.Secure.getString(
-                getContext()?.getContentResolver(),
-                Settings.Secure.ANDROID_ID
-            )
-
-            val deviceId =
-                DeviceID(deviceIDString)
-
-            ModelPreferences(view.context)
-                .putObject(SharedPrefEnum.DEVICE_ID.key, deviceId)
-            uuid = deviceId.number
-            setup_detail_text_view.text = "UUID was created and updated: $uuid"
-            updateChecklist(0, true, adapter)
-            Log.i(
-                LogEnums.PIM_SETTING.tag,
-                "Device Id: $deviceIDString saved to Shared Preferences"
-            )
-
+        if (imei == "") {
+            if(context?.checkCallingOrSelfPermission(Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED){
+                val telephonyManager = activity!!.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
+                val imei = telephonyManager.imei
+                val deviceId =
+                    DeviceID(imei)
+                ModelPreferences(view.context)
+                    .putObject(SharedPrefEnum.DEVICE_ID.key, deviceId)
+                this@VehicleSetupFragment.imei = deviceId.number
+                setup_detail_text_view.text = "imei was created and updated: ${this@VehicleSetupFragment.imei}"
+                updateChecklist(0, true, adapter)
+                launch(Dispatchers.IO) {
+                    checkForPairedVehicleID(this@VehicleSetupFragment.imei)
+                }
+                Log.i(
+                    LogEnums.PIM_SETTING.tag,
+                    "Device Id: $imei saved to Shared Preferences"
+                )
+            }
         } else {
-            setup_detail_text_view.text = "UUID was found $uuid"
+            setup_detail_text_view.text = "imei was found $imei"
             updateChecklist(0, true, adapter)
+            launch(Dispatchers.IO) {
+                checkForPairedVehicleID(imei)
+            }
             Log.i(
                 LogEnums.PIM_SETTING.tag,
-                "Device Id: Already saved into preferences and is $uuid"
+                "Device Id: Already saved into preferences and is $imei"
             )
         }
     }
@@ -232,7 +237,7 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
         pin = viewModel.getPin.await()
         if (pin == "") {
             //There is no pin so we will need to show the pin screen
-            keyboardViewModel.qwertyKeyboardisUp()
+            keyboardViewModel.qwertyKeyboardIsUp()
             setup_detail_text_view.text = "No pin in settings"
             setup_detail_scrollView.isVisible = false
             pin_detail_scrollView.isVisible = true
@@ -240,8 +245,8 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
             // There is a pin found so we will get the Vehicle ID
             setup_detail_text_view.text = "Pin: $pin found in settings"
             updateChecklist(1, true, adapter)
-            if (uuid != "") {
-                queryVehicleId(uuid, pin, adapter)
+            if (imei != "") {
+                queryVehicleIdWithPIN(imei, pin, adapter)
             }
         }
     }
@@ -265,11 +270,23 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
         }
     }
 
-    private fun queryVehicleId(deviceID: String, pin: String, adapter: MyCustomAdapter)
+    private fun queryVehicleIdWithPIN(deviceID: String, pin: String, adapter: MyCustomAdapter)
             = launch(Dispatchers.IO) {
         val pimSettingsQueryCallBack = object : GraphQLCall.Callback<GetPimSettingsQuery.Data>() {
             override fun onResponse(response: Response<GetPimSettingsQuery.Data>) {
                 val callBackVehicleID = response.data()?.pimSettings?.vehicleId()
+                val errorCode = response.data()?.pimSettings?.errorCode()
+                when(errorCode) {
+                    "1004" -> {
+                        launch(Dispatchers.Main) {
+                            Toast.makeText(
+                                context,
+                                "PIM device Id has been assigned to another vehicle",
+                                Toast.LENGTH_LONG
+                            ).show()
+                        }
+                    }
+                }
                 if (callBackVehicleID != null) {
                     vehicleID = callBackVehicleID
                     saveVehicleID(vehicleID)
@@ -287,6 +304,32 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
         mAWSAppSyncClient?.query(GetPimSettingsQuery.builder().deviceId(deviceID).pin(pin).build())
             ?.responseFetcher(AppSyncResponseFetchers.CACHE_AND_NETWORK)
             ?.enqueue(pimSettingsQueryCallBack)
+    }
+    private fun checkForPairedVehicleID(deviceID: String){
+        mAWSAppSyncClient?.query(GetPimSettingsQuery.builder().deviceId(deviceID).build())
+            ?.responseFetcher(AppSyncResponseFetchers.CACHE_AND_NETWORK)
+            ?.enqueue(vehicleIdQueryCallBack)
+    }
+
+    val vehicleIdQueryCallBack = object : GraphQLCall.Callback<GetPimSettingsQuery.Data>() {
+        override fun onResponse(response: Response<GetPimSettingsQuery.Data>) {
+            val callBackVehicleID = response.data()?.pimSettings?.vehicleId()
+            val errorCode = response.data()?.pimSettings?.errorCode()
+            when(errorCode){
+                "1007" -> {
+                    launch(Dispatchers.Main) {
+                        Toast.makeText(context, "PIM device Id has not been assigned, please enter pin", Toast.LENGTH_LONG).show()
+                    }
+                }
+            }
+            if (callBackVehicleID != null) {
+                vehicleID = callBackVehicleID
+                saveVehicleID(vehicleID)
+            }
+
+        }
+        override fun onFailure(e: ApolloException) {
+        }
     }
 
     private fun saveVehicleID(vehicleId: String) {
@@ -358,9 +401,7 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
         }
         if(result.isSuccess){
             if(setup_complete_btn != null){
-                launch(Dispatchers.Main.immediate) {
-                    checkIfBlueToothReaderIsConnected()
-                }
+                checkIfBlueToothReaderIsConnected()
             }
         }
     }
@@ -418,10 +459,10 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
     private fun showUIForEnterPIN(){
         val enteredPin = enter_pin_editText.text.toString()
         pin = enteredPin
-        println(uuid)
+        println(imei)
         vehicle_id_progressBar.isVisible = true
         vehicle_id_progressBar.animate()
-        queryVehicleId(uuid, pin, adapter as MyCustomAdapter)
+        queryVehicleIdWithPIN(imei, pin, adapter as MyCustomAdapter)
         pinEntered = false
     }
     private fun showUIForAuthWebView(){
@@ -531,8 +572,9 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
         toast.show()
     }
     private fun startReaderSettings(adapter: MyCustomAdapter) {
-        setup_complete_btn.isEnabled = true
-        setup_complete_btn.isVisible = true
+        if(setup_complete_btn != null){
+            setup_complete_btn.isVisible = true
+        }
         val readerManager = ReaderSdk.readerManager()
         readerManager.startReaderSettingsActivity(context!!)
         updateChecklist(4, true, adapter)
@@ -643,13 +685,21 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
                 blueToothDevice = i
             }
         }
-        if (blueToothDevice!!.name.contains(squareReaderString))
-            Log.i("BlueTooth", "Square Reader is Connected")
+        if (blueToothDevice != null){
+            if (blueToothDevice.name.contains(squareReaderString)){
+                Log.i("BlueTooth", "Square Reader is Connected")
                 if (setup_complete_btn != null){
-                    setup_complete_btn.isEnabled = true
-                    updateChecklist(5,true, adapter as MyCustomAdapter)
-                } else {
-            startReaderSettings(adapter as MyCustomAdapter)
+                    launch(Dispatchers.Main.immediate) {
+                        setup_complete_btn.isEnabled = true
+                        updateChecklist(5,true, adapter as MyCustomAdapter)
+                    }
+                }
+            }
+        }
+        else {
+            launch(Dispatchers.Main) {
+                startReaderSettings(adapter as MyCustomAdapter)
+            }
         }
     }
 
@@ -686,8 +736,12 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
         keyboardViewModel.isQwertyKeyboardUp().removeObservers(this)
         viewModel.isSquareAuthorized().removeObservers(this)
         viewModel.isThereAuthCode().removeObservers(this)
-        auth_progressBar.clearAnimation()
-        vehicle_id_progressBar.clearAnimation()
+        if (auth_progressBar != null){
+            auth_progressBar.clearAnimation()
+        }
+        if (vehicle_id_progressBar != null){
+            vehicle_id_progressBar.clearAnimation()
+        }
     }
 }
 

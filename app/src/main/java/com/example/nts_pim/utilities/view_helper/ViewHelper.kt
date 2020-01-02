@@ -1,17 +1,15 @@
 package com.example.nts_pim.utilities.view_helper
 
 import android.app.Activity
+import android.app.NotificationManager
 import android.content.Context
-import android.os.VibrationEffect
-import android.os.Vibrator
+import android.util.Log
 import android.view.View
 import android.view.animation.Animation
 import android.view.animation.TranslateAnimation
-import android.widget.Button
 import android.widget.ImageView
 import androidx.core.view.isVisible
 import java.text.SimpleDateFormat
-import java.time.LocalDateTime
 import java.util.*
 
 
@@ -91,6 +89,13 @@ object ViewHelper {
                 // Hide the nav bar and status bar
                 or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
                 or View.SYSTEM_UI_FLAG_FULLSCREEN)
+    }
+
+    fun checkForNotifications(activity: Activity) {
+        val notificationManager =
+            activity.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val isNotificationAllowed = notificationManager.areNotificationsEnabled()
+        Log.i("Notification", "Notifications are allowed: $isNotificationAllowed")
     }
 
 }

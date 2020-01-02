@@ -77,6 +77,7 @@ class CallBackViewModel(
     internal fun setTransactionId(string: String){
         vehicleTripArrayHolder.setTransactionID(string)
     }
+    internal fun getTransactionId() = VehicleTripArrayHolder.getTransactionID()
 
     internal fun setTipAmount(enteredTip: Double){
         vehicleTripArrayHolder.setTipAmount(enteredTip)
@@ -88,10 +89,20 @@ class CallBackViewModel(
     }
     internal fun getPimPayAmount() = vehicleTripArrayHolder.getPimPayment()
 
+    internal fun setPimPaidAmount(enterPimPaidAmount: Double){
+        vehicleTripArrayHolder.setPimPaidAmount(enterPimPaidAmount)
+    }
+
+    internal fun getPimPaidAmount() = vehicleTripArrayHolder.getPimPaidAmount()
+
     internal fun pimDoesNotNeedToDoReceipt(boolean: Boolean){
        vehicleTripArrayHolder.pimDoesNotNeedToDoReceipt(boolean)
     }
 
     internal fun getPimNoReceipt() = vehicleTripArrayHolder.getPimNoReceipt()
+
+    internal fun tripHasEnded() = vehicleTripArrayHolder.tripHasEnded()
+
+    internal fun getTripHasEnded() = vehicleTripArrayHolder.getTripHasEnded()
 
 }

@@ -32,19 +32,12 @@ import org.kodein.di.generic.instance
 class CheckVehicleInfoFragment: ScopedFragment(), KodeinAware {
 
     override val kodein by closestKodein()
-
     private val viewModelFactory: CheckVehicleInfoModelFactory by instance()
-
     private lateinit var viewModel: CheckVehicleInfoViewModel
-
     private var mAWSAppSyncClient: AWSAppSyncClient? = null
-
     private var vehicleId = ""
-
     private var cabNumber = ""
-
     private var companyName = ""
-
 
     override fun onCreateView(
         inflater: LayoutInflater,

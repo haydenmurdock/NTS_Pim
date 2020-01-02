@@ -53,8 +53,15 @@ object VehicleTripArrayHolder {
     private var tripTipAmount:Double = 0.0
 
     private var pimPayAmount:Double = 0.0
+    private var pimPaidAmount:Double = 0.0
 
     private var pimNoReceipt = false
+
+    private var tripEnded = false
+    private var tripEndedMutableLiveData = MutableLiveData<Boolean>()
+
+
+
 
 
 // Adds the status from the main activity app sync subscription. It goes to a live data array to be watched for changes. There is only 1 status in the array at all times.
@@ -90,11 +97,11 @@ object VehicleTripArrayHolder {
 
 // Adds the meter value from the main activity app sync subscription. Ibid previous liveData arrays
 //E.g. Double - 00.01
-   fun addMeterValue(double: Double){
-            if(double != meterOwed){
-                meterOwed = double
+   fun addMeterValue(enteredMeterValue: Double){
+            if(enteredMeterValue != meterOwed){
+                meterOwed = enteredMeterValue
                 meterOwedMutableLiveData.value = meterOwed
-                Log.i("Results","METER VALUE has changed and $double has been added to LiveData")
+                Log.i("Results","METER VALUE has changed and $enteredMeterValue has been added to LiveData")
             }
    }
 // Returns the meter value as Live Data
@@ -124,6 +131,8 @@ object VehicleTripArrayHolder {
             newTripHasStarted = true
             newTripHasStartedMutableLiveData.value = newTripHasStarted
             createCurrentTrip(true, enteredTripId, context)
+            tripEnded = false
+            tripEndedMutableLiveData.value = tripEnded
         }
     }
 
@@ -135,6 +144,13 @@ object VehicleTripArrayHolder {
         tripNumber = enteredNumber
     }
 
+    fun tripHasEnded(){
+        tripEnded = true
+        tripEndedMutableLiveData.value = tripEnded
+    }
+
+    fun getTripHasEnded() = tripEndedMutableLiveData as LiveData<Boolean>
+
     fun getTripNumber() = tripNumber
 
     fun batteryPowerEnabledOrDisable(){
@@ -142,15 +158,17 @@ object VehicleTripArrayHolder {
     }
 
     fun getBatteryPowerPermission() = batteryPowerIsSafe
-// clears arrays.
+    // clears arrays.
     fun clearAllNonPersistentData(){
         meterOwed = 00.00
         tripTipAmount = 0.0
         pimPayAmount = 0.0
+        pimPaidAmount = 0.0
         pimNoReceipt = false
         meterOwedMutableLiveData.value = meterOwed
         isSquareTransactionComplete = false
         tripNumber = 0
+        transactionID = ""
         Log.i("Results", "All Trip Information has been cleared")
     }
 
@@ -225,6 +243,7 @@ object VehicleTripArrayHolder {
             transactionID = awsTransactionId
         }
     }
+    fun getTransactionID() = transactionID
 
     fun setTipAmount(tip: Double){
         tripTipAmount = tip
@@ -235,6 +254,12 @@ object VehicleTripArrayHolder {
         pimPayAmount = awsPimPayAmount
     }
     fun getPimPayment() = pimPayAmount
+
+    fun setPimPaidAmount(awsPimPaidAmount: Double){
+        pimPaidAmount = awsPimPaidAmount
+    }
+
+    fun getPimPaidAmount() = pimPaidAmount
 
     fun pimDoesNotNeedToDoReceipt(boolean: Boolean){
         pimNoReceipt = boolean

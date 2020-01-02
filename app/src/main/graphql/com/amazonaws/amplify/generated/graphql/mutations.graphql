@@ -449,3 +449,17 @@ mutation TriggerMeterTrips($tripId: String!) {
     voucherNbr
   }
 }
+mutation SavePaymentDetails(
+  $paymentId: String!
+  $tripNbr: Int!
+  $vehicleId: String!
+) {
+  savePaymentDetails(
+    paymentId: $paymentId
+    tripNbr: $tripNbr
+    vehicleId: $vehicleId
+  ) {
+    error
+    errorCode
+  }
+}

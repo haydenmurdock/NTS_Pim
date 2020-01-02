@@ -4,13 +4,13 @@
         android:id="@+id/RemoveCardLayout"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="#E1DEE1"
-        android:orientation="vertical">
+        android:background="@color/screenBackgroundColor"
+        android:orientation="horizontal">
 
     <ImageView
-            android:id="@+id/imageView4"
-            android:layout_width="448dp"
-            android:layout_height="481dp"
+            android:id="@+id/remove_card_ImageView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintHorizontal_bias="0.5"
@@ -26,7 +26,7 @@
             android:gravity="center"
             android:text="Please Remove Card "
             android:textAlignment="center"
-            android:textColor="#3F51B5"
+            android:textColor="@color/red"
             android:textSize="55sp"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"

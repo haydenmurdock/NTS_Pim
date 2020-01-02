@@ -24,8 +24,8 @@
     <string name="error_unspecified">Point of Sale API Encountered an Error</string>
     <string name="install_point_of_sale_confirm">Open Play Store</string>
     <string name="try_again">Please try again</string>
-    <string name="enterprise_device_admin">Claren AutoStart</string>
-    <string name="enterprise_device_admin_description">Claren AutoStart</string>
+    <string name="enterprise_device_admin">NTS PIM</string>
+    <string name="enterprise_device_admin_description">NTS PIM</string>
     <string name="activate_admin">Activate Admin</string>
     <string name="deactivate_admin">Deactivate Admin</string>
     <string name="activate_license">Activate license</string>
@@ -65,4 +65,7 @@
     <string name="err_elm_ver_code_mismatch">ELM: Caller package version code mismatch</string>
     <string name="err_elm_null_params">ELM: NULL params</string>
     <string name="err_elm_user_disagrees_license_agreement">ELM: User disagrees EULA</string>
+
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
 </resources>

@@ -21,9 +21,11 @@ import com.amazonaws.mobileconnectors.appsync.AWSAppSyncClient
 import com.apollographql.apollo.GraphQLCall
 import com.apollographql.apollo.api.Response
 import com.apollographql.apollo.exception.ApolloException
+import com.example.nts_pim.data.repository.TripDetails
 import com.example.nts_pim.fragments_viewmodel.InjectorUtiles
 import com.example.nts_pim.fragments_viewmodel.base.ClientFactory
 import com.example.nts_pim.fragments_viewmodel.callback.CallBackViewModel
+import com.example.nts_pim.utilities.mutation_helper.PIMMutationHelper
 import com.example.nts_pim.utilities.simple_email_helper.EmailHelper
 import com.example.nts_pim.utilities.view_helper.ViewHelper
 import kotlinx.android.synthetic.main.receipt_information_email.*
@@ -34,6 +36,7 @@ import org.kodein.di.KodeinAware
 import org.kodein.di.android.x.closestKodein
 import org.kodein.di.generic.instance
 import type.UpdateTripInput
+import java.util.*
 
 
 class ReceiptInformationEmailFragment: ScopedFragment(), KodeinAware {
@@ -48,6 +51,8 @@ class ReceiptInformationEmailFragment: ScopedFragment(), KodeinAware {
     private var tripTotal = 0.0
     private var tripNumber = 0
     private var paymentType = ""
+    private var transactionId = ""
+    private var email = ""
     private var inactiveScreenTimer: CountDownTimer? = null
 
 
@@ -68,11 +73,26 @@ class ReceiptInformationEmailFragment: ScopedFragment(), KodeinAware {
         callBackViewModel = ViewModelProviders.of(this, callBackFactory)
             .get(CallBackViewModel::class.java)
         vehicleId = viewModel.getVehicleID()
+        transactionId = callBackViewModel.getTransactionId()
         val greyColor = ContextCompat.getColor(context!!,R.color.grey)
         showSoftKeyboard()
+        email_editText.addTextChangedListener(object : TextWatcher {
+            override fun afterTextChanged(s: Editable) {}
+            override fun beforeTextChanged(
+                s: CharSequence, start: Int,
+                count: Int, after: Int) {
+            }
+            override fun onTextChanged(
+                s: CharSequence, start: Int,
+                before: Int, count: Int) {
+                if (s.contains("@") && s.contains(".")) {
+                    enableSendEmailBtn()
+                }
+            }
+        })
         getTripDetails()
         startInactivityTimeout()
-        email_editText.setOnFocusChangeListener { v, hasFocus ->
+        email_editText.setOnFocusChangeListener { _, hasFocus ->
             if(!hasFocus){
             closeSoftKeyboard()
             }
@@ -119,23 +139,15 @@ class ReceiptInformationEmailFragment: ScopedFragment(), KodeinAware {
                 }
             }
         }))
-        email_editText.addTextChangedListener(object : TextWatcher {
-            override fun afterTextChanged(s: Editable) {}
-            override fun beforeTextChanged(
-                s: CharSequence, start: Int,
-                count: Int, after: Int) {
-            }
-            override fun onTextChanged(
-                s: CharSequence, start: Int,
-                before: Int, count: Int) {
-                if (s.contains("@") && s.contains(".")) {
-                    enableSendEmailBtn()
+
+        send_email_btn_receipt.setOnClickListener {
+            callBackViewModel.setTransactionId(transactionId)
+            email = email_editText.text.toString().trim()
+            launch {
+                updatePaymentDetailsApi().invokeOnCompletion {
+                    sendEmail(email)
                 }
             }
-        })
-        send_email_btn_receipt.setOnClickListener {
-            val email = email_editText.text.toString()
-            sendEmail(email)
         }
         back_btn_email_receipt.setOnClickListener {
             backToEmailOrText()
@@ -149,9 +161,17 @@ class ReceiptInformationEmailFragment: ScopedFragment(), KodeinAware {
         tripNumber = callBackViewModel.getTripNumber()
         val tripPriceArgs = arguments?.getFloat("tripTotal")
         val paymentTypeArgs = arguments?.getString("paymentType")
+        val previousEmail = arguments?.getString("previousEmail")
         if (tripPriceArgs != null && paymentTypeArgs != null) {
             tripTotal = tripPriceArgs.toDouble()
             paymentType = paymentTypeArgs
+        }
+        if(paymentType == "CASH"){
+            transactionId = UUID.randomUUID().toString()
+        }
+        if(!previousEmail.isNullOrBlank()){
+            email_editText.setText(previousEmail)
+            email_editText.setSelection(previousEmail.length)
         }
     }
     private fun showSoftKeyboard() {
@@ -168,14 +188,14 @@ class ReceiptInformationEmailFragment: ScopedFragment(), KodeinAware {
         ViewHelper.hideSystemUI(this.activity!!)
     }
 
-
-
     private fun enableSendEmailBtn(){
         if(send_email_btn_receipt != null){
             send_email_btn_receipt.isEnabled = true
         }
     }
-
+    private fun updatePaymentDetailsApi() = launch(Dispatchers.IO) {
+        PIMMutationHelper.updatePaymentDetails(transactionId, tripNumber, vehicleId, mAWSAppSyncClient!!)
+    }
     private fun sendEmail(email: String){
         if(vehicleId.isNotEmpty()&&
             tripId.isNotEmpty()&&
@@ -183,6 +203,7 @@ class ReceiptInformationEmailFragment: ScopedFragment(), KodeinAware {
             tripTotal > 0){
             updateCustomerEmail(email)
         }
+        TripDetails.receiptSentTo = email
         toConfirmation()
     }
 
@@ -202,8 +223,9 @@ class ReceiptInformationEmailFragment: ScopedFragment(), KodeinAware {
         override fun onResponse(response: Response<UpdateTripMutation.Data>) {
             Log.i("Results", "Meter Table Updated ${response.data()}")
             if(!response.hasErrors()){
-                launch(Dispatchers.IO){  }
-                EmailHelper.sendEmail(tripId, paymentType)
+                launch(Dispatchers.IO){
+                    EmailHelper.sendEmail(tripId, paymentType, transactionId)
+                }
             }
         }
 
@@ -230,7 +252,7 @@ class ReceiptInformationEmailFragment: ScopedFragment(), KodeinAware {
         }.start()
     }
     //Navigation
-    private fun toConfirmation(){
+    private fun toConfirmation() = launch(Dispatchers.Main.immediate){
         val action = ReceiptInformationEmailFragmentDirections
             .actionReceiptInformationEmailFragmentToConfirmationFragment(email_editText.text.toString(),tripTotal.toFloat(),"Email")
             .setEmailOrPhoneNumber(email_editText.text.toString())

@@ -1,15 +1,18 @@
 package com.example.nts_pim.utilities.simple_email_helper
+
 import android.util.Log
+import com.example.nts_pim.data.repository.TripDetails
 import okhttp3.*
 import org.json.JSONException
 import org.json.JSONObject
 import java.util.concurrent.TimeUnit
 import okhttp3.MediaType.Companion.toMediaType
+import java.io.IOException
 
 
 object EmailHelper {
 
-    fun sendEmail( tripId: String,  paymentMethod: String){
+    fun sendEmail(tripId: String,  paymentMethod: String, transactionId: String){
         val client = OkHttpClient().newBuilder()
             .connectTimeout(60, TimeUnit.SECONDS)
             .writeTimeout(60, TimeUnit.SECONDS)
@@ -19,10 +22,11 @@ object EmailHelper {
         val JSON = "application/json; charset=utf-8".toMediaType()
         val json = JSONObject()
         try{
-            json.put("paymentMethod", "$paymentMethod")
+            json.put("paymentMethod", "${paymentMethod.toLowerCase()}")
             json.put("sendMethod","email")
             json.put("tripId","$tripId" )
             json.put("src","pim")
+            json.put("paymentId", transactionId)
 
         } catch (e: JSONException){
             Log.i("ERROR", "JSON error $e")
@@ -36,10 +40,18 @@ object EmailHelper {
             .post(body)
             .build()
         try {
-            val respone = client.newCall(request).execute()
-            Log.i("URL","response code${respone.code}")
-        }  catch (e: Error){
-            print("line 45 sms helper $e" )
+           client.newCall(request).execute().use {response ->
+                if (!response.isSuccessful) throw IOException("Unexpected code ")
+                else {
+                    TripDetails.isReceiptSent = true
+                    TripDetails.receiptCode = response.code
+                    TripDetails.receiptMessage = response.message
+                }
+            }
+        }  catch (e: IOException) {
+            TripDetails.isReceiptSent = false
+            TripDetails.receiptCode = e.hashCode()
+            TripDetails.receiptMessage = e.localizedMessage
         }
     }
 }

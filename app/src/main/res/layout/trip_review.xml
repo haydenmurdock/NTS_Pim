@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:app="http://schemas.android.com/apk/res-auto"
+        xmlns:tools="http://schemas.android.com/tools"
+        android:id="@+id/frameLayout2"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/screenBackgroundColor"
+        android:orientation="horizontal"
+        tools:context=".fragments_viewmodel.trip_details.TripDetailFragment">
+
+
+    <TextView
+            android:id="@+id/trip_start_time_textView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="24dp"
+            android:fontFamily="@font/source_sans_pro"
+            android:text="PIM Trip Start Time:"
+            android:textColor="@color/whiteTextColor"
+            android:textSize="18sp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/trip_review_back_btn" />
+
+    <TextView
+            android:id="@+id/receipt_sent_textView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:fontFamily="@font/source_sans_pro"
+            android:text="Receipt sent:"
+            android:textColor="@color/whiteTextColor"
+            android:textSize="18sp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/trip_end_time_textView" />
+
+    <TextView
+            android:id="@+id/receipt_server_code_textView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:fontFamily="@font/source_sans_pro"
+            android:text="Receipt server code:"
+            android:textColor="@color/whiteTextColor"
+            android:textSize="18sp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/receipt_sent_textView" />
+
+    <TextView
+            android:id="@+id/receipt_server_message_textView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:fontFamily="@font/source_sans_pro"
+            android:text="Receipt Server Message:"
+            android:textColor="@color/whiteTextColor"
+            android:textSize="18sp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/receipt_server_code_textView" />
+
+    <ImageView
+            android:id="@+id/trip_review_back_btn"
+            android:layout_width="wrap_content"
+            android:layout_height="55dp"
+            android:src="@drawable/ic_left_arrow_2"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+            android:id="@+id/trip_end_time_textView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:fontFamily="@font/source_sans_pro"
+            android:text="PIM Trip End Time:"
+            android:textColor="@color/whiteTextColor"
+            android:textSize="18sp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/trip_start_time_textView" />
+
+    <TextView
+            android:id="@+id/isOnline_textView"
+            android:layout_width="147dp"
+            android:layout_height="25dp"
+            android:layout_marginStart="16dp"
+            android:fontFamily="@font/source_sans_pro"
+            android:text="isOnline: "
+            android:textColor="@color/whiteTextColor"
+            android:textSize="18sp"
+            android:visibility="visible"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/receipt_server_message_textView" />
+
+    <TextView
+            android:id="@+id/pim_current_lat_textView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:fontFamily="@font/source_sans_pro"
+            android:text="current pim lat:"
+            android:textColor="@color/whiteTextColor"
+            android:textSize="18sp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/isOnline_textView" />
+
+    <TextView
+            android:id="@+id/pim_current_long_textView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:fontFamily="@font/source_sans_pro"
+            android:text="pim current long:"
+            android:textColor="@color/whiteTextColor"
+            android:textSize="18sp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/pim_current_lat_textView" />
+</androidx.constraintlayout.widget.ConstraintLayout>

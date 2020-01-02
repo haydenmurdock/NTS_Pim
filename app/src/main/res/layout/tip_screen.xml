@@ -215,7 +215,7 @@
             android:id="@+id/tip_screen_trip_total_textView"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:fontFamily="@font/source_sans_pro"
+            android:fontFamily="@font/source_sans_pro_semibold"
             android:text="$ "
             android:textAlignment="center"
             android:textColor="@color/red"

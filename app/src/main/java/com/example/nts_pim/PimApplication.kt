@@ -1,6 +1,10 @@
 package com.example.nts_pim
 
 import android.app.Application
+import android.content.Context
+import android.util.Log
+import com.example.nts_pim.data.repository.model_objects.PimError
+import com.example.nts_pim.data.repository.providers.ModelPreferences
 import com.example.nts_pim.data.repository.trip_repository.TripRepository
 import com.example.nts_pim.data.repository.trip_repository.TripRepositoryImpl
 import com.example.nts_pim.fragments_viewmodel.check_vehicle_info.CheckVehicleInfoModelFactory
@@ -24,10 +28,12 @@ import org.kodein.di.generic.instance
 import org.kodein.di.generic.provider
 import org.kodein.di.generic.singleton
 
-class PimApplication : Application(), KodeinAware{
 
+class PimApplication : Application(), KodeinAware{
     override val kodein = Kodein.lazy {
         import(androidXModule(this@PimApplication))
+
+
 
         //this connects the repo and the interface together
 
@@ -49,6 +55,8 @@ class PimApplication : Application(), KodeinAware{
         bind() from provider { InteractionCompleteViewModelFactory(instance()) }
         }
 
+    var exceptionHandler: Thread.UncaughtExceptionHandler? = null
+
         override fun onCreate() {
             super.onCreate()
             ReaderSdk.initialize(this)
@@ -56,6 +64,21 @@ class PimApplication : Application(), KodeinAware{
 
             registerActivityLifecycleCallbacks(LifeCycleCallBacks())
 
-        }
+           var defaultHandler =
+                Thread.getDefaultUncaughtExceptionHandler()
 
-}
+            if (defaultHandler == null) {
+                defaultHandler = Thread.getDefaultUncaughtExceptionHandler()
+            }
+
+            if (exceptionHandler == null) {
+                exceptionHandler = Thread.UncaughtExceptionHandler { paramThread, paramThrowable ->
+                    Log.e("Uncaught Exception", paramThrowable.message)
+                    val newError = PimError(paramThrowable.message)
+                    ModelPreferences(this).putObject("PimError", newError)
+                    defaultHandler.uncaughtException(paramThread, paramThrowable)
+                }
+                Thread.setDefaultUncaughtExceptionHandler(exceptionHandler)
+            }
+        }
+    }

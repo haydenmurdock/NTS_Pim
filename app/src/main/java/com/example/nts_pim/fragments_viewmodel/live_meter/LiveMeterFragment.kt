@@ -4,11 +4,13 @@ import android.content.Context
 import android.media.AudioManager
 import android.media.MediaPlayer
 import android.os.Bundle
+import android.os.CountDownTimer
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.core.view.isVisible
+import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProviders
 import androidx.navigation.Navigation
 import com.amazonaws.mobileconnectors.appsync.AWSAppSyncClient
@@ -55,6 +57,11 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
     private var meterValue = ""
     private val decimalFormatter = DecimalFormat("####00.00")
     private var initialMeterValueSet = false
+    private var currentFragment:Fragment? = null
+    private var audioManager: AudioManager? = null
+    private var requestMeterStateValueTimer:CountDownTimer? = null
+    private val visible = View.VISIBLE
+
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -65,7 +72,7 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-
+        currentFragment = this
         mAWSAppSyncClient = ClientFactory.getInstance(context)
         val callbackFactory = InjectorUtiles.provideCallBackModelFactory()
         viewModel = ViewModelProviders.of(this, viewModelFactory)
@@ -74,7 +81,7 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
             ViewModelProviders.of(this, callbackFactory).get(CallBackViewModel::class.java)
         vehicleId = viewModel.getVehicleID()
         tripID = callbackViewModel.getTripId()
-        val audioManager = context?.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+         audioManager = context?.getSystemService(Context.AUDIO_SERVICE) as AudioManager
         val currentTrip = ModelPreferences(context!!)
             .getObject(SharedPrefEnum.CURRENT_TRIP.key, CurrentTrip::class.java)
         updateTickerUI()
@@ -82,46 +89,50 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
         updatePIMStatus()
         updateMeterFromTripReview()
         if(tripID != ""){
+            Log.i("Live Meter", "There was TripId so queried MeterValue")
             getMeterOwedQuery(tripID)
         } else if(currentTrip != null && currentTrip.tripID != ""){
+            Log.i("Live Meter", "There was no Trip Id but was on a current trip so it was queried")
             getMeterOwedQuery(currentTrip.tripID)
         } else {
+            Log.i("Live Meter", "There no TripId so queried tripId")
             getTripId(vehicleId)
         }
-       callbackViewModel.getMeterOwed().observe(this, Observer {
-            if (meterState == MeterEnum.METER_ON.state) {
-                val df = decimalFormatter.format(it)
+        live_meter_next_screen_button.setOnClickListener {
+//            toTripReview()
+        }
+
+        callbackViewModel.getMeterOwed().observe(this@LiveMeterFragment, Observer {meterOwedValue ->
+            if (meterOwedValue > 0) {
+                val df = decimalFormatter.format(meterOwedValue)
                 meterValue = df.toString()
                 tickerView.setText(meterValue, true)
-                if (tickerView.alpha != 1.0f) {
-                    tickerView.animate().alpha(1.0f).setDuration(2500).start()
-                    live_meter_dollar_sign.animate().alpha(1.0f).setDuration(2500)
-                        .start()
+                if(!live_meter_dollar_sign.isVisible){
+                    live_meter_dollar_sign.visibility = visible
                 }
-
+                if (!tickerView.isVisible) {
+                    tickerView.visibility = visible
+                }
             }
         })
-        callbackViewModel.getMeterState().observe(this, Observer {AWSMeterState ->
+        callbackViewModel.getMeterState().observe(this@LiveMeterFragment, Observer {AWSMeterState ->
             meterState = AWSMeterState
             if (meterState == MeterEnum.METER_TIME_OFF.state){
-                if(audioManager.isMicrophoneMute){
+                Log.i("Live Meter", "Aws Meter state is Time_Off")
+                if(audioManager!!.isMicrophoneMute){
                     playTimeOffSound()
                 }
                 toTripReview()
             }
         })
-        callbackViewModel.getTripStatus().observe(this, Observer {tripStatus ->
+        callbackViewModel.getTripStatus().observe(this@LiveMeterFragment, Observer {tripStatus ->
             //This is for account trips that have already been paid.
             if(tripStatus == VehicleStatusEnum.Trip_Closed.status
                 || tripStatus == VehicleStatusEnum.TRIP_END.status){
+                Log.i("Live Meter", "Trip Status: $tripStatus, pushed to email/text screen")
                 toEmailText()
             }
         })
-
-
-        live_meter_next_screen_button.setOnClickListener {
-            toTripReview()
-        }
     }
 
     private fun updateTickerUI() {
@@ -154,6 +165,7 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
         val args = arguments?.getFloat("meterTotal")
         val checkAgainst = 00.00.toFloat()
         if(args != null && args != checkAgainst){
+            Log.i("Live Meter", "The Data is coming from Trip Review")
             val formattedArgs = decimalFormatter.format(args)
             val tripTotalToString = formattedArgs.toString()
             live_meter_dollar_sign.visibility = View.VISIBLE
@@ -174,7 +186,7 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
         }
     }
 
-    private fun updatePIMStatus() = launch{
+    private fun updatePIMStatus() = launch(Dispatchers.IO){
         PIMMutationHelper.updatePIMStatus(vehicleId,
             PIMStatusEnum.METER_SCREEN.status,
             mAWSAppSyncClient!!)
@@ -187,41 +199,81 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
            mAWSAppSyncClient?.query(GetTripQuery.builder().tripId(tripId).build())
                 ?.responseFetcher(AppSyncResponseFetchers.CACHE_AND_NETWORK)
                 ?.enqueue(getTripQueryCallBack)
-        }
-        private var getTripQueryCallBack = object: GraphQLCall.Callback<GetTripQuery.Data>(){
-            override fun onResponse(response: Response<GetTripQuery.Data>) {
-                if (response.data()?.trip != null) {
-                    val initialMeterValue = response.data()!!.trip.owedPrice()
-                    val startingMeterValue = response.data()!!.trip.meterState()
+    }
 
-                    if (startingMeterValue != null) {
-                    meterState = startingMeterValue
-                    }
+    private var getTripQueryCallBack = object: GraphQLCall.Callback<GetTripQuery.Data>(){
+        override fun onResponse(response: Response<GetTripQuery.Data>) {
+            if (response.data()?.trip != null) {
+                val startingMeterValue = response.data()!!.trip.owedPrice()
+                val startingMeterState = response.data()!!.trip.meterState()
 
-                    if (meterState == MeterEnum.METER_TIME_OFF.state &&
-                            initialMeterValue!! != 0.toDouble()){
-                        toTripReview()
+                if (startingMeterState != null) {
+                        Log.i("Live Meter", "Meter is $meterState and is now $startingMeterState from meter query")
+                    meterState = startingMeterState
+                    launch(Dispatchers.Main) {
+                            callbackViewModel.addMeterState(startingMeterState)
                     }
-                    val df = decimalFormatter.format(initialMeterValue)
+                }
+
+                if(startingMeterValue != null){
+                    val df = decimalFormatter.format(startingMeterValue)
                     meterValue = df.toString()
-                    reSyncComplete()
+
                     runOnUiThread {
-                        initialMeterValueSet = true
                         if (tickerView != null) {
                             tickerView.setText(meterValue, true)
-                            if (tickerView.alpha.equals(0.0f)) {
-                                tickerView.animate().alpha(1.0f).setDuration(2500).start()
-                                live_meter_dollar_sign.animate().alpha(1.0f).setDuration(2500)
-                                    .start()
+                            if(!live_meter_dollar_sign.isVisible){
+                                live_meter_dollar_sign.visibility = visible
+                                 }
+                            if (!tickerView.isVisible) {
+                                tickerView.visibility = visible
+                                 }
                             }
                         }
                     }
+
+                if (startingMeterState == MeterEnum.METER_TIME_OFF.state &&
+                    startingMeterValue!! != 0.toDouble()){
+                    Log.i("Live Meter", "Meter is $meterState and going to Trip Review")
+                    toTripReview()
                 }
-            }
-            override fun onFailure(e: ApolloException) {
+                initialMeterValueSet = true
+                reSyncComplete() }
+
+                }
+        override fun onFailure(e: ApolloException) {
                 Log.e("ERROR", e.toString())
             }
         }
+    private fun getMeterValueQuery(tripId: String) = launch(Dispatchers.IO){
+        if (mAWSAppSyncClient == null) {
+            mAWSAppSyncClient = ClientFactory.getInstance(context!!)
+        }
+        mAWSAppSyncClient?.query(GetTripQuery.builder().tripId(tripId).build())
+            ?.responseFetcher(AppSyncResponseFetchers.CACHE_AND_NETWORK)
+            ?.enqueue(getMeterStateQueryCallBack)
+    }
+
+    private var getMeterStateQueryCallBack = object: GraphQLCall.Callback<GetTripQuery.Data>(){
+        override fun onResponse(response: Response<GetTripQuery.Data>) {
+            if (response.data()?.trip != null) {
+                val queriedMeterState = response.data()!!.trip.meterState()
+
+                if (queriedMeterState != null) {
+                    if (meterState != queriedMeterState){
+                        meterState = queriedMeterState
+                    }
+                    launch(Dispatchers.Main) {
+                        Log.i("Live Meter", "The queriedMeterState: $queriedMeterState was added to callbackViewModel")
+                        callbackViewModel.addMeterState(queriedMeterState)
+                    }
+                }
+            }
+        }
+        override fun onFailure(e: ApolloException) {
+            Log.e("ERROR", e.toString())
+        }
+    }
 
     private fun getTripId(vehicleId: String) = launch(Dispatchers.IO){
         if (mAWSAppSyncClient == null) {
@@ -229,9 +281,9 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
         }
         mAWSAppSyncClient?.query(GetStatusQuery.builder().vehicleId(vehicleId).build())
             ?.responseFetcher(AppSyncResponseFetchers.CACHE_AND_NETWORK)
-            ?.enqueue(vehicleIdCallBack)
+            ?.enqueue(tripIdCallBack)
     }
-    private var vehicleIdCallBack = object: GraphQLCall.Callback<GetStatusQuery.Data>(){
+    private var tripIdCallBack = object: GraphQLCall.Callback<GetStatusQuery.Data>(){
         override fun onResponse(response: Response<GetStatusQuery.Data>) {
             if (response.data() != null) {
                 if (response.data()!!.status.tripId() != null || response.data()!!.status.tripId() != "") {
@@ -257,6 +309,20 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
         callbackViewModel.updateCurrentTrip(true, tripID, context!!)
         callbackViewModel.reSyncComplete()
     }
+    private fun requestMeterStateValueTimer(){
+          requestMeterStateValueTimer = object:CountDownTimer(10000,1000){
+            override fun onTick(millisUntilFinished: Long) {
+
+            }
+
+            override fun onFinish() {
+                if(tripID != ""){
+                    getMeterValueQuery(tripID)
+                }
+                requestMeterStateValueTimer()
+            }
+        }.start()
+    }
 
     private fun playTimeOffSound(){
         SoundHelper.turnOnSound(context!!)
@@ -267,11 +333,22 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
        mediaPlayer.start()
     }
 
+    override fun onResume() {
+        super.onResume()
+        requestMeterStateValueTimer()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        requestMeterStateValueTimer?.cancel()
+    }
+
     override fun onDestroy() {
         super.onDestroy()
         callbackViewModel.getMeterOwed().removeObservers(this)
         callbackViewModel.getMeterState().removeObservers(this)
         callbackViewModel.getTripStatus().removeObservers(this)
+        requestMeterStateValueTimer?.cancel()
         Log.i("Observer", "Live Meter observer removed.")
     }
 }

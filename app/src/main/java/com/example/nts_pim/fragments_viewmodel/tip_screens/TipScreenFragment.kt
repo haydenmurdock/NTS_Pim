@@ -68,6 +68,7 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
     private lateinit var viewModel: LiveMeterViewModel
     private var vehicleId = ""
     private var tripID = ""
+    private var tripNumber = 0
     var cardInfo = ""
     private var transactionDate: Date? = null
     private var transactionId = ""
@@ -103,6 +104,7 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
 
         vehicleId = viewModel.getVehicleID()
         tripID = callbackViewModel.getTripId()
+        tripNumber = callbackViewModel.getTripNumber()
         val checkoutManager = ReaderSdk.checkoutManager()
         checkoutCallbackRef = checkoutManager.addCheckoutActivityCallback(this::onCheckoutResult)
         PIMMutationHelper.updatePIMStatus(vehicleId, PIMStatusEnum.TIP_SCREEN.status, mAWSAppSyncClient!!)
@@ -609,7 +611,17 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
                 tripTotal,
                 updatedTransactionDate,
                 transactionId)
+
+            updatePaymentDetail(
+                transactionId,
+                tripNumber,
+                vehicleId,
+                mAWSAppSyncClient!!)
         }
+
+    }
+    private fun updatePaymentDetail(transactionId: String, tripNumber: Int, vehicleId: String, awsAppSyncClient: AWSAppSyncClient) = launch(Dispatchers.IO){
+        PIMMutationHelper.updatePaymentDetails(transactionId, tripNumber, vehicleId, awsAppSyncClient)
     }
     private fun updateLocalTripDetails(){
         callbackViewModel.setTipAmount(tipAmountPassedToSquare)

@@ -41,13 +41,12 @@ import java.io.IOException
 import java.lang.Error
 import android.widget.AdapterView
 import android.widget.AdapterView.OnItemClickListener
-import android.widget.ListView
 import com.amazonaws.amplify.generated.graphql.UpdateTripMutation
 import com.apollographql.apollo.GraphQLCall
 import com.apollographql.apollo.exception.ApolloException
 import com.example.nts_pim.utilities.mutation_helper.PIMMutationHelper
-import kotlinx.android.synthetic.main.receipt_information_email.*
 import type.UpdateTripInput
+import java.util.*
 
 
 class ReceiptInformationTextFragment: ScopedFragment(), KodeinAware {
@@ -70,6 +69,7 @@ class ReceiptInformationTextFragment: ScopedFragment(), KodeinAware {
     private var tripNumber = 0
     private var tripTotal = 00.00
     private var enteredPhoneNumber = ""
+    private var transactionId = ""
     private var countryListIsShowing = false
     private var internationalNumber = false
     private var inactiveScreenTimer: CountDownTimer? = null
@@ -97,15 +97,17 @@ class ReceiptInformationTextFragment: ScopedFragment(), KodeinAware {
             .get(CallBackViewModel::class.java)
         keyboardViewModel = ViewModelProviders.of(this, keyboardFactory)
             .get(SettingsKeyboardViewModel::class.java)
-
-        getTripDetails()
+        transactionId = callBackViewModel.getTransactionId()
         getCountryWithName()
+        getTripDetails()
         startInactivityTimeout()
         view.setOnTouchListener(object : View.OnTouchListener {
             override fun onTouch(v: View?, event: MotionEvent?): Boolean {
                 when (event?.action) {
                     MotionEvent.ACTION_DOWN -> {
                         closeSoftKeyboard()
+                        inactiveScreenTimer?.cancel()
+                        inactiveScreenTimer?.start()
                     }
                     MotionEvent.ACTION_BUTTON_RELEASE ->{
                         closeSoftKeyboard()
@@ -114,6 +116,9 @@ class ReceiptInformationTextFragment: ScopedFragment(), KodeinAware {
                 return v?.onTouchEvent(event) ?: true
             }
         })
+        text_editText.setOnClickListener {
+            closeSoftKeyboard()
+        }
         text_editText.addTextChangedListener(object : TextWatcher {
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
                 if (s != null &&
@@ -155,6 +160,7 @@ class ReceiptInformationTextFragment: ScopedFragment(), KodeinAware {
         no_receipt_btn_text.setOnTouchListener((View.OnTouchListener { v, event ->
             when(event?.action) {
                 MotionEvent.ACTION_DOWN -> {
+                    text_editText.performClick()
                     setTextToGrey(no_receipt_btn_text)
                     true
                 }
@@ -341,7 +347,7 @@ class ReceiptInformationTextFragment: ScopedFragment(), KodeinAware {
         text_receipt_screen_backspace_btn.setOnTouchListener((View.OnTouchListener { v, event ->
             when(event?.action) {
                 MotionEvent.ACTION_DOWN -> {
-                    keyboardViewModel.keyboardIsGoingBackword()
+                    keyboardViewModel.keyboardIsGoingBackward()
                     text_receipt_screen_backspace_btn.setImageDrawable(ContextCompat.getDrawable(
                         context!!,
                         R.drawable.ic_backspace_arrow_grey))
@@ -362,6 +368,7 @@ class ReceiptInformationTextFragment: ScopedFragment(), KodeinAware {
         country_code_editText.setOnTouchListener((View.OnTouchListener { v, event ->
             when(event?.action) {
                 MotionEvent.ACTION_DOWN -> {
+                    text_editText.performClick()
                     countryListIsShowing = !countryListIsShowing
                     when(countryListIsShowing){
                         true -> listView.visibility = View.VISIBLE
@@ -462,7 +469,12 @@ class ReceiptInformationTextFragment: ScopedFragment(), KodeinAware {
             toThankYou()
         }
         send_text_btn_receipt.setOnClickListener {
-            sendTextReceipt()
+            launch {
+                updatePaymentDetailsApi().invokeOnCompletion {
+                    sendTextReceipt()
+                }
+            }
+
         }
         back_btn_text_receipt.setOnClickListener {
             backToEmailOrText()
@@ -474,9 +486,25 @@ class ReceiptInformationTextFragment: ScopedFragment(), KodeinAware {
         tripNumber = callBackViewModel.getTripNumber()
         val tripPriceArgs = arguments?.getFloat("tripTotal")
         val paymentTypeArgs = arguments?.getString("paymentType")
+        val previousPhoneNumber = arguments?.getString("previousPhoneNumber")
         if (tripPriceArgs != null && paymentTypeArgs != null) {
             tripTotal = tripPriceArgs.toDouble()
             paymentType = paymentTypeArgs
+        }
+        if(paymentType == "CASH"){
+            transactionId = UUID.randomUUID().toString()
+        }
+        if(!previousPhoneNumber.isNullOrBlank()){
+            val firstPart = previousPhoneNumber.substring(1, 4)
+            val middlePart = previousPhoneNumber.substring(4,7)
+            val lastPart = previousPhoneNumber.substring(7, previousPhoneNumber.lastIndex + 1)
+            val newFullNumber = firstPart + "-" + middlePart + "-" + lastPart
+            enteredPhoneNumber = newFullNumber
+            text_editText.setText(newFullNumber)
+            text_editText.setSelection(newFullNumber.length)
+            enableSendTextBtn()
+            text_receipt_screen_backspace_btn.isEnabled = true
+            keyboardViewModel.keyboardIsGoingForward()
         }
     }
     private fun enableSendTextBtn(){
@@ -489,7 +517,6 @@ class ReceiptInformationTextFragment: ScopedFragment(), KodeinAware {
             send_text_btn_receipt.isEnabled = false
         }
     }
-
     private fun setTextToGrey(button: Button){
         button.setTextColor((ContextCompat.getColor(context!!, R.color.grey)))
     }
@@ -518,7 +545,7 @@ class ReceiptInformationTextFragment: ScopedFragment(), KodeinAware {
             override fun onTick(millisUntilFinished: Long) {
                 val hasNewTripStarted = callBackViewModel.hasNewTripStarted().value
                 if(hasNewTripStarted!!){
-//                    inactiveScreenTimer?.onFinish()
+   //                 inactiveScreenTimer?.onFinish()
                 }
             }
             override fun onFinish() {
@@ -530,6 +557,7 @@ class ReceiptInformationTextFragment: ScopedFragment(), KodeinAware {
         }.start()
     }
     private fun sendTextReceipt(){
+            callBackViewModel.setTransactionId(transactionId)
             val phoneNumber = text_editText.text.toString()
             val countryCode = country_code_editText.text.toString()
             var combinedNumber = ""
@@ -546,6 +574,9 @@ class ReceiptInformationTextFragment: ScopedFragment(), KodeinAware {
             val trimmedPhoneNumber = combinedNumber.replace("-", "")
             updateCustomerPhoneNumber(trimmedPhoneNumber)
             toConfirmation()
+    }
+    private fun updatePaymentDetailsApi() = launch(Dispatchers.IO) {
+        PIMMutationHelper.updatePaymentDetails(transactionId, tripNumber, vehicleId, mAWSAppSyncClient!!)
     }
     private fun updateCustomerPhoneNumber(phoneNumber:String) = launch(Dispatchers.IO) {
         updateCustomerPhoneNumber(vehicleId, phoneNumber,mAWSAppSyncClient!!,tripId)
@@ -589,10 +620,8 @@ class ReceiptInformationTextFragment: ScopedFragment(), KodeinAware {
     }
     private fun updateCustomerPhoneNumber(vehicleId: String, custPhoneNumber: String, appSyncClient: AWSAppSyncClient, tripId: String){
         val updatePaymentTypeInput = UpdateTripInput.builder().vehicleId(vehicleId).tripId(tripId).custPhoneNbr(custPhoneNumber).build()
-
         appSyncClient.mutate(UpdateTripMutation.builder().parameters(updatePaymentTypeInput).build())
             ?.enqueue(mutationCustomerPhoneNumberCallback )
-
     }
 
     private val mutationCustomerPhoneNumberCallback = object : GraphQLCall.Callback<UpdateTripMutation.Data>() {
@@ -600,7 +629,7 @@ class ReceiptInformationTextFragment: ScopedFragment(), KodeinAware {
             Log.i("Results", "Meter Table Updated ${response.data()}")
             if(!response.hasErrors()){
                 launch(Dispatchers.IO) {
-                        SmsHelper.sendSMS(tripId, paymentType)
+                        SmsHelper.sendSMS(tripId, paymentType, transactionId)
                 }
             }
         }
@@ -612,7 +641,7 @@ class ReceiptInformationTextFragment: ScopedFragment(), KodeinAware {
 
 
     //Navigation
-    private fun toConfirmation(){
+    private fun toConfirmation() = launch(Dispatchers.Main){
         val action = ReceiptInformationTextFragmentDirections
             .actionReceiptInformationTextFragmentToConfirmationFragment(text_editText.text.toString(),tripTotal.toFloat(),"Text")
             .setEmailOrPhoneNumber(text_editText.text.toString())

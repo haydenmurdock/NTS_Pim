@@ -116,6 +116,9 @@
         <action
                 android:id="@+id/back_to_welcome_fragment"
                 app:destination="@id/welcome_fragment" />
+        <action
+                android:id="@+id/action_vehicle_settings_detail_fragment_to_recentTripAWSFragment"
+                app:destination="@id/recentTripAWSFragment" />
     </fragment>
 
     <fragment
@@ -244,6 +247,26 @@
         <argument
                 android:name="receiptType"
                 app:argType="string" />
+    </fragment>
+    <fragment
+            android:id="@+id/recentTripAWSFragment"
+            android:name="com.example.nts_pim.fragments_viewmodel.recent_trip_aws.RecentTripAWSFragment"
+            android:label="RecentTripAWSFragment" >
+        <action
+                android:id="@+id/action_recentTripAWSFragment_to_vehicle_settings_detail_fragment"
+                app:destination="@id/vehicle_settings_detail_fragment" />
+        <action
+                android:id="@+id/action_recentTripAWSFragment_to_tripReviewFragment"
+                app:destination="@id/tripReviewFragment" />
+    </fragment>
+    <fragment
+            android:id="@+id/tripReviewFragment"
+            android:name="com.example.nts_pim.fragments_viewmodel.trip_details.TripDetailFragment"
+            android:label="trip_review"
+            tools:layout="@layout/trip_review" >
+        <action
+                android:id="@+id/action_tripReviewFragment_to_recentTripAWSFragment"
+                app:destination="@id/recentTripAWSFragment" />
     </fragment>
 
 

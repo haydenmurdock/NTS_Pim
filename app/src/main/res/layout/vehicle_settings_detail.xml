@@ -122,4 +122,30 @@
             app:layout_constraintTop_toBottomOf="@+id/settings_detail_textView"
             app:layout_constraintVertical_bias="0.01999998" />
 
+    <Button
+            android:id="@+id/recent_trip_button"
+            android:layout_width="258dp"
+            android:layout_height="wrap_content"
+            android:alpha="0"
+            android:text="Recent Trip"
+            android:visibility="visible"
+            app:layout_constraintBottom_toTopOf="@+id/exit_app_btn"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.5"
+            app:layout_constraintStart_toStartOf="parent" />
+
+    <TextView
+            android:id="@+id/build_version_textView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:fontFamily="@font/source_sans_pro"
+            android:text="Build Version: "
+            android:textColor="@color/whiteTextColor"
+            android:textSize="24sp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.02"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/last_trip_id_textView" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>

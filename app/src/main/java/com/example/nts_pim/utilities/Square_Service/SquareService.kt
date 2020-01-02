@@ -1,5 +1,6 @@
 package com.example.nts_pim.utilities.Square_Service
 
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.ContentValues.TAG
 import android.content.Context
@@ -72,13 +73,11 @@ class SquareService : OnLayoutChangeListener,
        The onActivityResumed() method calls this method
      */
 
+    @SuppressLint("ClickableViewAccessibility")
     fun processActivityResume(activity: Activity) {
         fullScreenMode(activity)
         Log.d(TAG, activity.localClassName)
         val rootView = activity.findViewById<View>(android.R.id.content)
-
-        Log.d(TAG, rootView.toString())
-        Log.d(TAG, "ID " + rootView.getId() + " Name " + activity.localClassName)
 
         // Figure our it this onResume call is for the square activity
         val name = activity.localClassName
@@ -96,10 +95,9 @@ class SquareService : OnLayoutChangeListener,
             mSuccessPlayed = true
 
             if (!VehicleTripArrayHolder.squareHasBeenSetUp){
+                viewGroup!!.visibility = View.INVISIBLE
                 closeSquareForSoundCheck()
                 //I tried view.gone but it didn't change anything.
-                viewGroup!!.visibility = View.GONE
-                fullScreenMode(squareActivity!!)
             } else {
                 turnUpVolume()
                 stateMachine(viewGroup!!, squareActivity!!)
@@ -213,6 +211,11 @@ class SquareService : OnLayoutChangeListener,
                 }
                 SqUIState.REMOVE_CARD_STATE -> {
                     removeCardView = View.inflate(activity,R.layout.activity_remove_card,viewGroup)
+                    if (insertCardView != null) {
+                        val imageView = activity.findViewById<ImageView>(R.id.remove_card_ImageView)
+                        Glide.with(activity.applicationContext)
+                            .load(R.raw.remove_card).into(imageView)
+                    }
                     turnUpVolume()
                     playPaymentSuccessfulSound()
                     startRemoveCardTimer()
@@ -309,8 +312,8 @@ class SquareService : OnLayoutChangeListener,
             }
 
             override fun onFinish() {
-                pressCancelButtonForSquareCheck()
                 timeout?.cancel()
+                pressCancelButtonForSquareCheck()
             }
         }.start()
     }
@@ -337,7 +340,7 @@ class SquareService : OnLayoutChangeListener,
     }
 
     private fun playCardDeclinedSound(){
-        val mediaPlayer = MediaPlayer.create(squareActivity?.applicationContext, R.raw.denied_gaming_sound)
+        val mediaPlayer = MediaPlayer.create(squareActivity?.applicationContext, R.raw.card_denied_sound)
         mediaPlayer.setOnCompletionListener {
             mediaPlayer.release()
         }
@@ -505,8 +508,9 @@ class SquareService : OnLayoutChangeListener,
                 return SqUIState.NO_INTERNET_STATE
         } else if (testResourceText(view, com.squareup.sdk.reader.api.R.id.glyph_message_title, "Authorizing")) {
             return SqUIState.AUTHORIZING
+        }else{
+            return SqUIState.OTHER_STATE
         }
-        return SqUIState.OTHER_STATE
     }
 
     private fun testResourceText(view: View, id: Int, text: String): Boolean {
@@ -532,7 +536,7 @@ class SquareService : OnLayoutChangeListener,
     override fun onClick(view: View) {
     }
 
-    // Make the square activties "full screen mode"
+    // Makes the square activities "full screen mode"
     private fun fullScreenMode(activity: Activity) {
                 val decorView = activity.window.decorView
                 decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_LOW_PROFILE or

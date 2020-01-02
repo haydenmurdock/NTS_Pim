@@ -8,7 +8,7 @@ class SettingsKeyboardViewModel(
 ): ViewModel() {
     internal fun isQwertyKeyboardUp() = keyboardWatcher.getQwertyKeyboardStatus()
 
-    internal fun qwertyKeyboardisUp() = keyboardWatcher.qwertyKeyboardisUp()
+    internal fun qwertyKeyboardIsUp() = keyboardWatcher.qwertyKeyboardisUp()
 
     internal fun isPhoneKeyboardUp() = keyboardWatcher.getPhoneKeyboardStatus()
 
@@ -16,7 +16,7 @@ class SettingsKeyboardViewModel(
 
     internal fun bothKeyboardsDown() = keyboardWatcher.bothKeyboardsareDown()
 
-    internal fun keyboardIsGoingBackword() = keyboardWatcher.phoneNumberKeyboardIsGoingBackward()
+    internal fun keyboardIsGoingBackward() = keyboardWatcher.phoneNumberKeyboardIsGoingBackward()
 
     internal fun keyboardIsGoingForward() = keyboardWatcher.phoneNumberIsGoingForward()
 

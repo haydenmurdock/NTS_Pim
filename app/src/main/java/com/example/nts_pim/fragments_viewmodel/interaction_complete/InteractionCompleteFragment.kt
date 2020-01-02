@@ -13,6 +13,8 @@ import androidx.lifecycle.ViewModelProviders
 import com.example.nts_pim.fragments_viewmodel.callback.CallBackViewModel
 import com.example.nts_pim.fragments_viewmodel.InjectorUtiles
 import com.amazonaws.mobileconnectors.appsync.AWSAppSyncClient
+import com.example.nts_pim.data.repository.TripDetails
+import com.example.nts_pim.data.repository.VehicleTripArrayHolder
 import com.example.nts_pim.data.repository.model_objects.CurrentTrip
 import com.example.nts_pim.data.repository.providers.ModelPreferences
 import com.example.nts_pim.fragments_viewmodel.base.ClientFactory
@@ -24,12 +26,16 @@ import kotlinx.coroutines.*
 import org.kodein.di.KodeinAware
 import org.kodein.di.android.x.closestKodein
 import org.kodein.di.generic.instance
+import java.time.LocalDateTime
+import java.util.*
 
 class InteractionCompleteFragment : ScopedFragment(), KodeinAware {
     override val kodein by closestKodein()
     private val viewModelFactory: InteractionCompleteViewModelFactory by instance()
     private var vehicleId = ""
     private var tripId = ""
+    private var tripNumber = 0
+    private var transactionId = ""
     private var mAWSAppSyncClient: AWSAppSyncClient? = null
     private lateinit var callbackViewModel: CallBackViewModel
     private lateinit var viewModel: InteractionCompleteViewModel
@@ -37,7 +43,8 @@ class InteractionCompleteFragment : ScopedFragment(), KodeinAware {
         override fun onTick(millisUntilFinished: Long) {
         }
         override fun onFinish() {
-           restartApp()
+            callbackViewModel.clearAllTripValues()
+            restartApp()
         }
     }
 
@@ -54,14 +61,34 @@ class InteractionCompleteFragment : ScopedFragment(), KodeinAware {
         viewModel = ViewModelProviders.of(this, viewModelFactory).get(InteractionCompleteViewModel::class.java)
         tripId = callbackViewModel.getTripId()
         vehicleId = viewModel.getVehicleID()
+        tripNumber = callbackViewModel.getTripNumber()
+
         thank_you_textView.isVisible = false
         checkIfTransactionIsComplete()
         runEndTripMutation()
         thank_you_textView.isVisible = true
         setInternalCurrentTripStatus()
+        changeEndTripInternalBool()
+        updatePaymentDetailsAPI()
         restartAppTimer.start()
     }
 
+    private fun updatePaymentDetailsAPI() = launch(Dispatchers.IO){
+        val internalSetTransactionId = callbackViewModel.getTransactionId()
+        if(internalSetTransactionId == ""){
+            // An empty string means that transaction Id has not been from a square payment so they hit cash and did not send a receipt so we need to update
+            // that a payment was made
+            transactionId = UUID.randomUUID().toString()
+            PIMMutationHelper.updatePaymentDetails(transactionId,tripNumber,vehicleId,mAWSAppSyncClient!!)
+        }
+
+    }
+
+    private fun changeEndTripInternalBool(){
+        val time = LocalDateTime.now()
+        TripDetails.tripEndTime = time
+        callbackViewModel.tripHasEnded()
+    }
     private fun restartApp() {
             val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
             if (navController.currentDestination?.id == R.id.interaction_complete_fragment) {

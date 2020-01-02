@@ -1,22 +1,26 @@
 package com.example.nts_pim.fragments_viewmodel.welcome
 
-import android.bluetooth.BluetoothAdapter
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.media.AudioManager
-import android.os.*
+import android.os.BatteryManager
+import android.os.Bundle
+import android.os.CountDownTimer
+import android.os.Handler
 import android.provider.Settings
+import android.speech.tts.TextToSpeech
 import android.text.InputType
-import android.view.*
+import android.util.Log
+import android.view.LayoutInflater
+import android.view.MotionEvent
+import android.view.View
+import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
 import android.widget.Toast
-import androidx.annotation.MainThread
 import androidx.core.view.isVisible
 import androidx.lifecycle.ViewModelProviders
 import androidx.navigation.Navigation
-import androidx.navigation.fragment.findNavController
-import com.amazonaws.amplify.generated.graphql.GetStatusQuery
 import com.amazonaws.amplify.generated.graphql.GetTripQuery
 import com.amazonaws.mobileconnectors.appsync.AWSAppSyncClient
 import com.amazonaws.mobileconnectors.appsync.fetcher.AppSyncResponseFetchers
@@ -24,37 +28,36 @@ import com.apollographql.apollo.GraphQLCall
 import com.apollographql.apollo.api.Response
 import com.apollographql.apollo.exception.ApolloException
 import com.example.nts_pim.R
+import com.example.nts_pim.data.repository.TripDetails
 import com.example.nts_pim.data.repository.VehicleTripArrayHolder
 import com.example.nts_pim.data.repository.model_objects.CurrentTrip
 import com.example.nts_pim.data.repository.providers.ModelPreferences
-import com.example.nts_pim.fragments_viewmodel.callback.CallBackViewModel
 import com.example.nts_pim.fragments_viewmodel.InjectorUtiles
 import com.example.nts_pim.fragments_viewmodel.base.ClientFactory
 import com.example.nts_pim.fragments_viewmodel.base.ScopedFragment
+import com.example.nts_pim.fragments_viewmodel.callback.CallBackViewModel
 import com.example.nts_pim.fragments_viewmodel.vehicle_settings.setting_keyboard_viewModels.SettingsKeyboardViewModel
 import com.example.nts_pim.utilities.enums.MeterEnum
-import com.example.nts_pim.utilities.enums.VehicleStatusEnum
-import com.example.nts_pim.utilities.keyboards.PhoneKeyboard
-import kotlinx.android.synthetic.main.welcome_screen.*
-import org.kodein.di.KodeinAware
-import org.kodein.di.android.x.closestKodein
-import org.kodein.di.generic.instance
-import java.util.*
-import kotlin.concurrent.timerTask
-import com.example.nts_pim.utilities.view_helper.ViewHelper
 import com.example.nts_pim.utilities.enums.PIMStatusEnum
 import com.example.nts_pim.utilities.enums.SharedPrefEnum
+import com.example.nts_pim.utilities.keyboards.PhoneKeyboard
 import com.example.nts_pim.utilities.mutation_helper.PIMMutationHelper
 import com.example.nts_pim.utilities.power_cycle.PowerAccessibilityService
 import com.example.nts_pim.utilities.sound_helper.SoundHelper
-import com.sdsmdg.tastytoast.TastyToast
+import com.example.nts_pim.utilities.view_helper.ViewHelper
 import com.squareup.sdk.reader.ReaderSdk
-import com.squareup.sdk.reader.checkout.*
-import com.squareup.sdk.reader.core.CallbackReference
-import com.squareup.sdk.reader.core.Result
-import com.squareup.sdk.reader.core.ResultError
+import com.squareup.sdk.reader.checkout.CheckoutParameters
+import com.squareup.sdk.reader.checkout.CurrencyCode
+import com.squareup.sdk.reader.checkout.Money
+import kotlinx.android.synthetic.main.welcome_screen.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import org.kodein.di.KodeinAware
+import org.kodein.di.android.x.closestKodein
+import org.kodein.di.generic.instance
+import java.time.LocalDateTime
+import java.util.*
+import kotlin.concurrent.timerTask
 
 
 class WelcomeFragment : ScopedFragment(), KodeinAware {
@@ -76,6 +79,7 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
     private val fullBrightness = 255
     private val dimBrightness = 10
     private var isOnActiveTrip = false
+    private val currentFragmentId = R.id.welcome_fragment
 
     private val batteryCheckTimer = object : CountDownTimer(1800000, 1000) {
         //Every 30 minutes  we are doing a battery check.
@@ -128,22 +132,19 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
         // checks for animation and navigates to next Screen
         setUpKeyboard()
         checkSquareMode()
-
-         if (checkToSeeIfOnTrip().first != null) {
-             isOnActiveTrip = checkToSeeIfOnTrip().first!!
+        ViewHelper.checkForNotifications(activity!!)
+        if (checkToSeeIfOnTrip().first != null) {
+            isOnActiveTrip = checkToSeeIfOnTrip().first!!
         }
-
         viewModel.isSetupComplete()
         vehicleId = viewModel.getVehicleId()
         updateVehicleInfoUI()
         updatePimStatus()
-        batteryStatusCheck()
         batteryCheckTimer.start()
         dimScreenTimer.start()
-        if(!VehicleTripArrayHolder.squareHasBeenSetUp){
+        if (!VehicleTripArrayHolder.squareHasBeenSetUp) {
             startSquareFlow()
         }
-
         //This is encase you have to restart the app during a trip or a trip
         keyboardViewModel.isPhoneKeyboardUp().observe(this, androidx.lifecycle.Observer {
             if (it) {
@@ -154,7 +155,6 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
                 isPasswordEntered = false
             }
         })
-
         view.setOnTouchListener(object : View.OnTouchListener {
             override fun onTouch(v: View?, event: MotionEvent?): Boolean {
                 when (event?.action) {
@@ -167,7 +167,6 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
                 return v?.onTouchEvent(event) ?: true
             }
         })
-
         open_vehicle_settings_button.setOnClickListener {
             dimScreenTimer.cancel()
             changeScreenBrightness(fullBrightness)
@@ -196,23 +195,17 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
 
         callBackViewModel.getMeterState().observe(this, androidx.lifecycle.Observer {
             val meterState = it
-            if(meterState == MeterEnum.METER_ON.state){
+            if (meterState == MeterEnum.METER_ON.state) {
                 changeScreenBrightness(fullBrightness)
                 checkAnimation()
             }
         })
 
         tripIsCurrentlyRunning(isOnActiveTrip)
-
         welcome_screen_next_screen_button.setOnClickListener {
-            val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
-            if (navController.currentDestination?.id == (R.id.welcome_fragment)) {
-                navController.navigate(R.id.welcomeFragmentToLiveMeterSceen)
-            }
+            toLiveMeterScreen()
         }
-
     }
-
     private fun checkAnimation() {
         val animationIsOn = resources.getBoolean(R.bool.animationIsOn)
         if (animationIsOn) {
@@ -222,7 +215,7 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
 
                     thank_you_text_view.animate().alpha(0.0f).setDuration(2500)
                         .withEndAction{
-                            navigate()
+                            toTaxiNumber()
                         }
                 }
             }
@@ -238,26 +231,21 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
         changeScreenBrightness(fullBrightness)
         getMeterStatusQuery(tripIdMeterQuery)
     }
-
-    private fun navigate() {
-        val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
-        if (navController.currentDestination?.id == R.id.welcome_fragment){
-                navController.navigate(R.id.toTaxiNumber)
-            }
-    }
-
-    private fun toNextScreen() {
-        Timer().schedule(timerTask {
-            navigate()
-        }, 5000)
-    }
-
     private fun updateUI(companyName: String) {
         thank_you_text_view.text = "Thank you for choosing $companyName"
         password_editText.isClickable = false
         password_editText.isFocusable = false
     }
 
+    private fun toNextScreen() {
+        Timer().schedule(timerTask {
+            toTaxiNumber()
+        }, 5000)
+    }
+    private fun markPimStartTime(){
+        val time = LocalDateTime.now()
+        TripDetails.tripStartTime = time
+    }
     private fun checkPassword() {
         if (password_editText.text.toString() == password) {
             changeScreenBrightness(255)
@@ -365,19 +353,12 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
             if (response.data() != null) {
                meterState = response.data()?.trip?.meterState().toString()
                 if (meterState == MeterEnum.METER_ON.state || meterState == MeterEnum.METER_TIME_OFF.state) {
-                    navigateToLiveMeterScreen()
+                    toLiveMeterScreen()
                 }
             }
         }
         override fun onFailure(e: ApolloException) {
             println("Failure")
-        }
-    }
-
-    private fun navigateToLiveMeterScreen() = launch(Dispatchers.Main.immediate) {
-        val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
-        if (navController.currentDestination?.id == R.id.welcome_fragment){
-            navController.navigate(R.id.welcomeFragmentToLiveMeterSceen)
         }
     }
 
@@ -391,6 +372,7 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
             val checkoutManager = ReaderSdk.checkoutManager()
             checkoutManager.startCheckoutActivity(context!!, parametersBuilder.build())
     }
+
     private fun updateVehicleInfoUI(){
         val vehicleSettings = viewModel.getvehicleSettings()
         if (vehicleSettings != null) {
@@ -400,8 +382,6 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
         }
     }
 
-
-
     private fun updatePimStatus(){
         PIMMutationHelper.updatePIMStatus(
             vehicleId,
@@ -409,6 +389,22 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
             mAWSAppSyncClient!!
         )
     }
+
+    // Navigation
+    private fun toLiveMeterScreen() = launch(Dispatchers.Main.immediate) {
+        val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
+        if (navController.currentDestination?.id == currentFragmentId){
+            navController.navigate(R.id.welcomeFragmentToLiveMeterSceen)
+        }
+    }
+    private fun toTaxiNumber() {
+        markPimStartTime()
+        val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
+        if (navController.currentDestination?.id == currentFragmentId){
+            navController.navigate(R.id.toTaxiNumber)
+        }
+    }
+
     override fun onStop() {
         super.onStop()
         keyboardViewModel.bothKeyboardsDown()

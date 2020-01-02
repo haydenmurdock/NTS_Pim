@@ -1,6 +1,7 @@
 package com.example.nts_pim.utilities.sms_helper
 
 import android.util.Log
+import com.example.nts_pim.data.repository.TripDetails
 import okhttp3.*
 import java.util.concurrent.TimeUnit
 import org.json.JSONException
@@ -12,7 +13,7 @@ import java.net.URL
 
 object SmsHelper {
 
-    fun sendSMS(tripId: String, paymentMethod: String){
+    fun sendSMS(tripId: String, paymentMethod: String, transactionId: String){
         val client = OkHttpClient().newBuilder()
             .connectTimeout(30, TimeUnit.SECONDS)
             .writeTimeout(30, TimeUnit.SECONDS)
@@ -24,8 +25,9 @@ object SmsHelper {
             try{
                 json.put("paymentMethod", "${paymentMethod.toLowerCase()}")
                 json.put("sendMethod","text")
-                json.put("tripId","$tripId" )
+                json.put("tripId",tripId)
                 json.put("src", "pim")
+                json.put("paymentId",transactionId)
             } catch (e: JSONException){
                 Log.i("ERROR", "JSON error $e")
             }
@@ -43,11 +45,16 @@ object SmsHelper {
                   Log.i("URL","response code : ${response.code} response message: ${response.message}")
 
                   if (!response.isSuccessful) throw IOException("Unexpected code $response")
-
-
+                  else{
+                      TripDetails.isReceiptSent = true
+                      TripDetails.receiptCode = response.code
+                      TripDetails.receiptMessage = response.message
+                  }
               }
           } catch (e: Error){
-              println("error with client request")
+              TripDetails.isReceiptSent = false
+              TripDetails.receiptCode = e.hashCode()
+              TripDetails.receiptMessage = e.localizedMessage
           }
     }
 }

@@ -10,6 +10,7 @@ import androidx.lifecycle.ViewModelProviders
 import androidx.navigation.Navigation
 import com.amazonaws.mobileconnectors.appsync.AWSAppSyncClient
 import com.example.nts_pim.R
+import com.example.nts_pim.data.repository.TripDetails
 import com.example.nts_pim.data.repository.model_objects.CurrentTrip
 import com.example.nts_pim.data.repository.providers.ModelPreferences
 import com.example.nts_pim.fragments_viewmodel.InjectorUtiles
@@ -28,6 +29,7 @@ import org.kodein.di.KodeinAware
 import org.kodein.di.android.x.closestKodein
 import org.kodein.di.generic.instance
 import java.text.DecimalFormat
+import java.time.LocalDateTime
 
 class ConfirmationFragment: ScopedFragment(), KodeinAware {
     override val kodein by closestKodein()
@@ -37,10 +39,12 @@ class ConfirmationFragment: ScopedFragment(), KodeinAware {
     private var mAWSAppSyncClient: AWSAppSyncClient? = null
     private lateinit var callbackViewModel: CallBackViewModel
     private lateinit var viewModel: InteractionCompleteViewModel
+    private val currentFragmentId = R.id.confirmationFragment
     private val restartAppTimer = object: CountDownTimer(10000, 1000) {
         override fun onTick(millisUntilFinished: Long) {
         }
         override fun onFinish() {
+            callbackViewModel.clearAllTripValues()
             restartApp()
         }
     }
@@ -77,6 +81,7 @@ class ConfirmationFragment: ScopedFragment(), KodeinAware {
         checkIfTransactionIsComplete()
         runEndTripMutation()
         setInternalCurrentTripStatus()
+        changeEndTripInternalBool()
         restartAppTimer.start()
     }
 
@@ -179,20 +184,25 @@ class ConfirmationFragment: ScopedFragment(), KodeinAware {
         val areaCode = trimmedPhoneNumber.dropLast(7)
         return Triple(areaCode,middleThree,lastFour)
     }
-
+    private fun changeEndTripInternalBool(){
+        val time = LocalDateTime.now()
+        TripDetails.tripEndTime = time
+        callbackViewModel.tripHasEnded()
+    }
     private fun restartApp() {
         val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
-        if (navController.currentDestination?.id == R.id.confirmationFragment) {
+        if (navController.currentDestination?.id == currentFragmentId) {
             navController.navigate(R.id.action_confirmationFragment_to_welcome_fragment)
         }
     }
 
     private fun checkIfTransactionIsComplete(){
         val isTransactionComplete = callbackViewModel.getIsTransactionComplete().value
-        if(isTransactionComplete != null)
-            if(isTransactionComplete)
+        if(isTransactionComplete != null){
+            if(isTransactionComplete) {
                 callbackViewModel.squareChangeTransaction()
-
+            }
+        }
     }
     private fun runEndTripMutation() = launch(Dispatchers.IO) {
         PIMMutationHelper.updateTripStatus(vehicleId, VehicleStatusEnum.TRIP_END.status, mAWSAppSyncClient!!, tripId)
