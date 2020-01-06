@@ -15,11 +15,11 @@ object SmsHelper {
 
     fun sendSMS(tripId: String, paymentMethod: String, transactionId: String){
         val client = OkHttpClient().newBuilder()
-            .connectTimeout(30, TimeUnit.SECONDS)
-            .writeTimeout(30, TimeUnit.SECONDS)
-            .readTimeout(30, TimeUnit.SECONDS)
+            .connectTimeout(60, TimeUnit.SECONDS)
+            .writeTimeout(60, TimeUnit.SECONDS)
+            .readTimeout(60, TimeUnit.SECONDS)
+            .retryOnConnectionFailure(false)
             .build()
-
         val JSON = "application/json; charset=utf-8".toMediaType()
         val json = JSONObject()
             try{

@@ -351,7 +351,6 @@ class SquareService : OnLayoutChangeListener,
 //    View 2131298678 (7f090976) class com.squareup.marin.widgets.MarinGlyphView Vis:0 ClickableEnabled Focusable
 //    View 2131297991 (7f0906c7) class android.widget.RelativeLayout Vis:0 ClickableEnabled Focusable
 //    View 2131298212 (7f0907a4) class com.squareup.marketfont.MarketButton Vis:0 Clickable Enabled Focusable  BUTTON: 'Cancel Payment'
-
     // This function "cancels" the square operation. How to cancel depends on where we are on the square activities
    fun pressCancelButtons() {
         Log.d(

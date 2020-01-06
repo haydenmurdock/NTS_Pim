@@ -194,7 +194,7 @@ class ReceiptInformationEmailFragment: ScopedFragment(), KodeinAware {
         }
     }
     private fun updatePaymentDetailsApi() = launch(Dispatchers.IO) {
-        PIMMutationHelper.updatePaymentDetails(transactionId, tripNumber, vehicleId, mAWSAppSyncClient!!)
+        PIMMutationHelper.updatePaymentDetails(transactionId, tripNumber, vehicleId, mAWSAppSyncClient!!,paymentType, tripId)
     }
     private fun sendEmail(email: String){
         if(vehicleId.isNotEmpty()&&

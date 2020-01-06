@@ -79,7 +79,7 @@ class InteractionCompleteFragment : ScopedFragment(), KodeinAware {
             // An empty string means that transaction Id has not been from a square payment so they hit cash and did not send a receipt so we need to update
             // that a payment was made
             transactionId = UUID.randomUUID().toString()
-            PIMMutationHelper.updatePaymentDetails(transactionId,tripNumber,vehicleId,mAWSAppSyncClient!!)
+            PIMMutationHelper.updatePaymentDetails(transactionId,tripNumber,vehicleId,mAWSAppSyncClient!!, "cash", tripId)
         }
 
     }
@@ -103,7 +103,9 @@ class InteractionCompleteFragment : ScopedFragment(), KodeinAware {
 
     }
     private fun runEndTripMutation() = launch {
-      PIMMutationHelper.updateTripStatus(vehicleId, VehicleStatusEnum.TRIP_END.status, mAWSAppSyncClient!!, tripId)
+        if(resources.getBoolean(R.bool.animationIsOn )){
+            PIMMutationHelper.updateTripStatus(vehicleId, VehicleStatusEnum.TRIP_END.status, mAWSAppSyncClient!!, tripId)
+        }
     }
     private fun setInternalCurrentTripStatus(){
         val currentTrip = ModelPreferences(context!!).getObject(

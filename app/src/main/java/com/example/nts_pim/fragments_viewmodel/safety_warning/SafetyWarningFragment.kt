@@ -3,6 +3,8 @@ package com.example.nts_pim.fragments_viewmodel.safety_warning
 
 import android.media.MediaPlayer
 import android.os.Bundle
+import android.os.CountDownTimer
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -16,6 +18,19 @@ import kotlin.concurrent.timerTask
 class SafetyWarningFragment : Fragment() {
     //This Fragment does not need ViewModel/Factory since it doesn't touch the Repo
 
+    private val safetyScreenWarningTimer = object: CountDownTimer(7000, 1000){
+        override fun onTick(millisUntilFinished: Long) {
+        }
+
+        override fun onFinish() {
+            if(view != null &&
+                !this@SafetyWarningFragment.isRemoving ||
+                !this@SafetyWarningFragment.isVisible){
+                toNextScreen(view!!)
+            }
+        }
+    }
+
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?,
                               savedInstanceState: Bundle?): View? {
         return inflater.inflate(R.layout.safety_warning_screen,container, false)
@@ -26,7 +41,6 @@ class SafetyWarningFragment : Fragment() {
 
         //checks for animation and Navigates to the next view
          checkAnimation(view)
-
     }
 
     private fun toNextScreen(view: View){
@@ -63,4 +77,18 @@ class SafetyWarningFragment : Fragment() {
         }
         mediaPlayer.start()
         }
+
+    override fun onResume() {
+        super.onResume()
+        safetyScreenWarningTimer.cancel()
+        Log.i("Safety Screen", "Safety Screen Timer Started")
+        safetyScreenWarningTimer.start()
     }
+
+    override fun onPause() {
+        super.onPause()
+        Log.i("Safety Screen", "Safety Screen Timer Canceled")
+        safetyScreenWarningTimer.cancel()
+
+     }
+}

@@ -91,6 +91,7 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
     private var vehicleID = ""
     private var authCode = ""
     private var authorized = false
+    private var isSquareAuthorized = false
     private val currentFragment = R.id.vehicleSetupFragment
     private val alreadyAuthString = "authorize_already_authorized"
     var pinEntered = false
@@ -163,8 +164,8 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
         })
 
         viewModel.isSquareAuthorized().observe(this, Observer {
+            isSquareAuthorized = it
             if (it) {
-
                 //This is where we would put the knox code
                 updateChecklist(4, true, adapter as MyCustomAdapter)
                 startReaderSettings(adapter as MyCustomAdapter)
@@ -298,7 +299,6 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
             }
 
             override fun onFailure(e: ApolloException) {
-                PIMDialogComposer.showNoVehicleIDError(activity!!)
             }
         }
         mAWSAppSyncClient?.query(GetPimSettingsQuery.builder().deviceId(deviceID).pin(pin).build())
@@ -631,6 +631,10 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
                 activity!!,
                 arrayOf(Manifest.permission.READ_PHONE_STATE),
                 REQUEST_PHONE_STATE_PERMSSION_CODE)
+        } else {
+            if(!isSquareAuthorized){
+                checkDeviceID(this.view!!, adapter as MyCustomAdapter)
+            }
         }
     }
     private fun allOtherPermissions(){
@@ -694,12 +698,11 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
                         updateChecklist(5,true, adapter as MyCustomAdapter)
                     }
                 }
-            }
-        }
-        else {
-            launch(Dispatchers.Main) {
-                startReaderSettings(adapter as MyCustomAdapter)
-            }
+            } else {
+                launch(Dispatchers.Main) {
+                    startReaderSettings(adapter as MyCustomAdapter)
+                }
+             }
         }
     }
 

@@ -128,9 +128,7 @@ class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                 }
             }
         })
-
     }
-
     //App Sync subscription to vehicleTable
     private fun startOnStatusUpdateSubscription(vehicleID: String) = launch(Dispatchers.IO) {
         val subscription = OnStatusUpdateSubscription.builder().vehicleId(vehicleID).build()
@@ -159,9 +157,9 @@ class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                 if(awsTripId != tripId){
                     startSubscriptionTripUpdate(awsTripId)
                     tripId = awsTripId
-                }
-                if(!meterStateQueryComplete){
-                    getMeterStateQuery(awsTripId)
+                    if(!meterStateQueryComplete){
+                        getMeterStateQuery(awsTripId)
+                    }
                 }
             }
         }
@@ -341,7 +339,7 @@ class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                     .getObject(SharedPrefEnum.CURRENT_TRIP.key, CurrentTrip::class.java)
                 startOnStatusUpdateSubscription(vehicleId)
                 if (currentTrip != null && currentTrip.tripID != "" && internetConnection){
-                    startSubscriptionTripUpdate(currentTrip .tripID)
+                    startSubscriptionTripUpdate(currentTrip.tripID)
                     resync = false
                 }
             } else {
@@ -349,7 +347,7 @@ class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                 startOnStatusUpdateSubscription(vehicleId)
             }
          }
-        } .start()
+        }.start()
     }
     private fun checkNavBar(){
         val decorView = window.decorView

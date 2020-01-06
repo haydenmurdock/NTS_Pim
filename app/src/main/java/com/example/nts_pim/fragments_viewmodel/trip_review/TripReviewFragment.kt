@@ -185,7 +185,6 @@ class TripReviewFragment : ScopedFragment(), KodeinAware {
                 updateAWSWithCashButtonSelection()
             }
         }
-
         callbackViewModel.getIsTransactionComplete().observe(this, Observer {transactionIsComplete ->
             if(transactionIsComplete){
                 toEmailOrTextForSquareTransactionComplete()
@@ -197,7 +196,6 @@ class TripReviewFragment : ScopedFragment(), KodeinAware {
                backToLiveMeter()
             }
         })
-
     }
     private fun updateTripInfo() {
         if (resources.getBoolean(R.bool.isDevModeOn)){
@@ -384,8 +382,9 @@ class TripReviewFragment : ScopedFragment(), KodeinAware {
        inactiveScreenTimer = object: CountDownTimer(60000, 1000) {
             //1 min inactivity timer
             override fun onTick(millisUntilFinished: Long) {
-                val hasNewTripStarted = callbackViewModel.hasNewTripStarted().value
-                if(hasNewTripStarted!!){
+                val currentTripId = callbackViewModel.getTripId()
+                if(currentTripId != tripID){
+                    // If the tripId changes while the timeout is going, it will finish the timer.
                     inactiveScreenTimer?.onFinish()
                 }
             }

@@ -7,7 +7,6 @@ import android.view.WindowManager.LayoutParams
 import java.lang.Exception
 
 class UnlockScreenLock: Activity() {
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         try {

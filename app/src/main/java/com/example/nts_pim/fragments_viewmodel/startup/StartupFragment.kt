@@ -48,11 +48,9 @@ class StartupFragment: ScopedFragment(), KodeinAware {
             .get(VehicleSetupViewModel::class.java)
 
         navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
-
     }
-
     private fun checkAccessibilityPermission():Boolean {
-        var retVal = PowerAccessibilityService().isAccessibilitySettingsOn(context!!)
+        val retVal = PowerAccessibilityService().isAccessibilitySettingsOn(context!!)
         if(!retVal){
             startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
         }

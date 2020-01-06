@@ -77,7 +77,7 @@ class CustomTipScreenFragment : ScopedFragment() {
             }
         }
         //Touch listeners for making button turn grey on touch down.
-        custom_tip_screen_one_btn.setOnTouchListener(View.OnTouchListener { v, event ->
+        custom_tip_screen_one_btn.setOnTouchListener((View.OnTouchListener { v, event ->
             when(event?.action) {
                 MotionEvent.ACTION_DOWN -> {
                     setTextToGrey(custom_tip_screen_one_btn)
@@ -92,8 +92,8 @@ class CustomTipScreenFragment : ScopedFragment() {
                     false
                 }
             }
-        })
-        custom_tip_screen_two_btn.setOnTouchListener(View.OnTouchListener { v, event ->
+        }))
+        custom_tip_screen_two_btn.setOnTouchListener((View.OnTouchListener { v, event ->
             when(event?.action) {
                 MotionEvent.ACTION_DOWN -> {
                     setTextToGrey(custom_tip_screen_two_btn)
@@ -108,8 +108,8 @@ class CustomTipScreenFragment : ScopedFragment() {
                     false
                 }
             }
-        })
-        custom_tip_screen_three_btn.setOnTouchListener(View.OnTouchListener { v, event ->
+        }))
+        custom_tip_screen_three_btn.setOnTouchListener((View.OnTouchListener { v, event ->
             when(event?.action) {
                 MotionEvent.ACTION_DOWN -> {
                     setTextToGrey(custom_tip_screen_three_btn)
@@ -124,8 +124,8 @@ class CustomTipScreenFragment : ScopedFragment() {
                     false
                 }
             }
-        })
-        custom_tip_screen_four_btn.setOnTouchListener(View.OnTouchListener { v, event ->
+        }))
+        custom_tip_screen_four_btn.setOnTouchListener((View.OnTouchListener { v, event ->
             when(event?.action) {
                 MotionEvent.ACTION_DOWN -> {
                     setTextToGrey(custom_tip_screen_four_btn)
@@ -140,8 +140,8 @@ class CustomTipScreenFragment : ScopedFragment() {
                     false
                 }
             }
-        })
-        custom_tip_screen_five_btn.setOnTouchListener(View.OnTouchListener { v, event ->
+        }))
+        custom_tip_screen_five_btn.setOnTouchListener((View.OnTouchListener { v, event ->
             when(event?.action) {
                 MotionEvent.ACTION_DOWN -> {
                     setTextToGrey(custom_tip_screen_five_btn)
@@ -156,8 +156,8 @@ class CustomTipScreenFragment : ScopedFragment() {
                     false
                 }
             }
-        })
-        custom_tip_screen_six_btn.setOnTouchListener(View.OnTouchListener { v, event ->
+        }))
+        custom_tip_screen_six_btn.setOnTouchListener((View.OnTouchListener { v, event ->
             when(event?.action) {
                 MotionEvent.ACTION_DOWN -> {
                     setTextToGrey(custom_tip_screen_six_btn)
@@ -172,8 +172,8 @@ class CustomTipScreenFragment : ScopedFragment() {
                     false
                 }
             }
-        })
-        custom_tip_screen_seven_btn.setOnTouchListener(View.OnTouchListener { v, event ->
+        }))
+        custom_tip_screen_seven_btn.setOnTouchListener((View.OnTouchListener { v, event ->
             when(event?.action) {
                 MotionEvent.ACTION_DOWN -> {
                     setTextToGrey(custom_tip_screen_seven_btn)
@@ -188,8 +188,8 @@ class CustomTipScreenFragment : ScopedFragment() {
                     false
                 }
             }
-        })
-        custom_tip_screen_eight_btn.setOnTouchListener(View.OnTouchListener { v, event ->
+        }))
+        custom_tip_screen_eight_btn.setOnTouchListener((View.OnTouchListener { v, event ->
             when(event?.action) {
                 MotionEvent.ACTION_DOWN -> {
                     setTextToGrey(custom_tip_screen_eight_btn)
@@ -204,8 +204,8 @@ class CustomTipScreenFragment : ScopedFragment() {
                     false
                 }
             }
-        })
-        custom_tip_screen_nine_btn.setOnTouchListener(View.OnTouchListener { v, event ->
+        }))
+        custom_tip_screen_nine_btn.setOnTouchListener((View.OnTouchListener { v, event ->
             when(event?.action) {
                 MotionEvent.ACTION_DOWN -> {
                     setTextToGrey(custom_tip_screen_nine_btn)
@@ -220,8 +220,8 @@ class CustomTipScreenFragment : ScopedFragment() {
                     false
                 }
             }
-        })
-        custom_tip_screen_zero_btn.setOnTouchListener(View.OnTouchListener { v, event ->
+        }))
+        custom_tip_screen_zero_btn.setOnTouchListener((View.OnTouchListener { v, event ->
             when(event?.action) {
                 MotionEvent.ACTION_DOWN -> {
                     setTextToGrey(custom_tip_screen_zero_btn)
@@ -236,7 +236,7 @@ class CustomTipScreenFragment : ScopedFragment() {
                     false
                 }
             }
-        })
+        }))
         custom_tip_screen_done_btn.setOnTouchListener(View.OnTouchListener { v, event ->
             when(event?.action) {
                 MotionEvent.ACTION_DOWN -> {
@@ -276,7 +276,7 @@ class CustomTipScreenFragment : ScopedFragment() {
                 }
             }
         })
-        custom_tip_screen_plus_btn.setOnTouchListener(View.OnTouchListener { v, event ->
+        custom_tip_screen_plus_btn.setOnTouchListener((View.OnTouchListener { v, event ->
             when(event?.action) {
                 MotionEvent.ACTION_DOWN -> {
                     custom_tip_screen_plus_btn.setImageDrawable(ContextCompat.getDrawable(
@@ -297,8 +297,8 @@ class CustomTipScreenFragment : ScopedFragment() {
                     false
                 }
             }
-        })
-        custom_tip_screen_minus_btn.setOnTouchListener(View.OnTouchListener { v, event ->
+        }))
+        custom_tip_screen_minus_btn.setOnTouchListener((View.OnTouchListener { v, event ->
             when(event?.action) {
                 MotionEvent.ACTION_DOWN -> {
                     custom_tip_screen_minus_btn.setImageDrawable(ContextCompat.getDrawable(
@@ -319,9 +319,7 @@ class CustomTipScreenFragment : ScopedFragment() {
                     false
                 }
             }
-        })
-
-
+        }))
         custom_tip_screen_one_btn.setOnClickListener {
             if (customTipViewAmountString.length != 2) {
                 val buttonValue = "1"

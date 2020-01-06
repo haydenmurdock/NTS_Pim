@@ -211,13 +211,13 @@ class EmailOrTextFragment : ScopedFragment(), KodeinAware {
         if(paymentTypeArgs == "CASH"){
             val transactionId = UUID.randomUUID().toString()
             callBackViewModel.setTransactionId(transactionId)
-            updatePaymentDetail(transactionId,tripNumber,vehicleId, mAWSAppSyncClient!!)
+            updatePaymentDetail(transactionId,tripNumber,vehicleId, mAWSAppSyncClient!!,"cash", tripId)
         }
         SoundHelper.turnOnSound(context!!)
     }
 
-    private fun updatePaymentDetail(transactionId: String, tripNumber: Int, vehicleId: String, awsAppSyncClient: AWSAppSyncClient) = launch(Dispatchers.IO){
-        PIMMutationHelper.updatePaymentDetails(transactionId, tripNumber, vehicleId, awsAppSyncClient)
+    private fun updatePaymentDetail(transactionId: String, tripNumber: Int, vehicleId: String, awsAppSyncClient: AWSAppSyncClient, paymentType: String, tripID: String) = launch(Dispatchers.IO){
+        PIMMutationHelper.updatePaymentDetails(transactionId, tripNumber, vehicleId, awsAppSyncClient, paymentType, tripID)
     }
 
     private fun pimStatusUpdate() = launch(Dispatchers.IO){

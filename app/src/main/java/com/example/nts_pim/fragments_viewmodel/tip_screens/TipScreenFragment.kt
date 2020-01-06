@@ -67,7 +67,7 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
     private var checkoutCallbackRef: CallbackReference? = null
     private lateinit var viewModel: LiveMeterViewModel
     private var vehicleId = ""
-    private var tripID = ""
+    private var tripId = ""
     private var tripNumber = 0
     var cardInfo = ""
     private var transactionDate: Date? = null
@@ -103,7 +103,7 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
             .get(LiveMeterViewModel::class.java)
 
         vehicleId = viewModel.getVehicleID()
-        tripID = callbackViewModel.getTripId()
+        tripId = callbackViewModel.getTripId()
         tripNumber = callbackViewModel.getTripNumber()
         val checkoutManager = ReaderSdk.checkoutManager()
         checkoutCallbackRef = checkoutManager.addCheckoutActivityCallback(this::onCheckoutResult)
@@ -220,8 +220,6 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
             }
         }))
 
-
-
         closeTipScreenBtn.setOnClickListener {
             val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
             if(navController.currentDestination?.id == (R.id.tipScreenFragment)){
@@ -265,35 +263,21 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
         }
         customTipAmountBtn.setOnClickListener {
             customTipAmountBtn.setTextColor(ContextCompat.getColor(context!!, R.color.grey))
-            val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
-            if(navController.currentDestination?.id == (R.id.tipScreenFragment)){
-                val action = TipScreenFragmentDirections.ToCustomTipScreen(tripTotal.toFloat()).setTripTotalFromTipScreen(tripTotal.toFloat())
-                navController.navigate(action)
-            }
+            toCustomTip()
         }
         no_tip_btn.setOnClickListener {
             squareCheckout(tripTotal)
             lowerAlpha()
         }
 
-
         callbackViewModel.getMeterState().observe(this, Observer { meterState ->
             if (meterState == MeterEnum.METER_ON.state){
-                val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
-                if(navController.currentDestination?.id == (R.id.tipScreenFragment)){
-                    val action = TipScreenFragmentDirections.backToTripReview(tripTotal.toFloat()).setMeterOwedPrice(tripTotal.toFloat())
-                    navController.navigate(action)
-                }
+               backToTripReview()
             }
         })
         callbackViewModel.getIsTransactionComplete().observe(this, Observer {transactionIsComplete ->
             if(transactionIsComplete){
-                val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
-                if(navController.currentDestination?.id == (R.id.tipScreenFragment)){
-                    val action = TipScreenFragmentDirections.tipFragmentToEmailorTextFragment(tripTotal.toFloat(), "CARD")
-                        .setPaymentType("CARD").setTripTotal(tripTotal.toFloat())
-                    navController.navigate(action)
-                }
+               toEmailOrText()
             }
         })
     }
@@ -616,12 +600,14 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
                 transactionId,
                 tripNumber,
                 vehicleId,
-                mAWSAppSyncClient!!)
+                mAWSAppSyncClient!!,
+                "card",
+                tripId)
         }
 
     }
-    private fun updatePaymentDetail(transactionId: String, tripNumber: Int, vehicleId: String, awsAppSyncClient: AWSAppSyncClient) = launch(Dispatchers.IO){
-        PIMMutationHelper.updatePaymentDetails(transactionId, tripNumber, vehicleId, awsAppSyncClient)
+    private fun updatePaymentDetail(transactionId: String, tripNumber: Int, vehicleId: String, awsAppSyncClient: AWSAppSyncClient, paymentType: String, tripId: String) = launch(Dispatchers.IO){
+        PIMMutationHelper.updatePaymentDetails(transactionId, tripNumber, vehicleId, awsAppSyncClient, paymentType, tripId)
     }
     private fun updateLocalTripDetails(){
         callbackViewModel.setTipAmount(tipAmountPassedToSquare)
@@ -662,7 +648,7 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
 
         val updateTripInput = UpdateTripInput.builder()
             .vehicleId(vehicleId)
-            .tripId(tripID)
+            .tripId(tripId)
             .tipAmt(tipAmount)
             .cardInfo(cardInfo)
             .tipPercent(tipPercent)
@@ -681,6 +667,31 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
 
         override fun onFailure(e: ApolloException) {
             Log.e("Error", e.toString())
+        }
+    }
+
+    private fun toCustomTip(){
+        val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
+        if(navController.currentDestination?.id == (R.id.tipScreenFragment)){
+            val action = TipScreenFragmentDirections.ToCustomTipScreen(tripTotal.toFloat()).setTripTotalFromTipScreen(tripTotal.toFloat())
+            navController.navigate(action)
+        }
+    }
+
+    private  fun toEmailOrText(){
+        val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
+        if(navController.currentDestination?.id == (R.id.tipScreenFragment)){
+            val action = TipScreenFragmentDirections.tipFragmentToEmailorTextFragment(tripTotal.toFloat(), "CARD")
+                .setPaymentType("CARD").setTripTotal(tripTotal.toFloat())
+            navController.navigate(action)
+        }
+    }
+
+    private fun backToTripReview(){
+        val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
+        if(navController.currentDestination?.id == (R.id.tipScreenFragment)){
+            val action = TipScreenFragmentDirections.backToTripReview(tripTotal.toFloat()).setMeterOwedPrice(tripTotal.toFloat())
+            navController.navigate(action)
         }
     }
     override fun onPause() {

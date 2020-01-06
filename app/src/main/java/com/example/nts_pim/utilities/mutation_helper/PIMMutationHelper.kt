@@ -1,18 +1,13 @@
 package com.example.nts_pim.utilities.mutation_helper
 
 import android.util.Log
-import android.widget.Toast
 import com.amazonaws.amplify.generated.graphql.*
 import com.amazonaws.mobileconnectors.appsync.AWSAppSyncClient
 import com.apollographql.apollo.GraphQLCall
 import com.apollographql.apollo.api.Response
 import com.apollographql.apollo.exception.ApolloException
 import com.example.nts_pim.data.repository.VehicleTripArrayHolder
-import com.example.nts_pim.utilities.sms_helper.SmsHelper
-import type.UpdatePimStatusInput
-import type.UpdateStatusInput
-import type.UpdateTripInput
-import type.UpdateTripStatusInput
+import type.*
 
 object PIMMutationHelper {
 
@@ -71,14 +66,15 @@ object PIMMutationHelper {
         }
     }
 
-    fun updatePaymentDetails(transactionId: String, tripNumber: Int, vehicleId: String, appSyncClient: AWSAppSyncClient){
-        val updatePaymentDetails = SavePaymentDetailsMutation.builder().paymentId(transactionId).tripNbr(tripNumber).vehicleId(vehicleId).build()
+    fun updatePaymentDetails(transactionId: String, tripNumber: Int, vehicleId: String, appSyncClient: AWSAppSyncClient, paymentMethod: String, tripId: String){
+        val updatePaymentInput = SavePaymentDetailsInput.builder().paymentId(transactionId).tripNbr(tripNumber).vehicleId(vehicleId).paymentMethod(paymentMethod).tripId(tripId).build()
 
-        appSyncClient.mutate(updatePaymentDetails).enqueue(mutationCallbackPaymentDetails)
+        appSyncClient.mutate(SavePaymentDetailsMutation.builder().parameters(updatePaymentInput).build())?.enqueue(
+            mutationCallbackPaymentDetails)
     }
     private val mutationCallbackPaymentDetails = object : GraphQLCall.Callback<SavePaymentDetailsMutation.Data>() {
         override fun onResponse(response: Response<SavePaymentDetailsMutation.Data>) {
-            Log.i("Results", "vehicle Status Updated to ${response.data()}")
+            Log.i("Results", "payment details have been updated to ${response.data()}")
 
         }
 

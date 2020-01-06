@@ -9,7 +9,6 @@ import android.os.Bundle
 import android.os.CountDownTimer
 import android.os.Handler
 import android.provider.Settings
-import android.speech.tts.TextToSpeech
 import android.text.InputType
 import android.util.Log
 import android.view.LayoutInflater
@@ -103,7 +102,6 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
             }
         }
     }
-    // Local Variables
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -197,10 +195,18 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
             val meterState = it
             if (meterState == MeterEnum.METER_ON.state) {
                 changeScreenBrightness(fullBrightness)
+                Log.i("Welcome Screen","Meter State subscription changed to ON and Leaving Welcome Screen")
                 checkAnimation()
             }
         })
 
+        callBackViewModel.hasNewTripStarted().observe(this, androidx.lifecycle.Observer { tripStarted ->
+            if(tripStarted){
+                val tripId = callBackViewModel.getTripId()
+                getMeterStatusQuery(tripId)
+            }
+
+        })
         tripIsCurrentlyRunning(isOnActiveTrip)
         welcome_screen_next_screen_button.setOnClickListener {
             toLiveMeterScreen()
@@ -209,27 +215,29 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
     private fun checkAnimation() {
         val animationIsOn = resources.getBoolean(R.bool.animationIsOn)
         if (animationIsOn) {
-            welcome_text_view.animate().alpha(0.0f).setDuration(2500).withEndAction{
+            if(welcome_text_view != null){
+                welcome_text_view.animate().alpha(0.0f).setDuration(2500).withEndAction{
 
-                thank_you_text_view.animate().alpha(1f).setDuration(2500).withEndAction {
+                    thank_you_text_view.animate().alpha(1f).setDuration(2500).withEndAction {
 
-                    thank_you_text_view.animate().alpha(0.0f).setDuration(2500)
-                        .withEndAction{
-                            toTaxiNumber()
-                        }
+                        thank_you_text_view.animate().alpha(0.0f).setDuration(2500)
+                            .withEndAction{
+                                toTaxiNumber()
+                            }
+                    }
                 }
+            } else {
+                toNextScreen()
             }
-        } else {
-            toNextScreen()
         }
-    }
+}
     private fun tripIsCurrentlyRunning(isTripActive: Boolean){
         if (!isTripActive){
             return
         }
         val tripIdMeterQuery = checkToSeeIfOnTrip().second
         changeScreenBrightness(fullBrightness)
-        getMeterStatusQuery(tripIdMeterQuery)
+        getMeterStatusQueryForTripSync(tripIdMeterQuery)
     }
     private fun updateUI(companyName: String) {
         thank_you_text_view.text = "Thank you for choosing $companyName"
@@ -339,7 +347,7 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
         return Pair(false, "")
     }
 
-    private fun getMeterStatusQuery(tripId: String) {
+    private fun getMeterStatusQueryForTripSync(tripId: String) {
         if (mAWSAppSyncClient == null) {
             mAWSAppSyncClient = ClientFactory.getInstance(context)
         }
@@ -352,8 +360,36 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
         override fun onResponse(response: Response<GetTripQuery.Data>) {
             if (response.data() != null) {
                meterState = response.data()?.trip?.meterState().toString()
+                Log.i("Welcome Screen","Meter State Query is for trip Sync worked and Leaving Welcome Screen")
                 if (meterState == MeterEnum.METER_ON.state || meterState == MeterEnum.METER_TIME_OFF.state) {
                     toLiveMeterScreen()
+                }
+            }
+        }
+        override fun onFailure(e: ApolloException) {
+            println("Failure")
+        }
+    }
+
+    private fun getMeterStatusQuery(tripId: String) {
+        if (mAWSAppSyncClient == null) {
+            mAWSAppSyncClient = ClientFactory.getInstance(context)
+        }
+        mAWSAppSyncClient?.query(GetTripQuery.builder().tripId(tripId).build())
+            ?.responseFetcher(AppSyncResponseFetchers.CACHE_AND_NETWORK)
+            ?.enqueue(getTripMeterQuery)
+    }
+
+    private var getTripMeterQuery = object : GraphQLCall.Callback<GetTripQuery.Data>() {
+        override fun onResponse(response: Response<GetTripQuery.Data>) {
+            if (response.data() != null) {
+               val meterState = response.data()?.trip?.meterState().toString()
+                if (meterState == MeterEnum.METER_ON.state) {
+                    Log.i("Welcome Screen","Meter State Query is ON and Leaving Welcome Screen")
+                    launch(Dispatchers.Main.immediate) {
+                        changeScreenBrightness(fullBrightness)
+                        checkAnimation()
+                    }
                 }
             }
         }

@@ -34,14 +34,13 @@ object EmailHelper {
         val body = RequestBody.create(JSON, json.toString())
 
         val url = "https://5s27urxc78.execute-api.us-east-2.amazonaws.com/prod/sendReceipt"
-
         val request = Request.Builder()
             .url(url)
             .post(body)
             .build()
         try {
            client.newCall(request).execute().use {response ->
-                if (!response.isSuccessful) throw IOException("Unexpected code ")
+                if (!response.isSuccessful) throw IOException("Unexpected code")
                 else {
                     TripDetails.isReceiptSent = true
                     TripDetails.receiptCode = response.code

@@ -576,7 +576,7 @@ class ReceiptInformationTextFragment: ScopedFragment(), KodeinAware {
             toConfirmation()
     }
     private fun updatePaymentDetailsApi() = launch(Dispatchers.IO) {
-        PIMMutationHelper.updatePaymentDetails(transactionId, tripNumber, vehicleId, mAWSAppSyncClient!!)
+        PIMMutationHelper.updatePaymentDetails(transactionId, tripNumber, vehicleId, mAWSAppSyncClient!!, paymentType, tripId)
     }
     private fun updateCustomerPhoneNumber(phoneNumber:String) = launch(Dispatchers.IO) {
         updateCustomerPhoneNumber(vehicleId, phoneNumber,mAWSAppSyncClient!!,tripId)

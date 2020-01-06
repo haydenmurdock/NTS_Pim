@@ -1,8 +1,6 @@
 package com.example.nts_pim.fragments_viewmodel.vehicle_settings_detail
 
-import android.Manifest
 import android.app.AlertDialog
-import android.app.admin.DevicePolicyManager
 import android.content.*
 import android.media.AudioManager
 import android.os.Bundle
@@ -29,9 +27,7 @@ import org.kodein.di.KodeinAware
 import org.kodein.di.android.x.closestKodein
 import org.kodein.di.generic.instance
 import android.content.Intent
-import android.util.Log
 import com.example.nts_pim.BuildConfig
-import kotlinx.android.synthetic.main.recent_trip_aws_screen.*
 
 
 class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
@@ -43,7 +39,6 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
     private lateinit var viewModel: VehicleSettingsDetailViewModel
     private var readerSettingsCallbackRef: CallbackReference? = null
     private val currentFragmentId = R.id.vehicle_settings_detail_fragment
-    //Local Variables
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,

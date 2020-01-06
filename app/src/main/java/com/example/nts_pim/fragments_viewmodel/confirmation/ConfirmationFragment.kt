@@ -205,7 +205,9 @@ class ConfirmationFragment: ScopedFragment(), KodeinAware {
         }
     }
     private fun runEndTripMutation() = launch(Dispatchers.IO) {
-        PIMMutationHelper.updateTripStatus(vehicleId, VehicleStatusEnum.TRIP_END.status, mAWSAppSyncClient!!, tripId)
+        if(resources.getBoolean(R.bool.animationIsOn )){
+            PIMMutationHelper.updateTripStatus(vehicleId, VehicleStatusEnum.TRIP_END.status, mAWSAppSyncClient!!, tripId)
+        }
     }
     private fun setInternalCurrentTripStatus(){
         val currentTrip = ModelPreferences(context!!).getObject(
