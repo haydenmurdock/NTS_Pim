@@ -4,12 +4,13 @@
         xmlns:tools="http://schemas.android.com/tools"
         android:id="@+id/linearLayout5"
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="match_parent"
+        android:background="@color/screenBackgroundColor">
 
     <ImageView
             android:id="@+id/insert_card_imageView"
-            android:layout_width="930dp"
-            android:layout_height="220dp"
+            android:layout_width="1001dp"
+            android:layout_height="388dp"
             android:layout_marginBottom="20dp"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
@@ -17,4 +18,42 @@
             app:srcCompat="@drawable/ic_atm">
 
     </ImageView>
+
+    <TextView
+            android:id="@+id/insert_card_pay_price_textView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="@font/source_sans_pro_semibold"
+            android:text="TextView"
+            android:textColor="@color/red"
+            android:textSize="36sp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.069"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/insert_card_message_textView" />
+
+    <ImageView
+            android:id="@+id/insert_card_back_btn"
+            android:layout_width="73dp"
+            android:layout_height="39dp"
+            android:layout_marginTop="24dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.01"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:srcCompat="@drawable/ic_left_arrow_2" />
+
+    <TextView
+            android:id="@+id/insert_card_message_textView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:fontFamily="@font/source_sans_pro_semibold"
+            android:text="Insert, Tap, or Swipe"
+            android:textColor="@color/whiteTextColor"
+            android:textSize="54sp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.11"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/insert_card_back_btn" />
 </androidx.constraintlayout.widget.ConstraintLayout>

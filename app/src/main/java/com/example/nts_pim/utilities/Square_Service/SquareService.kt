@@ -14,6 +14,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.View.OnLayoutChangeListener
 import android.widget.ImageView
+import android.widget.LinearLayout
 import androidx.core.view.isVisible
 import com.bumptech.glide.Glide
 import com.example.nts_pim.R
@@ -24,9 +25,7 @@ import com.example.nts_pim.utilities.view_walker.ViewWalker
 import com.example.nts_pim.utilities.enums.MeterEnum
 import com.example.nts_pim.utilities.enums.SharedPrefEnum
 import com.example.nts_pim.utilities.sound_helper.SoundHelper
-
-
-
+import java.text.DecimalFormat
 
 
 class SquareService : OnLayoutChangeListener,
@@ -119,6 +118,7 @@ class SquareService : OnLayoutChangeListener,
         if (VehicleTripArrayHolder.getMeterState().value != null){
             val meterState = VehicleTripArrayHolder.getMeterState().value
             if(meterState == MeterEnum.METER_ON.state){
+                Log.i("Square", "Meter was on internal. pressed cancel buttons")
                 pressCancelButtons()
             }else if (meterState == MeterEnum.METER_TIME_OFF.state){
                 stateMachine(viewGroup!!, squareActivity!!)
@@ -162,6 +162,7 @@ class SquareService : OnLayoutChangeListener,
                         }
                         val meterState = VehicleTripArrayHolder.getMeterState().value
                         if (meterState == MeterEnum.METER_ON.state){
+                            stopTimeout()
                             pressCancelButtons()
                         } else {
                             VehicleTripArrayHolder.squareTransactionHasStarted()
@@ -187,13 +188,28 @@ class SquareService : OnLayoutChangeListener,
             // Entering newState
             when (newState) {
                 SqUIState.SWIPE_STATE -> {
-                    turnUpVolume()
                     insertCardView = View.inflate(activity, R.layout.insert_card, viewGroup)
                     if (insertCardView != null){
+                        val backButton = activity.findViewById<ImageView>(R.id.insert_card_back_btn)
+                        if(backButton != null){
+                            backButton.setOnClickListener{
+                                stopTimeout()
+                                pressCancelButtons()
+                            }
+                        }
                         val imageView = activity.findViewById<ImageView>(R.id.insert_card_imageView)
                         Glide.with(activity.applicationContext)
                             .load(R.raw.insert_swipe_card).into(imageView)
                     }
+                    val tripTotal = VehicleTripArrayHolder.getAmountForSquarDisplay().toDouble()
+                    val decimalFormatter = DecimalFormat("####00.00")
+                    val tripTotalFormatted = decimalFormatter.format(tripTotal)
+                    val tripTotalTextView = activity.findViewById<TextView>(R.id.insert_card_pay_price_textView)
+                    if(tripTotalTextView != null){
+                        tripTotalTextView.text = "$$tripTotalFormatted"
+                    }
+                    turnUpVolume()
+                    stopTimeout()
                     startTimeout()
                 }
                 SqUIState.SUCCESSFUL_PAYMENT -> {
@@ -240,15 +256,18 @@ class SquareService : OnLayoutChangeListener,
                 SqUIState.INSERT_TRY_AGAIN_STATE -> {
                     turnUpVolume()
                     playCardDeclinedSound()
+                    stopTimeout()
                     startTimeout()
                 }
                 SqUIState.CHIP_ERROR_STATE -> {
                     turnUpVolume()
                     playCardDeclinedSound()
+                    stopTimeout()
                     startTimeout()
                 }
                 SqUIState.PAYMENT_CANCELED_STATE -> {
                     turnUpVolume()
+                    stopTimeout()
                     startTimeout()
                 }
                 SqUIState.AUTHORIZING -> {
@@ -263,14 +282,16 @@ class SquareService : OnLayoutChangeListener,
     }
     // Swipe screen timeout and crude animation
     private fun startTimeout() {
-        stopTimeout()
         timeout = object : CountDownTimer(30000, 1000) {
             //We are running for 30 seconds
             override fun onTick(millisUntilFinished: Long) {
+              if (state == SqUIState.OTHER_STATE) {
+                  timeout?.cancel()
+                }
             }
             override fun onFinish() {
-                VehicleTripArrayHolder.squareHasTimedOut()
                 pressCancelButtons()
+//                VehicleTripArrayHolder.squareHasTimedOut()
             }
         }.start()
     }
@@ -278,6 +299,7 @@ class SquareService : OnLayoutChangeListener,
     private fun stopTimeout() {
         if (timeout != null) {
             timeout!!.cancel()
+            Log.i("Square", "Square Time out canceled")
             timeout = null
         }
     }
@@ -353,13 +375,13 @@ class SquareService : OnLayoutChangeListener,
 //    View 2131298212 (7f0907a4) class com.squareup.marketfont.MarketButton Vis:0 Clickable Enabled Focusable  BUTTON: 'Cancel Payment'
     // This function "cancels" the square operation. How to cancel depends on where we are on the square activities
    fun pressCancelButtons() {
-        Log.d(
-            TAG,
+        Log.i(
+            "Square",
             "Timeout =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-=-="
         )
         if (squareActivity == null || squareActivity!!.isFinishing || squareActivity!!.isDestroyed) {
             // Activity not there...don't press buttons
-            Log.i(TAG, "Timeout Ignored ***************")
+            Log.i("Square", "Timeout Ignored ***************")
             return
         }
 
@@ -378,17 +400,22 @@ class SquareService : OnLayoutChangeListener,
             getButton(squareActivity!!, com.squareup.sdk.reader.api.R.id.reader_warning_bottom_default_button, "cancelButton4")
         val cancelButton5 = getButton(squareActivity!!, com.squareup.sdk.reader.api.R.id.cancel_button, "cancelButton5")
 
-        if (cancelButton5 != null) {
+        if(cancelButton5 != null) {
+            stopTimeout()
             cancelButton5.performClick()
-        } else if (cancelButton4 != null)
-            cancelButton4.performClick()
-        else {
+        } else if (cancelButton4 != null){
+            stopTimeout()
+            cancelButton4?.performClick()
+        } else {
             if (cancelButton1 != null)
-                cancelButton1.performClick()
+                stopTimeout()
+                cancelButton1?.performClick()
             if (cancelButton2 != null)
-                cancelButton2.performClick()
+                stopRemoveCardTimer()
+                cancelButton2?.performClick()
             if (cancelButton3 != null)
-                cancelButton3.performClick()
+                stopTimeout()
+                cancelButton3?.performClick()
         }
     }
 
@@ -443,7 +470,7 @@ class SquareService : OnLayoutChangeListener,
 
     // This was an experiment in automatically pressing "no receipt", but I am not using it
     private fun pressNoReceipt() {
-        Log.d(TAG, "Receipt Timeout =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-")
+        Log.d("Square", "Receipt Timeout =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-")
         if (squareActivity == null || squareActivity!!.isFinishing || squareActivity!!.isDestroyed) {
             // Activity not there...don't press buttons
             Log.i(TAG, "Timeout Ignored ***************")

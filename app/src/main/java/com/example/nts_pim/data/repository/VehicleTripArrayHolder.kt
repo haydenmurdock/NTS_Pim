@@ -53,12 +53,16 @@ object VehicleTripArrayHolder {
     private var tripTipAmount:Double = 0.0
 
     private var pimPayAmount:Double = 0.0
-    private var pimPaidAmount:Double = 0.0
+    private var pimPayAmountMutableLiveDate = MutableLiveData<Double>()
 
+
+    private var pimPaidAmount:Double = 0.0
     private var pimNoReceipt = false
 
     private var tripEnded = false
     private var tripEndedMutableLiveData = MutableLiveData<Boolean>()
+
+    private var amountForSquareDisplay = "0"
 
 
 
@@ -133,6 +137,8 @@ object VehicleTripArrayHolder {
             createCurrentTrip(true, enteredTripId, context)
             tripEnded = false
             tripEndedMutableLiveData.value = tripEnded
+            newTripHasStarted = false
+            newTripHasStartedMutableLiveData.value = newTripHasStarted
         }
     }
 
@@ -252,8 +258,13 @@ object VehicleTripArrayHolder {
 
     fun setPimPayment(awsPimPayAmount: Double){
         pimPayAmount = awsPimPayAmount
+        pimPayAmountMutableLiveDate.value = pimPayAmount
+        Log.i("pim pay amount", "pim pay amount has changed to $pimPayAmount")
     }
-    fun getPimPayment() = pimPayAmount
+
+    fun getPimPayAmount() = pimPayAmount
+
+    fun getPimPaymentSubscriptionAmount() = pimPayAmountMutableLiveDate as LiveData<Double>
 
     fun setPimPaidAmount(awsPimPaidAmount: Double){
         pimPaidAmount = awsPimPaidAmount
@@ -265,5 +276,12 @@ object VehicleTripArrayHolder {
         pimNoReceipt = boolean
     }
     fun getPimNoReceipt() = pimNoReceipt
+
+    fun setAmountForSquareDisplay(double: Double){
+        amountForSquareDisplay = double.toString()
+    }
+
+    fun getAmountForSquarDisplay()  = amountForSquareDisplay
+
 }
 

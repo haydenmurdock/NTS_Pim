@@ -97,18 +97,12 @@ class ConfirmationFragment: ScopedFragment(), KodeinAware {
                     if (phoneNumberGroup != null){
                         phoneNumberGroup.visibility = visible
                     }
-                    areaCode_textView.setTransformationMethod(object : PasswordTransformationMethod(){
-
-                    })
-                    middle_three_phone_number_textView.setTransformationMethod(object : PasswordTransformationMethod(){
-
-                    })
                     val (areaCode, firstThree, lastFour) = maskPhoneNumber(messageTypeArgs)
                     areaCode_textView.text = areaCode
-                    middle_three_phone_number_textView.text = firstThree
+                    middle_three_phone_number_textView.text = " $firstThree"
                     if(last_four_phone_number_textView != null){
                         last_four_phone_number_textView.visibility = View.VISIBLE
-                        last_four_phone_number_textView.text = " $lastFour"
+                        last_four_phone_number_textView.text = " - $lastFour"
                     }
 
                 }
@@ -157,23 +151,23 @@ class ConfirmationFragment: ScopedFragment(), KodeinAware {
 
     private fun maskEmailType(message: String):String{
         //we are going to update email/text string to UI that only has certain characters showing
-            if(last_four_phone_number_textView != null){
-                last_four_phone_number_textView.visibility = (View.INVISIBLE)
-            }
-            val atSign = "@".toRegex()
+//            if(last_four_phone_number_textView != null){
+//                last_four_phone_number_textView.visibility = (View.INVISIBLE)
+//            }
+//            val atSign = "@".toRegex()
+//
+//            val countToAtSignRange = atSign.find(message, 2)?.range
+//            val countToAtSign= countToAtSignRange?.first
+//
+//            val firstPartOfEmail = message.substring(0, countToAtSign!! + 1)
+//            val firstPartFormatted = firstPartOfEmail.replace("(?<=.{2}).(?=.*@)".toRegex(), "*")
+//            val emailEndPiece = message.substringAfter("@")
+//            val middlePartOfEmail = emailEndPiece.substringBefore(".")
+//            val middlePartFormatted = middlePartOfEmail.replace("(?<=.{2}).(?=.*)".toRegex(),"*")
+//
+//            val lastPartOfEmail = message.substringAfterLast(".")
 
-            val countToAtSignRange = atSign.find(message, 2)?.range
-            val countToAtSign= countToAtSignRange?.first
-
-            val firstPartOfEmail = message.substring(0, countToAtSign!! + 1)
-            val firstPartFormatted = firstPartOfEmail.replace("(?<=.{2}).(?=.*@)".toRegex(), "*")
-            val emailEndPiece = message.substringAfter("@")
-            val middlePartOfEmail = emailEndPiece.substringBefore(".")
-            val middlePartFormatted = middlePartOfEmail.replace("(?<=.{2}).(?=.*)".toRegex(),"*")
-
-            val lastPartOfEmail = message.substringAfterLast(".")
-
-           return firstPartFormatted + middlePartFormatted + ".$lastPartOfEmail"
+           return message
     }
 
     private fun maskPhoneNumber(phoneNumber: String): Triple<String, String, String>{

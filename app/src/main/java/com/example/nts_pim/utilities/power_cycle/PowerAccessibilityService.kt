@@ -9,6 +9,7 @@ import android.text.TextUtils
 import android.util.Log
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
+import android.widget.Toast
 
 class PowerAccessibilityService: AccessibilityService() {
 
@@ -28,13 +29,16 @@ class PowerAccessibilityService: AccessibilityService() {
                 val action = intent.action
                 if (!action.isNullOrBlank()) {
                     if (action == clarenTablet) {
+                        Log.i("Power", "Ready to perform global action dialog")
                         performGlobalAction(GLOBAL_ACTION_POWER_DIALOG)
                     }
                 }
             } catch (e: Exception) {
+                Toast.makeText(applicationContext, "Error with perform global action. Error: $e",Toast.LENGTH_LONG).show()
             }
             return START_STICKY
         } else {
+            Log.i("Power", "intent or action intent was null")
             return rtn
         }
     }
@@ -87,6 +91,7 @@ class PowerAccessibilityService: AccessibilityService() {
                             "global_actions_item_image_layout"
                         ) && nodeInfo.contentDescription.toString().contains("Power")
                     ) {
+                        Log.i("Power", "Ready to perform clicks")
                         nodeInfo.performAction(AccessibilityNodeInfo.ACTION_FOCUS) // needed for Android 7 on samsung
                         nodeInfo.performAction(AccessibilityNodeInfo.ACTION_CLICK)
                         nodeInfo.performAction(AccessibilityNodeInfo.ACTION_CLICK) // 2 clicks for android 8

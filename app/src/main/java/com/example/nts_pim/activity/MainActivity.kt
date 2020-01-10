@@ -109,7 +109,7 @@ class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                 meterStateQueryComplete = false
             }
         })
-      //  forceSpeaker()
+        forceSpeaker()
         setUpBluetooth()
         checkNavBar()
         callbackViewModel.getReSyncStatus().observe(this, Observer { reSync ->
@@ -124,7 +124,9 @@ class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                     .getObject(SharedPrefEnum.CURRENT_TRIP.key, CurrentTrip::class.java)
                 startOnStatusUpdateSubscription(vehicleId)
                 if (currentTrip != null && currentTrip.tripID != "" && internetConnection){
-                    startSubscriptionTripUpdate(currentTrip.tripID)
+//                    startSubscriptionTripUpdate(currentTrip.tripID)
+                    tripId = currentTrip.tripID
+                    Log.i("Results","Trip subscription was started from REsync")
                 }
             }
         })
@@ -158,7 +160,7 @@ class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                     startSubscriptionTripUpdate(awsTripId)
                     tripId = awsTripId
                     if(!meterStateQueryComplete){
-                        getMeterStateQuery(awsTripId)
+//                        getMeterStateQuery(awsTripId)
                     }
                 }
             }
@@ -190,7 +192,7 @@ class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
     // App Sync CallBack for trip Update
     private var tripUpdateCallback = object : AppSyncSubscriptionCall.Callback<OnTripUpdateSubscription.Data> {
         override fun onResponse(response: Response<OnTripUpdateSubscription.Data>) {
-            Log.i("Results", "Successful subscription callback for Trip Update - ${response.data()}")
+            Log.i("TripSubscriptionCallBack", "Successful subscription callback for Trip Update - ${response.data()}")
             val tripNumber = response.data()?.onTripUpdate()?.tripNbr()
             val meterState = response.data()?.onTripUpdate()?.meterState()
             val owedPriceForMeter = response.data()?.onTripUpdate()?.owedPrice()
@@ -381,10 +383,11 @@ class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
     }
 
     override fun onResume() {
+        super.onResume()
         if(mSuccessfulSetup){
             ViewHelper.hideSystemUI(this)
         }
-        super.onResume()
+
     }
 }
 

@@ -43,7 +43,6 @@ import kotlinx.coroutines.launch
 
 
 class LiveMeterFragment: ScopedFragment(), KodeinAware {
-
     //Kodein and ViewModel
     override val kodein by closestKodein()
     private val viewModelFactory: LiveMeterViewModelFactory by instance()
@@ -89,13 +88,13 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
         updatePIMStatus()
         updateMeterFromTripReview()
         if(tripID != ""){
-            Log.i("Live Meter", "There was TripId so queried MeterValue")
+            Log.i("Live Meter", "There was Trip id so queried MeterValue")
             getMeterOwedQuery(tripID)
         } else if(currentTrip != null && currentTrip.tripID != ""){
-            Log.i("Live Meter", "There was no Trip Id but was on a current trip so it was queried")
+            Log.i("Live Meter", "There was no Trip id but was on a current trip so it was queried")
             getMeterOwedQuery(currentTrip.tripID)
         } else {
-            Log.i("Live Meter", "There no TripId so queried tripId")
+            Log.i("Live Meter", "There no Trip id so queried tripId")
             getTripId(vehicleId)
         }
         live_meter_next_screen_button.setOnClickListener {
@@ -107,10 +106,11 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
                 val df = decimalFormatter.format(meterOwedValue)
                 meterValue = df.toString()
                 tickerView.setText(meterValue, true)
-                if(!live_meter_dollar_sign.isVisible){
+                if(!live_meter_dollar_sign.isVisible &&
+                    live_meter_dollar_sign != null){
                     live_meter_dollar_sign.visibility = visible
                 }
-                if (!tickerView.isVisible) {
+                if (!tickerView.isVisible && tickerView != null) {
                     tickerView.visibility = visible
                 }
             }
@@ -136,9 +136,11 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
     }
 
     private fun updateTickerUI() {
-        tickerView.setCharacterLists(TickerUtils.provideNumberList())
+        if(tickerView != null){
+            tickerView.setCharacterLists(TickerUtils.provideNumberList())
+        }
     }
-    private fun toTripReview() {
+    private fun toTripReview()=launch(Dispatchers.Main.immediate) {
         if(meterValue != ""){
             val priceAsFloat = meterValue.toFloat()
             val action = LiveMeterFragmentDirections.toTripReviewFragment(priceAsFloat).setMeterOwedPrice(priceAsFloat)
@@ -168,9 +170,14 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
             Log.i("Live Meter", "The Data is coming from Trip Review")
             val formattedArgs = decimalFormatter.format(args)
             val tripTotalToString = formattedArgs.toString()
-            live_meter_dollar_sign.visibility = View.VISIBLE
+            if(live_meter_dollar_sign != null){
+                live_meter_dollar_sign.visibility = View.VISIBLE
+            }
+
             initialMeterValueSet = true
-            tickerView.setText(tripTotalToString, true)
+            if (tickerView != null){
+                tickerView.setText(tripTotalToString, true)
+            }
         }
     }
     private fun checkCurrentTrip(){
@@ -181,8 +188,10 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
                 tickerView.animate().alpha(1.0f).setDuration(2500).start()
             }
         } else {
-            live_meter_next_screen_button.isEnabled = false
-            live_meter_next_screen_button.isVisible = false
+            if(live_meter_next_screen_button != null){
+                live_meter_next_screen_button.isEnabled = false
+                live_meter_next_screen_button.isVisible = false
+            }
         }
     }
 
@@ -312,9 +321,7 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
     private fun requestMeterStateValueTimer(){
           requestMeterStateValueTimer = object:CountDownTimer(10000,1000){
             override fun onTick(millisUntilFinished: Long) {
-
             }
-
             override fun onFinish() {
                 if(tripID != ""){
                     getMeterValueQuery(tripID)

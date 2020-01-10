@@ -49,6 +49,7 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
     override val kodein by closestKodein()
     private val viewModelFactory: LiveMeterViewModelFactory by instance()
     private var tripTotal = 00.00
+    private var tripTotalReset = 00.00
     private val tripTotalDF = DecimalFormat("####00.00")
     private val tripTotalDFUnderTen = DecimalFormat("###0.00")
     private var tripTotalOption1 = 00.00
@@ -93,6 +94,7 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
         getArgsFromTripReview()
         getArgsFromCustomTipScreen()
         updateUI()
+        tripTotalReset = tripTotal
         mAWSAppSyncClient = ClientFactory.getInstance(context)
         val factory = InjectorUtiles.provideCallBackModelFactory()
 
@@ -230,7 +232,7 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
         fifteen_percent_btn.setOnClickListener {
                 tripTotal = tripTotalOption1
                 squareCheckout(tripTotalOption1)
-                updateTripTotalTextField(tripTotal)
+                updateTripTotalTextField(tripTotalOption1)
                 tipAmountPassedToSquare = fifteenPercent
                 tipPercentPicked = 00.15
                 lowerAlpha()
@@ -272,11 +274,13 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
 
         callbackViewModel.getMeterState().observe(this, Observer { meterState ->
             if (meterState == MeterEnum.METER_ON.state){
+                Log.i("Trip Review", "The meter is back on so going to the trip Review screen")
                backToTripReview()
             }
         })
         callbackViewModel.getIsTransactionComplete().observe(this, Observer {transactionIsComplete ->
             if(transactionIsComplete){
+                Log.i("Trip Review", "The transaction is complete so going to email or text screen")
                toEmailOrText()
             }
         })
@@ -343,7 +347,6 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
 
          }else {
             //This logic is for either 00.00 or 0.00 on the tipPercent amount
-
             fifteenPercent = tripTotal * 0.15
             tripTotalOption1 = fifteenPercent + tripTotal
             if (fifteenPercent < 10.00){
@@ -442,6 +445,7 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
         }
     }
     private fun squareCheckout(checkOutAmount: Double) = launch {
+        callbackViewModel.setAmountForSquareDisplay(checkOutAmount)
         val p = checkOutAmount * 100.00
         val checkOutTotal = p.toLong()
         val amountMoney = Money(checkOutTotal, CurrencyCode.current())
@@ -537,6 +541,8 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
         if(no_tip_btn != null){
             no_tip_btn.setTextColor(ContextCompat.getColor(context!!, R.color.whiteTextColor))
         }
+        screenTimeOutTimer.cancel()
+        screenTimeOutTimer.start()
     }
     private fun onCheckoutResult(result: Result<CheckoutResult, ResultError<CheckoutErrorCode>>) {
         SoundHelper.turnOnSound(context!!)
@@ -613,6 +619,7 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
         callbackViewModel.setTipAmount(tipAmountPassedToSquare)
     }
     private fun resetScreen() = launch(Dispatchers.Main.immediate){
+        tripTotal = tripTotalReset
         updateTripTotalTextField(tripTotal)
         tipAmountPassedToSquare = 00.00
         updateUI()

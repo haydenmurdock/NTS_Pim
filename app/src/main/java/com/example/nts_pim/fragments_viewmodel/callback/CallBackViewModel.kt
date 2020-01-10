@@ -87,7 +87,9 @@ class CallBackViewModel(
     internal fun setPimPayAmount(enterPayAmount: Double){
         vehicleTripArrayHolder.setPimPayment(enterPayAmount)
     }
-    internal fun getPimPayAmount() = vehicleTripArrayHolder.getPimPayment()
+    internal fun getPimPaySubscriptionAmount() = vehicleTripArrayHolder.getPimPaymentSubscriptionAmount()
+
+    internal fun getPimPayAmount() = vehicleTripArrayHolder.getPimPayAmount()
 
     internal fun setPimPaidAmount(enterPimPaidAmount: Double){
         vehicleTripArrayHolder.setPimPaidAmount(enterPimPaidAmount)
@@ -104,5 +106,11 @@ class CallBackViewModel(
     internal fun tripHasEnded() = vehicleTripArrayHolder.tripHasEnded()
 
     internal fun getTripHasEnded() = vehicleTripArrayHolder.getTripHasEnded()
+
+    fun setAmountForSquareDisplay(double: Double){
+        VehicleTripArrayHolder.setAmountForSquareDisplay(double)
+    }
+
+    fun getAmountForSquarDisplay()  = VehicleTripArrayHolder.getAmountForSquarDisplay()
 
 }

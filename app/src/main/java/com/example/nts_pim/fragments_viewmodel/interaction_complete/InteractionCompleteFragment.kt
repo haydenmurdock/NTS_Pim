@@ -54,6 +54,7 @@ class InteractionCompleteFragment : ScopedFragment(), KodeinAware {
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        //This is a test!!
         super.onViewCreated(view, savedInstanceState)
         mAWSAppSyncClient = ClientFactory.getInstance(context)
         val factory = InjectorUtiles.provideCallBackModelFactory()

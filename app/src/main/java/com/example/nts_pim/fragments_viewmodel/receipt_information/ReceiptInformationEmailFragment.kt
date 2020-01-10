@@ -8,11 +8,13 @@ import android.view.inputmethod.InputMethodManager
 import com.example.nts_pim.R
 import com.example.nts_pim.fragments_viewmodel.base.ScopedFragment
 import android.content.Context
+import android.net.ConnectivityManager
 import android.os.CountDownTimer
 import android.text.Editable
 import android.text.TextWatcher
 import android.util.Log
 import android.view.MotionEvent
+import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModelProviders
 import androidx.navigation.Navigation
@@ -193,6 +195,12 @@ class ReceiptInformationEmailFragment: ScopedFragment(), KodeinAware {
             send_email_btn_receipt.isEnabled = true
         }
     }
+
+    private fun isOnline(context: Context): Boolean {
+        val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val networkInfo = connectivityManager.activeNetworkInfo
+        return networkInfo != null && networkInfo.isConnected
+    }
     private fun updatePaymentDetailsApi() = launch(Dispatchers.IO) {
         PIMMutationHelper.updatePaymentDetails(transactionId, tripNumber, vehicleId, mAWSAppSyncClient!!,paymentType, tripId)
     }
@@ -213,22 +221,32 @@ class ReceiptInformationEmailFragment: ScopedFragment(), KodeinAware {
 
     private fun updateCustomerEmail(vehicleId: String, custEmail: String, appSyncClient: AWSAppSyncClient, tripId: String){
         val updatePaymentTypeInput = UpdateTripInput.builder().vehicleId(vehicleId).tripId(tripId).custEmail(custEmail).build()
-
-        appSyncClient.mutate(UpdateTripMutation.builder().parameters(updatePaymentTypeInput).build())
-            ?.enqueue(mutationCustomerEmailCallback )
-
+        if(isOnline(context!!)){
+            appSyncClient.mutate(UpdateTripMutation.builder().parameters(updatePaymentTypeInput).build())
+                ?.enqueue(mutationCustomerEmailCallback )
+        } else {
+            Log.i("Email Receipt", "Not connected to internet")
+        }
     }
 
     private val mutationCustomerEmailCallback = object : GraphQLCall.Callback<UpdateTripMutation.Data>() {
         override fun onResponse(response: Response<UpdateTripMutation.Data>) {
             Log.i("Results", "Meter Table Updated ${response.data()}")
-            if(!response.hasErrors()){
+            val tripId = callBackViewModel.getTripId()
+            val paymentType = response.data()?.updateTrip()?.paymentType()
+            val transactionId = callBackViewModel.getTransactionId()
+
+            if(response.hasErrors()){
+                Log.i("Email Receipt", "Response from Aws had errors so did not send email")
+                return
+            }
+            if(response.data() != null &&
+                 paymentType != null){
                 launch(Dispatchers.IO){
                     EmailHelper.sendEmail(tripId, paymentType, transactionId)
                 }
             }
         }
-
         override fun onFailure(e: ApolloException) {
             Log.e("Error", "There was an issue updating the MeterTable: $e")
         }

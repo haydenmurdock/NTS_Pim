@@ -55,12 +55,16 @@ class TripDetailFragment : ScopedFragment() {
         trip_start_time_textView.text = "PIM Start Time: " +formatter.format(TripDetails.tripStartTime)
         trip_end_time_textView.text = "PIM End Time: " +formatter.format(TripDetails.tripEndTime)
         receipt_server_code_textView.text = "Receipt server code: " +serverCode
+        if(serverCode == "200"){
+            receipt_sent_textView.text = "Receipt sent: True"
+        }
         if (TripDetails.receiptCode == 200){
             receipt_server_message_textView.text = "Receipt server message: Success"
         } else {
             receipt_server_message_textView.text = "Receipt server message: " +receiptMessage
         }
-        isOnline_textView.text = "LTE Network Connected: " +isOnline(context!!)
+        val onlineStatus = isOnline(context!!)
+        isOnline_textView.text = "LTE Network Connected: ${onlineStatus}"
         getLastError()
     }
 
@@ -80,8 +84,10 @@ class TripDetailFragment : ScopedFragment() {
                 pim_current_lat_textView != null &&
             pim_current_long_textView != null)
         { val lastLocation = locationManager.getLastKnownLocation(locationProvider)
+            if(lastLocation != null){
             pim_current_lat_textView.text =  "Pim Current Latitude: "+lastLocation.latitude.toString()
             pim_current_long_textView.text =  "Pim Current Longitude: " +lastLocation.longitude.toString()
+            }
         }
     }
 

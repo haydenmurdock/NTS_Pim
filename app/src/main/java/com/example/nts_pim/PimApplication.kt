@@ -63,22 +63,5 @@ class PimApplication : Application(), KodeinAware{
             AndroidThreeTen.init(this)
 
             registerActivityLifecycleCallbacks(LifeCycleCallBacks())
-
-           var defaultHandler =
-                Thread.getDefaultUncaughtExceptionHandler()
-
-            if (defaultHandler == null) {
-                defaultHandler = Thread.getDefaultUncaughtExceptionHandler()
-            }
-
-            if (exceptionHandler == null) {
-                exceptionHandler = Thread.UncaughtExceptionHandler { paramThread, paramThrowable ->
-                    Log.e("Uncaught Exception", paramThrowable.message)
-                    val newError = PimError(paramThrowable.message)
-                    ModelPreferences(this).putObject("PimError", newError)
-                    defaultHandler.uncaughtException(paramThread, paramThrowable)
-                }
-                Thread.setDefaultUncaughtExceptionHandler(exceptionHandler)
-            }
         }
     }

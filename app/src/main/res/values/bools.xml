@@ -3,5 +3,5 @@
     <bool name="animationIsOn">true</bool>
     <bool name="isDevModeOn">false</bool>
     <bool name="isSquareBuildOn">false</bool>
-    <bool name="testingWithPimRemote">false</bool>
+    <bool name="testingWithPimRemote">true</bool>
 </resources>

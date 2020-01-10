@@ -39,6 +39,8 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
     private lateinit var viewModel: VehicleSettingsDetailViewModel
     private var readerSettingsCallbackRef: CallbackReference? = null
     private val currentFragmentId = R.id.vehicle_settings_detail_fragment
+    private var vehicleID = ""
+    private var tripID = ""
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -59,7 +61,8 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
         val readerManager = ReaderSdk.readerManager()
         readerSettingsCallbackRef =
             readerManager.addReaderSettingsActivityCallback(this::onReaderSettingsResult)
-
+        vehicleID = viewModel.getVehicleID()
+        tripID = callBackViewModel.getTripId()
         val batteryStatus = callBackViewModel.batteryPowerStatePermission()
         updateUI(batteryStatus)
         activity_indicator_vehicle_detail.visibility = View.INVISIBLE
@@ -126,8 +129,6 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
     private fun updateUI(batteryStatus: Boolean) {
         val alpha = 1.00f
         val duration = 500.toLong()
-        val vehicleID = viewModel.getVehicleID()
-        val tripID = callBackViewModel.getTripId()
         val buildName = BuildConfig.VERSION_NAME
 
         settings_detail_textView.text = "Vehicle ID: $vehicleID"
@@ -137,7 +138,6 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
         } else {
             last_trip_id_textView.text = "Trip Id: none"
         }
-
 
         check_bluetooth_btn.animate().alpha(alpha).setDuration(duration)
         setting_detail_back_btn.animate().alpha(alpha).setDuration(duration)

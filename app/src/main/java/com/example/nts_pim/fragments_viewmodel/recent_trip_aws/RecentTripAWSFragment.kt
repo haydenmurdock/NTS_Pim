@@ -67,7 +67,7 @@ class RecentTripAWSFragment: ScopedFragment() {
 
         private var getRecentTripQueryCallBack = object : GraphQLCall.Callback<GetTripQuery.Data>() {
             override fun onResponse(response: Response<GetTripQuery.Data>) {
-                if (response.data() != null) {
+                if (response.data() != null && !this@RecentTripAWSFragment.isRemoving && this@RecentTripAWSFragment.isVisible) {
 
                     val airPortFee = response.data()?.trip?.airportFee()
                     val appliedFareMin = response.data()?.trip?.appliedFareMin()

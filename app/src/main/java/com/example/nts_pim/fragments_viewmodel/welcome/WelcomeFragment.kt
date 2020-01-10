@@ -70,6 +70,7 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
     private lateinit var callBackViewModel: CallBackViewModel
     private var mAWSAppSyncClient: AWSAppSyncClient? = null
     private var vehicleId = ""
+    private var tripId = ""
     private var cabNumber = ""
     private var buttonCount = 0
     private var isPasswordEntered = false
@@ -134,6 +135,10 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
         if (checkToSeeIfOnTrip().first != null) {
             isOnActiveTrip = checkToSeeIfOnTrip().first!!
         }
+        if(checkToSeeIfOnTrip().second != null){
+            //This should be the last Trip Id that was saved internally.
+            tripId = checkToSeeIfOnTrip().second
+        }
         viewModel.isSetupComplete()
         vehicleId = viewModel.getVehicleId()
         updateVehicleInfoUI()
@@ -190,53 +195,61 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
                 }
             }
         }
-
-        callBackViewModel.getMeterState().observe(this, androidx.lifecycle.Observer {
-            val meterState = it
-            if (meterState == MeterEnum.METER_ON.state) {
-                changeScreenBrightness(fullBrightness)
-                Log.i("Welcome Screen","Meter State subscription changed to ON and Leaving Welcome Screen")
-                checkAnimation()
-            }
-        })
+        tripIsCurrentlyRunning(isOnActiveTrip)
+//        callBackViewModel.getMeterState().observe(this, Observer{
+//            val meterState = it
+//            if (meterState == MeterEnum.METER_ON.state) {
+////                Log.i( changeScreenBrightness(fullBrightness)
+////               "Welcome Screen","Meter State subscription changed to ON and Leaving Welcome Screen")
+////                checkAnimation()
+//            }
+//        })
 
         callBackViewModel.hasNewTripStarted().observe(this, androidx.lifecycle.Observer { tripStarted ->
             if(tripStarted){
-                val tripId = callBackViewModel.getTripId()
-                getMeterStatusQuery(tripId)
+                val newTripId = callBackViewModel.getTripId()
+                if(newTripId != tripId) {
+                    // if the new trip Id doesn't equal the one that was saved internal a new trip has started.
+                    Log.i("Welcome Screen", "newTrip has started")
+                    changeScreenBrightness(fullBrightness)
+                    checkAnimation()
+                }
+//                checkAnimation()
+//                val tripId = callBackViewModel.getTripId()
+//                Toast.makeText(context!!, " new Trip has started so I'm querying meter state", Toast.LENGTH_LONG).show()
+//                getMeterStatusQuery(tripId)
             }
-
         })
-        tripIsCurrentlyRunning(isOnActiveTrip)
+
         welcome_screen_next_screen_button.setOnClickListener {
-            toLiveMeterScreen()
+            // toLiveMeterScreen()
         }
     }
     private fun checkAnimation() {
         val animationIsOn = resources.getBoolean(R.bool.animationIsOn)
         if (animationIsOn) {
-            if(welcome_text_view != null){
-                welcome_text_view.animate().alpha(0.0f).setDuration(2500).withEndAction{
-
-                    thank_you_text_view.animate().alpha(1f).setDuration(2500).withEndAction {
-
-                        thank_you_text_view.animate().alpha(0.0f).setDuration(2500)
-                            .withEndAction{
-                                toTaxiNumber()
-                            }
+            if (welcome_text_view != null) {
+                welcome_text_view.animate().alpha(0.0f).setDuration(2500).withEndAction {
+                        thank_you_text_view.animate().alpha(1f).setDuration(2500).withEndAction {
+                            thank_you_text_view.animate().alpha(0.0f).setDuration(2500)
+                                .withEndAction {
+                                    toTaxiNumber()
+                                }
+                        }
                     }
                 }
-            } else {
-                toNextScreen()
-            }
+            }else {
+            toNextScreen()
         }
-}
+    }
+
     private fun tripIsCurrentlyRunning(isTripActive: Boolean){
         if (!isTripActive){
             return
         }
         val tripIdMeterQuery = checkToSeeIfOnTrip().second
         changeScreenBrightness(fullBrightness)
+        Toast.makeText(context!!, "Trip is active and Query Trip Id ",Toast.LENGTH_LONG).show()
         getMeterStatusQueryForTripSync(tripIdMeterQuery)
     }
     private fun updateUI(companyName: String) {
@@ -343,6 +356,10 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
                     callBackViewModel.reSyncTrip()
                     return Pair(currentTrip.isActive, currentTrip.tripID)
             }
+            if(!currentTrip.isActive!!){
+                return Pair(false, currentTrip.tripID)
+            }
+            Log.i("Welcome Screen", "Last Trip Id${currentTrip.tripID}. Is trip active: ${currentTrip.isActive}")
         }
         return Pair(false, "")
     }
@@ -467,6 +484,7 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
 
     override fun onDestroy() {
         super.onDestroy()
-        callBackViewModel.getMeterState().removeObservers(this)
+     //   callBackViewModel.getMeterState().removeObservers(this)
+        callBackViewModel.hasNewTripStarted().removeObservers(this)
     }
 }

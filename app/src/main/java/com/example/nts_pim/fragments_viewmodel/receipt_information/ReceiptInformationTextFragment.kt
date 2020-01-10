@@ -1,6 +1,7 @@
 package com.example.nts_pim.fragments_viewmodel.receipt_information
 
 import android.content.Context
+import android.net.ConnectivityManager
 import android.os.Bundle
 import android.os.CountDownTimer
 
@@ -44,6 +45,7 @@ import android.widget.AdapterView.OnItemClickListener
 import com.amazonaws.amplify.generated.graphql.UpdateTripMutation
 import com.apollographql.apollo.GraphQLCall
 import com.apollographql.apollo.exception.ApolloException
+import com.example.nts_pim.data.repository.providers.ModelPreferences
 import com.example.nts_pim.utilities.mutation_helper.PIMMutationHelper
 import type.UpdateTripInput
 import java.util.*
@@ -70,6 +72,7 @@ class ReceiptInformationTextFragment: ScopedFragment(), KodeinAware {
     private var tripTotal = 00.00
     private var enteredPhoneNumber = ""
     private var transactionId = ""
+    private var updatedPhoneNumber = ""
     private var countryListIsShowing = false
     private var internationalNumber = false
     private var inactiveScreenTimer: CountDownTimer? = null
@@ -92,7 +95,6 @@ class ReceiptInformationTextFragment: ScopedFragment(), KodeinAware {
 
         viewModel = ViewModelProviders.of(this, viewModelFactory)
             .get(EmailOrTextViewModel::class.java)
-
         callBackViewModel = ViewModelProviders.of(this, callBackFactory)
             .get(CallBackViewModel::class.java)
         keyboardViewModel = ViewModelProviders.of(this, keyboardFactory)
@@ -122,12 +124,12 @@ class ReceiptInformationTextFragment: ScopedFragment(), KodeinAware {
         text_editText.addTextChangedListener(object : TextWatcher {
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
                 if (s != null &&
-                    s.length > 9) {
+                    s.length > 11) {
                     enableSendTextBtn()
                 }
 
                 if (s != null &&
-                    s.length < 9){
+                    s.length < 11){
                     disableSendTextBtn()
                 }
                 // length is 7 and going forward.
@@ -474,7 +476,6 @@ class ReceiptInformationTextFragment: ScopedFragment(), KodeinAware {
                     sendTextReceipt()
                 }
             }
-
         }
         back_btn_text_receipt.setOnClickListener {
             backToEmailOrText()
@@ -528,7 +529,11 @@ class ReceiptInformationTextFragment: ScopedFragment(), KodeinAware {
         text_editText.setText(enteredPhoneNumber)
     }
     private fun deleteLastNumberInEditText(){
-        val updatedPhoneNumber = enteredPhoneNumber.dropLast(1)
+        if(enteredPhoneNumber.last().toString() == "-"){
+            updatedPhoneNumber = enteredPhoneNumber.dropLast(2)
+        } else {
+            updatedPhoneNumber = enteredPhoneNumber.dropLast(1)
+        }
         enteredPhoneNumber = updatedPhoneNumber
         text_editText.setText(enteredPhoneNumber)
         text_receipt_screen_backspace_btn.isEnabled = true
@@ -538,6 +543,11 @@ class ReceiptInformationTextFragment: ScopedFragment(), KodeinAware {
             activity!!.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
         imm.hideSoftInputFromWindow(view?.windowToken, 0)
         ViewHelper.hideSystemUI(this.activity!!)
+    }
+    private fun isOnline(context: Context): Boolean {
+        val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val networkInfo = connectivityManager.activeNetworkInfo
+        return networkInfo != null && networkInfo.isConnected
     }
     private fun startInactivityTimeout(){
         inactiveScreenTimer = object: CountDownTimer(60000, 1000) {
@@ -576,10 +586,19 @@ class ReceiptInformationTextFragment: ScopedFragment(), KodeinAware {
             toConfirmation()
     }
     private fun updatePaymentDetailsApi() = launch(Dispatchers.IO) {
-        PIMMutationHelper.updatePaymentDetails(transactionId, tripNumber, vehicleId, mAWSAppSyncClient!!, paymentType, tripId)
+        if(isOnline(context!!)){
+            PIMMutationHelper.updatePaymentDetails(transactionId, tripNumber, vehicleId, mAWSAppSyncClient!!, paymentType, tripId)
+        } else {
+            Log.i("Text Receipt", "Internet not connected, could not update payment details api")
+        }
     }
     private fun updateCustomerPhoneNumber(phoneNumber:String) = launch(Dispatchers.IO) {
-        updateCustomerPhoneNumber(vehicleId, phoneNumber,mAWSAppSyncClient!!,tripId)
+        if(isOnline(context!!)){
+            updateCustomerPhoneNumber(vehicleId, phoneNumber,mAWSAppSyncClient!!,tripId)
+        } else {
+            Log.i("Text Receipt", "Internet not connect, could not update custPhone number on AWS")
+        }
+
     }
     //Makes sure phone is correctly formatted.
     private fun getCountryWithName() = launch(Dispatchers.IO){
@@ -605,9 +624,11 @@ class ReceiptInformationTextFragment: ScopedFragment(), KodeinAware {
                                 adapter = CountryCodeAdapter(context!!, countryArray)
                                 if(listView != null){
                                     listView.adapter = adapter as CountryCodeAdapter
+                                } else {
+
                                 }
                             } catch (e: Error){
-                                println("$e")
+                                Log.i("Text Receipt", "Error: for getting international number list. Error:$e")
                             }
                         }
                     }))
@@ -627,10 +648,21 @@ class ReceiptInformationTextFragment: ScopedFragment(), KodeinAware {
     private val mutationCustomerPhoneNumberCallback = object : GraphQLCall.Callback<UpdateTripMutation.Data>() {
         override fun onResponse(response: com.apollographql.apollo.api.Response<UpdateTripMutation.Data>) {
             Log.i("Results", "Meter Table Updated ${response.data()}")
-            if(!response.hasErrors()){
+            val tripId = callBackViewModel.getTripId()
+            val paymentType = response.data()?.updateTrip()?.paymentType()
+            val transactionId = callBackViewModel.getTransactionId()
+
+            if(response.hasErrors()){
+                Log.i("Text Receipt", "Response from aws had errors so did not send text message")
+                return
+            }
+            if(response.data() != null &&
+                    paymentType != null){
                 launch(Dispatchers.IO) {
                         SmsHelper.sendSMS(tripId, paymentType, transactionId)
                 }
+            }else{
+                Log.i("Text Receipt", "Payment type type or response data was null")
             }
         }
 

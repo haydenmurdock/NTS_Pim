@@ -12,6 +12,10 @@ class LifeCycleCallBacks : Application.ActivityLifecycleCallbacks {
     }
 
     override fun onActivityDestroyed(activity: Activity?) {
+       val name = activity?.localClassName
+        if (name == "com.squareup.ui.main.ApiMainActivity"){
+
+        }
 
     }
 

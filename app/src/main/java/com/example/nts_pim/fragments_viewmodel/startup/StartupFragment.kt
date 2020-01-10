@@ -31,6 +31,7 @@ class StartupFragment: ScopedFragment(), KodeinAware {
     private var permissionAccessibility = false
     private var setupStatus = false
     private var navController: NavController? = null
+    private val currentFragmentId = R.id.startupFragment
 
 
     override fun onCreateView(
@@ -120,9 +121,13 @@ class StartupFragment: ScopedFragment(), KodeinAware {
     private fun checkDestinations(navController: NavController){
         if (setupStatus && permissionWrite && permissionDraw && permissionAccessibility){
             viewModel.vehicleIDExists()
-            navController.navigate(R.id.toWelcomeScreenFromStartUP)
+            if (navController.currentDestination?.id == currentFragmentId) {
+                navController.navigate(R.id.toWelcomeScreenFromStartUP)
+            }
         } else if(permissionDraw && permissionWrite && permissionAccessibility) {
-            navController.navigate(R.id.toVehicleSetupFragment)
+            if (navController.currentDestination?.id == currentFragmentId) {
+                navController.navigate(R.id.toVehicleSetupFragment)
+            }
         }
 
     }

@@ -10,7 +10,6 @@ import okhttp3.MediaType.Companion.toMediaType
 import java.io.IOException
 import java.net.URL
 
-
 object SmsHelper {
 
     fun sendSMS(tripId: String, paymentMethod: String, transactionId: String){
@@ -30,7 +29,7 @@ object SmsHelper {
                 json.put("paymentId",transactionId)
             } catch (e: JSONException){
                 Log.i("ERROR", "JSON error $e")
-            }
+             }
 
         val body = RequestBody.create(JSON, json.toString())
         Log.i("URL","Json body :  ${json}")

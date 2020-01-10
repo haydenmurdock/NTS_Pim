@@ -74,12 +74,12 @@ object PIMMutationHelper {
     }
     private val mutationCallbackPaymentDetails = object : GraphQLCall.Callback<SavePaymentDetailsMutation.Data>() {
         override fun onResponse(response: Response<SavePaymentDetailsMutation.Data>) {
-            Log.i("Results", "payment details have been updated to ${response.data()}")
+            Log.i("Payment AWS", "payment details have been updated to ${response.data()}")
 
         }
 
         override fun onFailure(e: ApolloException) {
-            Log.e("Error", "There was an issue updating the vehicle Status: $e")
+            Log.e("Payment AWS", "There was an issue updating payment api: $e")
         }
     }
 

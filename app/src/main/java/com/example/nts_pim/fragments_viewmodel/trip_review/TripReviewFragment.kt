@@ -59,17 +59,19 @@ class TripReviewFragment : ScopedFragment(), KodeinAware {
     private val tripTotalDFUnderTen = DecimalFormat("###0.00")
     private var removeWaitScreenTimer: CountDownTimer? = null
     private var inactiveScreenTimer: CountDownTimer? = null
-    private var pimMeterValue:Double = 00.00
-    private var pimPayAmount:Double = 00.00
-    private var pimPaidAmount:Double = 00.00
+    private var pimMeterValue: Double = 00.00
+    private var pimPayAmount: Double = 00.00
+    private var pimPaidAmount: Double = 00.00
     private val currentFragmentId = R.id.trip_review_fragment
     private var doesPimNeedToTakePayment = true
     private var textToSpeech: TextToSpeech? = null
 
 
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?,
-                              savedInstanceState: Bundle?): View? {
-         return inflater.inflate(R.layout.trip_review_screen,container, false)
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View? {
+        return inflater.inflate(R.layout.trip_review_screen, container, false)
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -86,15 +88,17 @@ class TripReviewFragment : ScopedFragment(), KodeinAware {
         vehicleId = viewModel.getVehicleId()
         tripID = callbackViewModel.getTripId()
         pimPaidAmount = callbackViewModel.getPimPaidAmount()
-       //we check this value for updating the Trip Review
+        //we check this value for updating the Trip Review
         pimMeterValue = callbackViewModel.getMeterOwed().value ?: 0.0
         pimPayAmount = callbackViewModel.getPimPayAmount()
+        Log.i("Trip Review","Pim Pay amount at the start of page was $pimPayAmount")
         updatePimStatus()
-        textToSpeech = TextToSpeech(context, TextToSpeech.OnInitListener{
-            if (it == TextToSpeech.SUCCESS){
+        textToSpeech = TextToSpeech(context, TextToSpeech.OnInitListener {
+            if (it == TextToSpeech.SUCCESS) {
                 val language = textToSpeech?.setLanguage(Locale.US)
                 if (language == TextToSpeech.LANG_MISSING_DATA
-                    || language == TextToSpeech.LANG_NOT_SUPPORTED) {
+                    || language == TextToSpeech.LANG_NOT_SUPPORTED
+                ) {
                     Log.e("TTS", "The Language is not supported!")
                 } else {
                     Log.i("TTS", "Language Supported.")
@@ -106,11 +110,12 @@ class TripReviewFragment : ScopedFragment(), KodeinAware {
         })
         val audioManager = context?.getSystemService(Context.AUDIO_SERVICE) as AudioManager
         //If the microphone is muted, the square connection is still taking place.
-        if (!audioManager.isMicrophoneMute){
+        if (!audioManager.isMicrophoneMute) {
             val currentTrip = ModelPreferences(context!!)
-                .getObject(SharedPrefEnum.CURRENT_TRIP.key,CurrentTrip::class.java)
-            if(currentTrip?.tripID != "" &&
-                    currentTrip != null) {
+                .getObject(SharedPrefEnum.CURRENT_TRIP.key, CurrentTrip::class.java)
+            if (currentTrip?.tripID != "" &&
+                currentTrip != null
+            ) {
                 getPimPayAndPimPaidAmountQuery(currentTrip.tripID)
                 showPleaseWaitScreen()
                 startRemoveWaitScreenTimer()
@@ -119,19 +124,21 @@ class TripReviewFragment : ScopedFragment(), KodeinAware {
                 showPleaseWaitScreen()
                 //we will start Remove Wait screen timer when we get tripId from callback
             }
-        }else {
+        } else {
             checkIfPIMNeedsToTakePayment(pimPayAmount, pimPaidAmount)
             val pimPaidAmountToString = pimPaidAmount.toString()
             playTripTotalAmount(pimPaidAmountToString)
         }
         cash_btn.setOnTouchListener((View.OnTouchListener { v, event ->
-            when(event?.action) {
+            when (event?.action) {
                 MotionEvent.ACTION_DOWN -> {
                     cash_textView.setTextColor(ContextCompat.getColor(context!!, R.color.grey))
-                    dollar_sign_imageView.setImageDrawable(ContextCompat.getDrawable(
-                        context!!,
-                        R.drawable.ic_currency_icon_grey
-                    ))
+                    dollar_sign_imageView.setImageDrawable(
+                        ContextCompat.getDrawable(
+                            context!!,
+                            R.drawable.ic_currency_icon_grey
+                        )
+                    )
                     true
                 }
                 MotionEvent.ACTION_UP -> {
@@ -144,13 +151,15 @@ class TripReviewFragment : ScopedFragment(), KodeinAware {
             }
         }))
         debit_credit_btn.setOnTouchListener((View.OnTouchListener { v, event ->
-            when(event?.action) {
+            when (event?.action) {
                 MotionEvent.ACTION_DOWN -> {
                     credit_textView.setTextColor(ContextCompat.getColor(context!!, R.color.grey))
-                    credit_card_imageView.setImageDrawable(ContextCompat.getDrawable(
-                        context!!,
-                        R.drawable.ic_credit_card_grey
-                    ))
+                    credit_card_imageView.setImageDrawable(
+                        ContextCompat.getDrawable(
+                            context!!,
+                            R.drawable.ic_credit_card_grey
+                        )
+                    )
                     true
                 }
                 MotionEvent.ACTION_UP -> {
@@ -167,13 +176,15 @@ class TripReviewFragment : ScopedFragment(), KodeinAware {
         debit_credit_btn.setOnClickListener {
             ViewHelper.disableButton(debit_credit_btn)
             // checks that trip total was updated before sending to square
-            if (tripTotal > 1.00){
-                PIMMutationHelper.updatePaymentType(vehicleId,
+            if (tripTotal > 1.00) {
+                PIMMutationHelper.updatePaymentType(
+                    vehicleId,
                     PaymentTypeEnum.CARD.paymentType,
                     mAWSAppSyncClient!!,
-                    tripID)
-                toTipScreen() }
-            else {
+                    tripID
+                )
+                toTipScreen()
+            } else {
                 showLessThanDollarToast()
             }
         }
@@ -185,27 +196,37 @@ class TripReviewFragment : ScopedFragment(), KodeinAware {
                 updateAWSWithCashButtonSelection()
             }
         }
-        callbackViewModel.getIsTransactionComplete().observe(this, Observer {transactionIsComplete ->
-            if(transactionIsComplete){
-                toEmailOrTextForSquareTransactionComplete()
+
+        callbackViewModel.getIsTransactionComplete()
+            .observe(this, Observer { transactionIsComplete ->
+                if (transactionIsComplete) {
+                    toEmailOrTextForSquareTransactionComplete()
+                }
+            })
+
+        callbackViewModel.getMeterState().observe(this, Observer { meterState ->
+            if (meterState == MeterEnum.METER_ON.state) {
+                backToLiveMeter()
             }
         })
-
-        callbackViewModel.getMeterState().observe(this, Observer {meterState ->
-            if (meterState == MeterEnum.METER_ON.state) {
-               backToLiveMeter()
+        callbackViewModel.getPimPaySubscriptionAmount().observe(this@TripReviewFragment, Observer {
+            if(pimPayAmount != it){
+                pimPayAmount = it
+                val pimPayToString = it.toString()
+                trip_total_for_tip_text_view.text = pimPayToString
             }
         })
     }
+
     private fun updateTripInfo() {
-        if (resources.getBoolean(R.bool.isDevModeOn)){
-                val dollar = 1
-                val formattedArgs = decimalFormatter.format(dollar)
-                tripTotal = formattedArgs.toDouble()
-                val tripTotalToString = formattedArgs.toString()
-                trip_total_for_tip_text_view.text = "$$tripTotalToString" }
-        else {
-            if(pimPayAmount < 10){
+        if (resources.getBoolean(R.bool.isDevModeOn)) {
+            val dollar = 1
+            val formattedArgs = decimalFormatter.format(dollar)
+            tripTotal = formattedArgs.toDouble()
+            val tripTotalToString = formattedArgs.toString()
+            trip_total_for_tip_text_view.text = "$$tripTotalToString"
+        } else {
+            if (pimPayAmount < 10) {
                 val formattedArgs = tripTotalDFUnderTen.format(pimPayAmount)
                 tripTotal = formattedArgs.toDouble()
                 val tripTotalToString = formattedArgs.toString()
@@ -218,29 +239,34 @@ class TripReviewFragment : ScopedFragment(), KodeinAware {
             }
         }
         val args = arguments?.getFloat("meterOwedPrice")?.toDouble()
-        if(args != null) {
+        if (args != null) {
             Log.i("TripReview", "The meterValue passed along was$args")
         }
     }
 
-    private fun checkIfPIMNeedsToTakePayment(enteredPimPayAmount: Double, pimPaidAmount: Double){
-        //We don't need to take a payment if the pimPayAmount is zero or pimPaidAmount is greater than zero
+    private fun checkIfPIMNeedsToTakePayment(enteredPimPayAmount: Double, enteredPimPaidAmount: Double) {
+        //We don't need to take a payment if the pimPayAmount is zero or enteredPimPaidAmount is greater than zero
         if (enteredPimPayAmount == 0.toDouble() ||
             enteredPimPayAmount == 00.00 ||
-            pimPaidAmount > 0.toDouble()){
+            enteredPimPaidAmount > 0.toDouble()
+        ) {
+            Log.i("Trip Review: Trip didn't need payment","Pim Pay amount: $enteredPimPayAmount, Pim paid Amount: $enteredPimPaidAmount")
             doesPimNeedToTakePayment = false
-            pimPayAmount = pimPaidAmount
+            pimPayAmount = enteredPimPaidAmount
             toEmailOrTextWithoutPayment()
         }
     }
-    private fun showLessThanDollarToast(){
-        Toast.makeText(context,
+
+    private fun showLessThanDollarToast() {
+        Toast.makeText(
+            context,
             "A card payment requires the trip to be over $1.00",
-            Toast.LENGTH_LONG).show()
+            Toast.LENGTH_LONG
+        ).show()
         debit_credit_btn.isEnabled = true
     }
 
-    private fun showPleaseWaitScreen(){
+    private fun showPleaseWaitScreen() {
         debit_credit_btn.visibility = View.INVISIBLE
         cash_btn.visibility = View.INVISIBLE
         credit_card_imageView.visibility = View.INVISIBLE
@@ -248,42 +274,46 @@ class TripReviewFragment : ScopedFragment(), KodeinAware {
         credit_textView.visibility = View.INVISIBLE
         cash_textView.visibility = View.INVISIBLE
         pleaseWaitScrollView.visibility = View.VISIBLE
-        if (progressBar3 != null){
+        if (progressBar3 != null) {
             progressBar3.animate()
         }
     }
 
-    private fun removePleaseWaitScreen(){
+    private fun removePleaseWaitScreen() {
         changeBackToRegularUI(debit_credit_btn)
         changeBackToRegularUI(cash_btn)
         changeBackToRegularUI(credit_card_imageView)
         changeBackToRegularUI(dollar_sign_imageView)
         changeBackToRegularUI(credit_textView)
         changeBackToRegularUI(cash_textView)
-        if (pleaseWaitScrollView != null){
+        if (pleaseWaitScrollView != null) {
             pleaseWaitScrollView.visibility = View.INVISIBLE
         }
-        if (progressBar3 != null){
+        if (progressBar3 != null) {
             progressBar3.visibility = View.GONE
             progressBar3.clearAnimation()
         }
     }
 
-    private fun updatePimStatus(){
-        PIMMutationHelper.updatePIMStatus(vehicleId,
+    private fun updatePimStatus() {
+        PIMMutationHelper.updatePIMStatus(
+            vehicleId,
             PIMStatusEnum.PAYMENT_SCREEN.status,
-            mAWSAppSyncClient!!)
+            mAWSAppSyncClient!!
+        )
     }
 
-    private fun playTripTotalAmount(messageToSpeak: String){
+    private fun playTripTotalAmount(messageToSpeak: String) {
         Log.i("TTS", "play Trip Total amount")
         textToSpeech?.setSpeechRate(0.8.toFloat())
-        textToSpeech!!.speak("Amount Owed $$messageToSpeak",
+        textToSpeech!!.speak(
+            "Amount Owed $$messageToSpeak",
             TextToSpeech.QUEUE_FLUSH,
-            null)
+            null
+        )
     }
 
-    private fun updateAWSWithCashButtonSelection(){
+    private fun updateAWSWithCashButtonSelection() {
         val coroutineTwo =
             launch(CoroutineName("PIM Status Enum type Co-routine") + Dispatchers.Default) {
                 PIMMutationHelper.updatePIMStatus(
@@ -305,23 +335,29 @@ class TripReviewFragment : ScopedFragment(), KodeinAware {
     }
 
 
-    private fun toEmailOrTextForSquareTransactionComplete(){
-        PIMMutationHelper.updatePIMStatus(vehicleId, PIMStatusEnum.SQUARE_PAYMENT_COMPLETE.status, mAWSAppSyncClient!!)
+    private fun toEmailOrTextForSquareTransactionComplete() {
+        PIMMutationHelper.updatePIMStatus(
+            vehicleId,
+            PIMStatusEnum.SQUARE_PAYMENT_COMPLETE.status,
+            mAWSAppSyncClient!!
+        )
         val tripTotalFloat = tripTotal.toFloat()
-        val actionComplete = TripReviewFragmentDirections.toEmailOrText(tripTotalFloat,"CARD").setTripTotal(tripTotalFloat)
+        val actionComplete = TripReviewFragmentDirections.toEmailOrText(tripTotalFloat, "CARD")
+            .setTripTotal(tripTotalFloat)
         val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
         navController.navigate(actionComplete)
     }
 
     private fun toTipScreen() {
         val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
-        if(navController.currentDestination?.id == currentFragmentId){
-            val action = TripReviewFragmentDirections.toTipScreen(tripTotal.toFloat(),0.toFloat()).setTipScreenTripTotal(tripTotal.toFloat())
+        if (navController.currentDestination?.id == currentFragmentId) {
+            val action = TripReviewFragmentDirections.toTipScreen(tripTotal.toFloat(), 0.toFloat())
+                .setTipScreenTripTotal(tripTotal.toFloat())
             navController.navigate(action)
         }
     }
 
-    private fun toEmailOrTextWithPayment(){
+    private fun toEmailOrTextWithPayment() {
         val action = TripReviewFragmentDirections.toEmailOrText(tripTotal.toFloat(), "CASH")
             .setTripTotal(tripTotal.toFloat())
         val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
@@ -329,7 +365,8 @@ class TripReviewFragment : ScopedFragment(), KodeinAware {
             navController.navigate(action)
         }
     }
-    private fun toEmailOrTextWithoutPayment(){
+
+    private fun toEmailOrTextWithoutPayment() {
         val action = TripReviewFragmentDirections.toEmailOrText(tripTotal.toFloat(), "NONE")
             .setTripTotal(tripTotal.toFloat())
         val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
@@ -350,10 +387,11 @@ class TripReviewFragment : ScopedFragment(), KodeinAware {
         }
     }
 
-    private fun backToLiveMeter(){
+    private fun backToLiveMeter() {
         SquareService().pressCancelButtons()
         val tripTotalFloat = tripTotal.toFloat()
-        val action = TripReviewFragmentDirections.backToLiveMeter(tripTotalFloat).setMeterTotal(tripTotalFloat)
+        val action = TripReviewFragmentDirections.backToLiveMeter(tripTotalFloat)
+            .setMeterTotal(tripTotalFloat)
         val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
         if (navController.currentDestination?.id == currentFragmentId) {
             navController.navigate(action)
@@ -361,12 +399,13 @@ class TripReviewFragment : ScopedFragment(), KodeinAware {
     }
 
 
-    private fun startRemoveWaitScreenTimer(){
-        removeWaitScreenTimer = object : CountDownTimer(30000, 1000){
+    private fun startRemoveWaitScreenTimer() {
+        removeWaitScreenTimer = object : CountDownTimer(30000, 1000) {
             //we will show this screen for 30 seconds just in case something makes square take a while to come up
             val audioManager = context?.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+
             override fun onTick(millisUntilFinished: Long) {
-                if(audioManager.isMicrophoneMute){
+                if (audioManager.isMicrophoneMute) {
                     removeWaitScreenTimer?.onFinish()
                 }
             }
@@ -378,42 +417,45 @@ class TripReviewFragment : ScopedFragment(), KodeinAware {
         }.start()
     }
 
-    private fun startInactivityTimer(){
-       inactiveScreenTimer = object: CountDownTimer(60000, 1000) {
+    private fun startInactivityTimer() {
+        inactiveScreenTimer = object : CountDownTimer(60000, 1000) {
             //1 min inactivity timer
             override fun onTick(millisUntilFinished: Long) {
                 val currentTripId = callbackViewModel.getTripId()
-                if(currentTripId != tripID){
+                if (currentTripId != tripID) {
                     // If the tripId changes while the timeout is going, it will finish the timer.
                     inactiveScreenTimer?.onFinish()
                 }
             }
 
             override fun onFinish() {
-                if (!resources.getBoolean(R.bool.isSquareBuildOn)){
-                        toInterActionComplete()
-                    }
+                if (!resources.getBoolean(R.bool.isSquareBuildOn)) {
+                    toInterActionComplete()
                 }
+            }
         }.start()
     }
-    private fun changeBackToRegularUI(view: View?){
-        if (view != null){
+
+    private fun changeBackToRegularUI(view: View?) {
+        if (view != null) {
             view.visibility = View.VISIBLE
         }
     }
-    private fun getPimPayAndPimPaidAmountQuery(tripId: String) = launch(Dispatchers.IO){
+
+    private fun getPimPayAndPimPaidAmountQuery(tripId: String) = launch(Dispatchers.IO) {
         mAWSAppSyncClient?.query(GetTripQuery.builder().tripId(tripId).build())
             ?.responseFetcher(AppSyncResponseFetchers.CACHE_AND_NETWORK)
             ?.enqueue(getTripQueryCallBack)
     }
-    private var getTripQueryCallBack = object: GraphQLCall.Callback<GetTripQuery.Data>(){
+
+    private var getTripQueryCallBack = object : GraphQLCall.Callback<GetTripQuery.Data>() {
         override fun onResponse(response: Response<GetTripQuery.Data>) {
             if (response.data()?.trip != null) {
                 val initialPimPayAmt = response.data()!!.trip.pimPayAmt()
                 val initialPimPaidAmount = response.data()!!.trip.pimPaidAmt()
-                if (initialPimPayAmt != null){
+                if (initialPimPayAmt != null) {
                     pimPayAmount = initialPimPayAmt
-                    if (initialPimPaidAmount != null){
+                    if (initialPimPaidAmount != null) {
                         pimPaidAmount = initialPimPaidAmount
                     }
                     launch(Dispatchers.Main) {
@@ -424,12 +466,13 @@ class TripReviewFragment : ScopedFragment(), KodeinAware {
                 }
             }
         }
+
         override fun onFailure(e: ApolloException) {
             Log.e("ERROR", e.toString())
         }
     }
 
-    private fun getTripId(vehicleId: String) = launch(Dispatchers.IO){
+    private fun getTripId(vehicleId: String) = launch(Dispatchers.IO) {
         if (mAWSAppSyncClient == null) {
             mAWSAppSyncClient = ClientFactory.getInstance(context!!)
         }
@@ -437,30 +480,34 @@ class TripReviewFragment : ScopedFragment(), KodeinAware {
             ?.responseFetcher(AppSyncResponseFetchers.CACHE_AND_NETWORK)
             ?.enqueue(vehicleIdCallBack)
     }
-    private var vehicleIdCallBack = object: GraphQLCall.Callback<GetStatusQuery.Data>(){
+
+    private var vehicleIdCallBack = object : GraphQLCall.Callback<GetStatusQuery.Data>() {
         override fun onResponse(response: Response<GetStatusQuery.Data>) {
             if (response.data() != null) {
                 if (response.data()!!.status.tripId() != null || response.data()!!.status.tripId() != "") {
                     val tripId = response.data()!!.status.tripId()
-                    if(tripId != null){
+                    if (tripId != null) {
                         tripID = tripId
                         launch(Dispatchers.IO) {
-                           getPimPayAndPimPaidAmountQuery(tripId)
+                            getPimPayAndPimPaidAmountQuery(tripId)
                         }
                     }
                 }
             }
         }
+
         override fun onFailure(e: ApolloException) {
             Log.e("ERROR", e.toString())
         }
     }
+
     override fun onPause() {
         super.onPause()
         inactiveScreenTimer?.cancel()
         callbackViewModel.getTripStatus().removeObservers(this)
         textToSpeech?.shutdown()
     }
+
     override fun onStop() {
         super.onStop()
         inactiveScreenTimer?.cancel()
@@ -469,10 +516,10 @@ class TripReviewFragment : ScopedFragment(), KodeinAware {
 
     override fun onResume() {
         super.onResume()
-        callbackViewModel.getTripStatus().observe(this, Observer {tripStatus ->
-            if(tripStatus == VehicleStatusEnum.TRIP_END.status||
-                tripStatus == VehicleStatusEnum.Trip_Closed.status)
-            {
+        callbackViewModel.getTripStatus().observe(this, Observer { tripStatus ->
+            if (tripStatus == VehicleStatusEnum.TRIP_END.status ||
+                tripStatus == VehicleStatusEnum.Trip_Closed.status
+            ) {
                 startInactivityTimer()
             }
         })
@@ -485,6 +532,9 @@ class TripReviewFragment : ScopedFragment(), KodeinAware {
         callbackViewModel.getMeterState().removeObservers(this)
         Log.i("Observer", "Meter state observer removed")
         callbackViewModel.getTripStatus().removeObservers(this)
-
+        callbackViewModel.getPimPaySubscriptionAmount().removeObservers(this)
+        if (textToSpeech != null) {
+            textToSpeech?.shutdown()
+        }
     }
 }
