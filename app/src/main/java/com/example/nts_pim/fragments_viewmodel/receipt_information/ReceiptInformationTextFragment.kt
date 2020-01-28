@@ -4,7 +4,6 @@ import android.content.Context
 import android.net.ConnectivityManager
 import android.os.Bundle
 import android.os.CountDownTimer
-
 import android.text.Editable
 import android.text.TextWatcher
 import android.util.Log
@@ -42,11 +41,11 @@ import java.io.IOException
 import java.lang.Error
 import android.widget.AdapterView
 import android.widget.AdapterView.OnItemClickListener
+import com.amazonaws.amplify.generated.graphql.SavePaymentDetailsMutation
 import com.amazonaws.amplify.generated.graphql.UpdateTripMutation
 import com.apollographql.apollo.GraphQLCall
 import com.apollographql.apollo.exception.ApolloException
-import com.example.nts_pim.data.repository.providers.ModelPreferences
-import com.example.nts_pim.utilities.mutation_helper.PIMMutationHelper
+import type.SavePaymentDetailsInput
 import type.UpdateTripInput
 import java.util.*
 
@@ -91,7 +90,6 @@ class ReceiptInformationTextFragment: ScopedFragment(), KodeinAware {
         mAWSAppSyncClient = ClientFactory.getInstance(context)
         val callBackFactory = InjectorUtiles.provideCallBackModelFactory()
         val keyboardFactory = InjectorUtiles.provideSettingKeyboardModelFactory()
-
 
         viewModel = ViewModelProviders.of(this, viewModelFactory)
             .get(EmailOrTextViewModel::class.java)
@@ -370,16 +368,16 @@ class ReceiptInformationTextFragment: ScopedFragment(), KodeinAware {
         country_code_editText.setOnTouchListener((View.OnTouchListener { v, event ->
             when(event?.action) {
                 MotionEvent.ACTION_DOWN -> {
-                    text_editText.performClick()
-                    countryListIsShowing = !countryListIsShowing
-                    when(countryListIsShowing){
-                        true -> listView.visibility = View.VISIBLE
-                        false -> listView.visibility = View.GONE
-                    }
+//                    text_editText.performClick()
+//                    countryListIsShowing = !countryListIsShowing
+//                    when(countryListIsShowing){
+//                        true -> listView.visibility = View.VISIBLE
+//                        false -> listView.visibility = View.GONE
+//                    }
                     true
                 }
                 MotionEvent.ACTION_UP -> {
-                    v.performClick()
+//                    v.performClick()
                     true
                 }
                 else -> {
@@ -471,10 +469,11 @@ class ReceiptInformationTextFragment: ScopedFragment(), KodeinAware {
             toThankYou()
         }
         send_text_btn_receipt.setOnClickListener {
-            launch {
-                updatePaymentDetailsApi().invokeOnCompletion {
-                    sendTextReceipt()
-                }
+            if(paymentType == "cash" ||
+                    paymentType == "CASH"){
+                updatePaymentDetails(transactionId, tripNumber, vehicleId,mAWSAppSyncClient!!, paymentType, tripId)
+            } else {
+                sendTextReceipt()
             }
         }
         back_btn_text_receipt.setOnClickListener {
@@ -553,10 +552,7 @@ class ReceiptInformationTextFragment: ScopedFragment(), KodeinAware {
         inactiveScreenTimer = object: CountDownTimer(60000, 1000) {
             // this is set to 1 min and will finish if a new trip is started.
             override fun onTick(millisUntilFinished: Long) {
-                val hasNewTripStarted = callBackViewModel.hasNewTripStarted().value
-                if(hasNewTripStarted!!){
-   //                 inactiveScreenTimer?.onFinish()
-                }
+
             }
             override fun onFinish() {
                 if (!resources.getBoolean(R.bool.isSquareBuildOn) &&
@@ -574,23 +570,16 @@ class ReceiptInformationTextFragment: ScopedFragment(), KodeinAware {
             if (countryCode != "1"){
                    internationalNumber = true
             }
-            if (internationalNumber){
+            if(internationalNumber){
                 //formatting of international numbers if it works.
 //                combinedNumber = countryCode + "." + phoneNumber
                 combinedNumber = countryCode + phoneNumber
             } else {
                 combinedNumber = countryCode + phoneNumber
             }
-            val trimmedPhoneNumber = combinedNumber.replace("-", "")
+            val trimmedPhoneNumber = combinedNumber.replace("-", "").trim()
             updateCustomerPhoneNumber(trimmedPhoneNumber)
             toConfirmation()
-    }
-    private fun updatePaymentDetailsApi() = launch(Dispatchers.IO) {
-        if(isOnline(context!!)){
-            PIMMutationHelper.updatePaymentDetails(transactionId, tripNumber, vehicleId, mAWSAppSyncClient!!, paymentType, tripId)
-        } else {
-            Log.i("Text Receipt", "Internet not connected, could not update payment details api")
-        }
     }
     private fun updateCustomerPhoneNumber(phoneNumber:String) = launch(Dispatchers.IO) {
         if(isOnline(context!!)){
@@ -598,7 +587,6 @@ class ReceiptInformationTextFragment: ScopedFragment(), KodeinAware {
         } else {
             Log.i("Text Receipt", "Internet not connect, could not update custPhone number on AWS")
         }
-
     }
     //Makes sure phone is correctly formatted.
     private fun getCountryWithName() = launch(Dispatchers.IO){
@@ -625,7 +613,7 @@ class ReceiptInformationTextFragment: ScopedFragment(), KodeinAware {
                                 if(listView != null){
                                     listView.adapter = adapter as CountryCodeAdapter
                                 } else {
-
+                                    Log.i("Text Receipt", "List View was null so List view not updated with phone numbers")
                                 }
                             } catch (e: Error){
                                 Log.i("Text Receipt", "Error: for getting international number list. Error:$e")
@@ -639,6 +627,28 @@ class ReceiptInformationTextFragment: ScopedFragment(), KodeinAware {
             }
         })
     }
+
+    private fun updatePaymentDetails(transactionId: String, tripNumber: Int, vehicleId: String, appSyncClient: AWSAppSyncClient, paymentMethod: String, tripId: String){
+        Log.i("Payment AWS", "Trying to send the following to Payment AWS. TransactionId: $transactionId, tripNumber: $tripNumber, vehicleId: $vehicleId, paymentMethod: $paymentMethod, tripID: $tripId")
+        val updatePaymentInput = SavePaymentDetailsInput.builder().paymentId(transactionId).tripNbr(tripNumber).vehicleId(vehicleId).paymentMethod(paymentMethod).tripId(tripId).build()
+
+        appSyncClient.mutate(SavePaymentDetailsMutation.builder().parameters(updatePaymentInput).build())?.enqueue(mutationCallbackPaymentDetails)
+    }
+    private val mutationCallbackPaymentDetails = object : GraphQLCall.Callback<SavePaymentDetailsMutation.Data>() {
+        override fun onResponse(response: com.apollographql.apollo.api.Response<SavePaymentDetailsMutation.Data>) {
+            if(!response.hasErrors()){
+               launch(Dispatchers.IO) {
+                   Log.i("Text Receipt", "Payment details have been updated successful. Step 1 Complete")
+                   sendTextReceipt()
+               }
+            }
+
+        }
+
+        override fun onFailure(e: ApolloException) {
+            Log.e("Text Receipt", "There was an issue updating payment api: $e")
+        }
+    }
     private fun updateCustomerPhoneNumber(vehicleId: String, custPhoneNumber: String, appSyncClient: AWSAppSyncClient, tripId: String){
         val updatePaymentTypeInput = UpdateTripInput.builder().vehicleId(vehicleId).tripId(tripId).custPhoneNbr(custPhoneNumber).build()
         appSyncClient.mutate(UpdateTripMutation.builder().parameters(updatePaymentTypeInput).build())
@@ -649,23 +659,21 @@ class ReceiptInformationTextFragment: ScopedFragment(), KodeinAware {
         override fun onResponse(response: com.apollographql.apollo.api.Response<UpdateTripMutation.Data>) {
             Log.i("Results", "Meter Table Updated ${response.data()}")
             val tripId = callBackViewModel.getTripId()
-            val paymentType = response.data()?.updateTrip()?.paymentType()
             val transactionId = callBackViewModel.getTransactionId()
 
             if(response.hasErrors()){
                 Log.i("Text Receipt", "Response from aws had errors so did not send text message")
                 return
             }
-            if(response.data() != null &&
-                    paymentType != null){
-                launch(Dispatchers.IO) {
+            if(!response.hasErrors()){
+                if(response.data() != null){
+                    launch(Dispatchers.IO) {
+                        Log.i("Text Receipt", "Updated custPhone number successfully. Step 2 Complete")
                         SmsHelper.sendSMS(tripId, paymentType, transactionId)
+                    }
                 }
-            }else{
-                Log.i("Text Receipt", "Payment type type or response data was null")
             }
-        }
-
+          }
         override fun onFailure(e: ApolloException) {
             Log.e("Error", "There was an issue updating the MeterTable: $e")
         }
@@ -698,5 +706,11 @@ class ReceiptInformationTextFragment: ScopedFragment(), KodeinAware {
         if (navController.currentDestination?.id == currentFragment){
             navController.navigate(action)
         }
+    }
+
+    override fun onDestroy() {
+        inactiveScreenTimer?.cancel()
+        Log.i("Text Receipt", "Inactivity timer canceled")
+        super.onDestroy()
     }
 }

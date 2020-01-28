@@ -23,7 +23,11 @@ interface TripRepository {
 
     fun vehicleIDSaved()
 
+    fun vehicleIdDoesNotExist()
+
     fun isThereAuthCode(): LiveData<Boolean>
+
+    fun recheckAuthCode()
 
     fun authCodeSuccess()
 
@@ -31,7 +35,11 @@ interface TripRepository {
 
     fun squareIsAuthorized()
 
+    fun squareIsNotAuthorized()
+
     fun doesCompanyNameExist(): LiveData<Boolean>
+
+    fun companyNameNoLongerExists()
 
     fun companyNameExists()
 

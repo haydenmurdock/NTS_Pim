@@ -104,10 +104,20 @@ class TripRepositoryImpl(
         doesVehicleIDExist = true
     }
 
+    override fun vehicleIdDoesNotExist() {
+        doesVehicleIDExist = false
+    }
+
+
     override fun isThereAuthCode() = isThereAuthCodeLiveData as LiveData<Boolean>
 
     override fun authCodeSuccess() {
         isThereAuthCode = true
+        isThereAuthCodeLiveData.value = isThereAuthCode
+    }
+
+    override fun recheckAuthCode(){
+        isThereAuthCode = false
         isThereAuthCodeLiveData.value = isThereAuthCode
     }
 
@@ -119,10 +129,21 @@ class TripRepositoryImpl(
         squareIsAuthorizedLiveData.value = squareIsAuthorized
     }
 
+    override fun squareIsNotAuthorized(){
+        squareIsAuthorized = false
+        squareIsAuthorizedLiveData.value = squareIsAuthorized
+    }
+
+
     override fun doesCompanyNameExist() = doesCompanyNameExistLiveData as LiveData<Boolean>
 
     override fun companyNameExists() {
         doesCompanyNameExist = true
+        doesCompanyNameExistLiveData.value = doesCompanyNameExist
+    }
+
+    override fun companyNameNoLongerExists(){
+        doesCompanyNameExist = false
         doesCompanyNameExistLiveData.value = doesCompanyNameExist
     }
 

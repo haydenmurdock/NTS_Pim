@@ -13,10 +13,13 @@ import com.apollographql.apollo.GraphQLCall
 import com.apollographql.apollo.api.Response
 import com.apollographql.apollo.exception.ApolloException
 import com.example.nts_pim.R
+import com.example.nts_pim.data.repository.model_objects.CurrentTrip
+import com.example.nts_pim.data.repository.providers.ModelPreferences
 import com.example.nts_pim.fragments_viewmodel.InjectorUtiles
 import com.example.nts_pim.fragments_viewmodel.base.ClientFactory
 import com.example.nts_pim.fragments_viewmodel.base.ScopedFragment
 import com.example.nts_pim.fragments_viewmodel.callback.CallBackViewModel
+import com.example.nts_pim.utilities.enums.SharedPrefEnum
 import kotlinx.android.synthetic.main.recent_trip_aws_screen.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -43,7 +46,10 @@ class RecentTripAWSFragment: ScopedFragment() {
         callBackViewModel = ViewModelProviders.of(this, factory)
             .get(CallBackViewModel::class.java)
         mAWSAppSyncClient = ClientFactory.getInstance(context)
-        tripId = callBackViewModel.getTripId()
+        tripId = ModelPreferences(context!!)
+            .getObject(
+                SharedPrefEnum.CURRENT_TRIP.key,
+                CurrentTrip::class.java)?.tripID ?: ""
         recentTrip_back_btn.isEnabled = false
         if(tripId_textView != null){
             tripId_textView.text = "Trip Id: $tripId"

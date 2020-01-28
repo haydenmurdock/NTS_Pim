@@ -359,6 +359,7 @@
             android:layout_height="wrap_content"
             android:layout_marginEnd="10dp"
             android:layout_marginBottom="16dp"
+            android:visibility="invisible"
             app:layout_constraintBottom_toBottomOf="@+id/country_code_editText"
             app:layout_constraintEnd_toEndOf="@+id/country_code_editText"
             app:srcCompat="@drawable/ic_country_code_down_arrow" />

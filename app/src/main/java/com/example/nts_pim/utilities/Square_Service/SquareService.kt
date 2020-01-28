@@ -14,7 +14,6 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.View.OnLayoutChangeListener
 import android.widget.ImageView
-import android.widget.LinearLayout
 import androidx.core.view.isVisible
 import com.bumptech.glide.Glide
 import com.example.nts_pim.R
@@ -25,6 +24,7 @@ import com.example.nts_pim.utilities.view_walker.ViewWalker
 import com.example.nts_pim.utilities.enums.MeterEnum
 import com.example.nts_pim.utilities.enums.SharedPrefEnum
 import com.example.nts_pim.utilities.sound_helper.SoundHelper
+import org.w3c.dom.Text
 import java.text.DecimalFormat
 
 
@@ -44,6 +44,7 @@ class SquareService : OnLayoutChangeListener,
     private var mSuccessPlayed = false
     private var userHasRemovedCard = false
     private var successfulSoundHasBeenPlayed = false
+    private var tag = "Square"
 
 
     private enum class SqUIState {
@@ -119,8 +120,8 @@ class SquareService : OnLayoutChangeListener,
             val meterState = VehicleTripArrayHolder.getMeterState().value
             if(meterState == MeterEnum.METER_ON.state){
                 Log.i("Square", "Meter was on internal. pressed cancel buttons")
-                pressCancelButtons()
-            }else if (meterState == MeterEnum.METER_TIME_OFF.state){
+                pressCancelButtonForSquareCheck()
+            }else {
                 stateMachine(viewGroup!!, squareActivity!!)
             }
         } else {
@@ -135,7 +136,7 @@ class SquareService : OnLayoutChangeListener,
         if (VehicleTripArrayHolder.getMeterState().value != null){
             val meterState = VehicleTripArrayHolder.getMeterState().value
             if(meterState == MeterEnum.METER_ON.state){
-                pressCancelButtons()
+                pressCancelButtonForSquareCheck()
             }
         } else {
             return
@@ -159,14 +160,12 @@ class SquareService : OnLayoutChangeListener,
                         viewGroup.removeView(linearLayout)
                         if (insertCardView != null){
                             viewGroup.removeView(insertCardView)
-                        }
-                        val meterState = VehicleTripArrayHolder.getMeterState().value
-                        if (meterState == MeterEnum.METER_ON.state){
-                            stopTimeout()
-                            pressCancelButtons()
-                        } else {
                             VehicleTripArrayHolder.squareTransactionHasStarted()
+                        } else {
+                            pressCancelButtonForSquareCheck()
                         }
+                    } else {
+                        pressCancelButtonForSquareCheck()
                     }
                 }
                 SqUIState.DECLINE_STATE -> {
@@ -188,46 +187,61 @@ class SquareService : OnLayoutChangeListener,
             // Entering newState
             when (newState) {
                 SqUIState.SWIPE_STATE -> {
+                    Log.i(tag, "Square is in swipe state")
+                    turnUpVolume()
+                    SoundHelper.turnOffSound(activity.applicationContext)
                     insertCardView = View.inflate(activity, R.layout.insert_card, viewGroup)
                     if (insertCardView != null){
                         val backButton = activity.findViewById<ImageView>(R.id.insert_card_back_btn)
                         if(backButton != null){
                             backButton.setOnClickListener{
                                 stopTimeout()
-                                pressCancelButtons()
+                                pressCancelButtonForSquareCheck()
                             }
                         }
                         val imageView = activity.findViewById<ImageView>(R.id.insert_card_imageView)
                         Glide.with(activity.applicationContext)
                             .load(R.raw.insert_swipe_card).into(imageView)
                     }
-                    val tripTotal = VehicleTripArrayHolder.getAmountForSquarDisplay().toDouble()
+                    val tripTotal = VehicleTripArrayHolder.getAmountForSquareDisplay().toDouble()
                     val decimalFormatter = DecimalFormat("####00.00")
-                    val tripTotalFormatted = decimalFormatter.format(tripTotal)
+                    val decimalFormatterUnderTen = DecimalFormat("###0.00")
+                    var tripTotalFormatted = ""
+                    if(tripTotal < 10){
+                        tripTotalFormatted = decimalFormatterUnderTen.format(tripTotal)
+                    } else{
+                        tripTotalFormatted = decimalFormatter.format(tripTotal)
+                    }
                     val tripTotalTextView = activity.findViewById<TextView>(R.id.insert_card_pay_price_textView)
                     if(tripTotalTextView != null){
                         tripTotalTextView.text = "$$tripTotalFormatted"
+                    } else {
+                        pressCancelButtonForSquareCheck()
                     }
-                    turnUpVolume()
                     stopTimeout()
                     startTimeout()
+
                 }
                 SqUIState.SUCCESSFUL_PAYMENT -> {
+                    Log.i(tag, "Square is in successful payment state")
                     turnUpVolume()
                     stopTimeout()
                 }
                SqUIState.DECLINE_STATE -> {
+                    Log.i(tag, "Square is in decline state")
                     stopTimeout()
                     startTimeout()
-                     playCardDeclinedSound()
+                    playCardDeclinedSound()
                 }
                 SqUIState.SIGNATURE_STATE -> {
+                    Log.i(tag, "Square is in signature state")
                     stopTimeout()
                     startTimeout()
                 }
                 SqUIState.REMOVE_CARD_STATE -> {
+                    Log.i(tag, "Square is remove card state")
                     removeCardView = View.inflate(activity,R.layout.activity_remove_card,viewGroup)
-                    if (insertCardView != null) {
+                    if (removeCardView != null) {
                         val imageView = activity.findViewById<ImageView>(R.id.remove_card_ImageView)
                         Glide.with(activity.applicationContext)
                             .load(R.raw.remove_card).into(imageView)
@@ -239,12 +253,18 @@ class SquareService : OnLayoutChangeListener,
                 }
 
                 SqUIState.NO_INTERNET_STATE -> {
+                    Log.i(tag, "Square is in no internet state")
+                    stopTimeout()
                     startTimeout()
                 }
 
                 SqUIState.RECEIPT_STATE -> {
+                    Log.i(tag, "Square is in Receipt State")
                     if (removeCardView == null){
                         removeCardView = View.inflate(activity,R.layout.activity_remove_card,viewGroup)
+                        val imageView = activity.findViewById<ImageView>(R.id.remove_card_ImageView)
+                        Glide.with(activity.applicationContext)
+                            .load(R.raw.remove_card).into(imageView)
                     }
                     pressNoReceipt()
                     userHasRemovedCard = true
@@ -254,27 +274,65 @@ class SquareService : OnLayoutChangeListener,
                     VehicleTripArrayHolder.squareTransactionChange()
                 }
                 SqUIState.INSERT_TRY_AGAIN_STATE -> {
+                    Log.i(tag, "Square is in Insert try again state")
+//                    insertCardView = View.inflate(activity, R.layout.insert_card, viewGroup)
+//                    if (insertCardView != null){
+//                        val backButton = activity.findViewById<ImageView>(R.id.insert_card_back_btn)
+//                        if(backButton != null){
+//                            backButton.setOnClickListener{
+//                                stopTimeout()
+//                                pressCancelButtonForSquareCheck()
+//                            }
+//                        }
+//                        val imageView = activity.findViewById<ImageView>(R.id.insert_card_imageView)
+//                        Glide.with(activity.applicationContext)
+//                            .load(R.raw.insert_swipe_card).into(imageView)
+//                    }
+//                    val tripTotal = VehicleTripArrayHolder.getAmountForSquareDisplay().toDouble()
+//                    val decimalFormatter = DecimalFormat("####00.00")
+//                    val decimalFormatterUnderTen = DecimalFormat("###0.00")
+//                    var tripTotalFormatted = ""
+//                    if(tripTotal < 10){
+//                        tripTotalFormatted = decimalFormatterUnderTen.format(tripTotal)
+//                    } else{
+//                        tripTotalFormatted = decimalFormatter.format(tripTotal)
+//                    }
+//                    val tripTotalTextView = activity.findViewById<TextView>(R.id.insert_card_pay_price_textView)
+//                    val insertCardTextView = activity.findViewById<TextView>(R.id.insert_card_message_textView)
+//                    insertCardTextView.text = "Please Try Again"
+//                    if(tripTotalTextView != null){
+//                        tripTotalTextView.text = "$$tripTotalFormatted"
+//                    } else {
+//                        pressCancelButtonForSquareCheck()
+//                    }
                     turnUpVolume()
                     playCardDeclinedSound()
                     stopTimeout()
                     startTimeout()
                 }
                 SqUIState.CHIP_ERROR_STATE -> {
+                    Log.i(tag, "Square is in Chip Error State")
                     turnUpVolume()
                     playCardDeclinedSound()
                     stopTimeout()
                     startTimeout()
                 }
                 SqUIState.PAYMENT_CANCELED_STATE -> {
+                    Log.i(tag, "Square is in Payment Canceled State")
                     turnUpVolume()
                     stopTimeout()
                     startTimeout()
                 }
                 SqUIState.AUTHORIZING -> {
+                    Log.i(tag, "Square is in Authorized State")
+                    stopTimeout()
+                    startTimeout()
                 }
                 SqUIState.INIT_STATE ->{
                 }
                 SqUIState.OTHER_STATE -> {
+                    stopTimeout()
+                    startTimeout()
                 }
             }
             state = newState
@@ -285,13 +343,11 @@ class SquareService : OnLayoutChangeListener,
         timeout = object : CountDownTimer(30000, 1000) {
             //We are running for 30 seconds
             override fun onTick(millisUntilFinished: Long) {
-              if (state == SqUIState.OTHER_STATE) {
-                  timeout?.cancel()
-                }
+
             }
             override fun onFinish() {
                 pressCancelButtons()
-//                VehicleTripArrayHolder.squareHasTimedOut()
+
             }
         }.start()
     }
@@ -401,23 +457,28 @@ class SquareService : OnLayoutChangeListener,
         val cancelButton5 = getButton(squareActivity!!, com.squareup.sdk.reader.api.R.id.cancel_button, "cancelButton5")
 
         if(cancelButton5 != null) {
-            stopTimeout()
             cancelButton5.performClick()
-        } else if (cancelButton4 != null){
-            stopTimeout()
-            cancelButton4?.performClick()
-        } else {
-            if (cancelButton1 != null)
-                stopTimeout()
-                cancelButton1?.performClick()
-            if (cancelButton2 != null)
-                stopRemoveCardTimer()
-                cancelButton2?.performClick()
-            if (cancelButton3 != null)
-                stopTimeout()
-                cancelButton3?.performClick()
+            VehicleTripArrayHolder.squareHasTimedOut()
         }
+        if (cancelButton4 != null) {
+            cancelButton4.performClick()
+            VehicleTripArrayHolder.squareHasTimedOut()
+        }
+
+        if(cancelButton1 != null) {
+        cancelButton1.performClick()
+        VehicleTripArrayHolder.squareHasTimedOut()
+        }
+        if(cancelButton2 != null) {
+            cancelButton2.performClick()
+            VehicleTripArrayHolder.squareHasTimedOut()
+        }
+    if (cancelButton3 != null) {
+        cancelButton3.performClick()
+        VehicleTripArrayHolder.squareHasTimedOut()
+         }
     }
+
 
     private fun pressCancelButtonForSquareCheck() {
         val cancelButton1 =
@@ -515,10 +576,8 @@ class SquareService : OnLayoutChangeListener,
         } else if (testResourceText(view, com.squareup.sdk.reader.api.R.id.please_sign_here, "Please Sign Here")) {
             return SqUIState.SIGNATURE_STATE
         } else if (testResourceText(view, com.squareup.sdk.reader.api.R.id.buyer_actionbar_call_to_action, "Please remove card.")) {
-            println("Remove card state added")
             return SqUIState.REMOVE_CARD_STATE
         }else if (testResourceText(view, com.squareup.sdk.reader.api.R.id.buyer_actionbar_call_to_action, "How do you want to receive your digital receipts?")) {
-            println("Square receipt state added")
             return SqUIState.RECEIPT_STATE
         } else if(testResourceText(view, com.squareup.sdk.reader.api.R.id.glyph_title, "Approved")){
             return SqUIState.SUCCESSFUL_PAYMENT

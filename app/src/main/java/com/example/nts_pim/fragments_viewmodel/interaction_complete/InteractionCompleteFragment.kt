@@ -2,6 +2,7 @@ package com.example.nts_pim.fragments_viewmodel.interaction_complete
 
 import android.os.Bundle
 import android.os.CountDownTimer
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -19,6 +20,7 @@ import com.example.nts_pim.data.repository.model_objects.CurrentTrip
 import com.example.nts_pim.data.repository.providers.ModelPreferences
 import com.example.nts_pim.fragments_viewmodel.base.ClientFactory
 import com.example.nts_pim.fragments_viewmodel.base.ScopedFragment
+import com.example.nts_pim.utilities.driver_receipt.DriverReceiptHelper
 import com.example.nts_pim.utilities.enums.SharedPrefEnum
 import com.example.nts_pim.utilities.enums.VehicleStatusEnum
 import com.example.nts_pim.utilities.mutation_helper.PIMMutationHelper
@@ -36,11 +38,16 @@ class InteractionCompleteFragment : ScopedFragment(), KodeinAware {
     private var tripId = ""
     private var tripNumber = 0
     private var transactionId = ""
+    private var transactionType = ""
     private var mAWSAppSyncClient: AWSAppSyncClient? = null
     private lateinit var callbackViewModel: CallBackViewModel
     private lateinit var viewModel: InteractionCompleteViewModel
     private val restartAppTimer = object: CountDownTimer(10000, 1000) {
         override fun onTick(millisUntilFinished: Long) {
+            if(thank_you_textView == null){
+                Log.i("InteractionComplete", "Timer was stopped")
+                cancel()
+            }
         }
         override fun onFinish() {
             callbackViewModel.clearAllTripValues()
@@ -54,7 +61,6 @@ class InteractionCompleteFragment : ScopedFragment(), KodeinAware {
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        //This is a test!!
         super.onViewCreated(view, savedInstanceState)
         mAWSAppSyncClient = ClientFactory.getInstance(context)
         val factory = InjectorUtiles.provideCallBackModelFactory()
@@ -63,10 +69,15 @@ class InteractionCompleteFragment : ScopedFragment(), KodeinAware {
         tripId = callbackViewModel.getTripId()
         vehicleId = viewModel.getVehicleID()
         tripNumber = callbackViewModel.getTripNumber()
-
+        transactionId = callbackViewModel.getTransactionId()
+        transactionType = VehicleTripArrayHolder.paymentTypeSelected
+        if(transactionId == ""){
+            transactionId = UUID.randomUUID().toString()
+        }
+        sendDriverReceipt()
+        runEndTripMutation()
         thank_you_textView.isVisible = false
         checkIfTransactionIsComplete()
-        runEndTripMutation()
         thank_you_textView.isVisible = true
         setInternalCurrentTripStatus()
         changeEndTripInternalBool()
@@ -75,14 +86,12 @@ class InteractionCompleteFragment : ScopedFragment(), KodeinAware {
     }
 
     private fun updatePaymentDetailsAPI() = launch(Dispatchers.IO){
-        val internalSetTransactionId = callbackViewModel.getTransactionId()
-        if(internalSetTransactionId == ""){
             // An empty string means that transaction Id has not been from a square payment so they hit cash and did not send a receipt so we need to update
-            // that a payment was made
-            transactionId = UUID.randomUUID().toString()
-            PIMMutationHelper.updatePaymentDetails(transactionId,tripNumber,vehicleId,mAWSAppSyncClient!!, "cash", tripId)
+            PIMMutationHelper.updatePaymentDetails(transactionId,tripNumber,vehicleId,mAWSAppSyncClient!!, transactionType, tripId)
         }
 
+    private fun sendDriverReceipt() = launch(Dispatchers.IO){
+        DriverReceiptHelper.sendReceipt(tripId,transactionType, transactionId)
     }
 
     private fun changeEndTripInternalBool(){
@@ -116,13 +125,8 @@ class InteractionCompleteFragment : ScopedFragment(), KodeinAware {
         ModelPreferences(context!!).putObject(SharedPrefEnum.CURRENT_TRIP.key, currentTrip)
     }
 
-    override fun onPause() {
-        super.onPause()
-        callbackViewModel.clearAllTripValues()
-    }
-
     override fun onDestroy() {
+        restartAppTimer.cancel()
         super.onDestroy()
-        callbackViewModel.clearAllTripValues()
     }
 }

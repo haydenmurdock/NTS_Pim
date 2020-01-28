@@ -117,13 +117,15 @@ class CheckVehicleInfoFragment: ScopedFragment(), KodeinAware {
             companyName
         )
         ModelPreferences(context!!).putObject(SharedPrefEnum.VEHICLE_SETTINGS.key, vehicleSettings)
-        Log.i(LogEnums.PIM_SETTING.tag, "Vehicle Settings Saved: cab Number: $cabNumber company Name: $companyName")
+        Log.i("Check Vehicle Info", "Vehicle Settings Saved: cab Number: $cabNumber company Name: $companyName")
     }
 
     override fun onDestroy() {
         super.onDestroy()
         viewModel.doesCompanyNameExist().removeObservers(this)
-        progressBar.clearAnimation()
+        if(progressBar != null){
+            progressBar.clearAnimation()
+        }
     }
 
     override fun onPause() {

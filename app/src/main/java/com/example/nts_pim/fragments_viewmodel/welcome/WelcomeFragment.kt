@@ -20,15 +20,16 @@ import android.widget.Toast
 import androidx.core.view.isVisible
 import androidx.lifecycle.ViewModelProviders
 import androidx.navigation.Navigation
-import com.amazonaws.amplify.generated.graphql.GetTripQuery
+import com.amazonaws.amplify.generated.graphql.UpdatePimStatusMutation
 import com.amazonaws.mobileconnectors.appsync.AWSAppSyncClient
-import com.amazonaws.mobileconnectors.appsync.fetcher.AppSyncResponseFetchers
 import com.apollographql.apollo.GraphQLCall
 import com.apollographql.apollo.api.Response
 import com.apollographql.apollo.exception.ApolloException
+import com.example.nts_pim.BuildConfig
 import com.example.nts_pim.R
 import com.example.nts_pim.data.repository.TripDetails
 import com.example.nts_pim.data.repository.VehicleTripArrayHolder
+import com.example.nts_pim.data.repository.model_objects.AppVersion
 import com.example.nts_pim.data.repository.model_objects.CurrentTrip
 import com.example.nts_pim.data.repository.providers.ModelPreferences
 import com.example.nts_pim.fragments_viewmodel.InjectorUtiles
@@ -39,8 +40,8 @@ import com.example.nts_pim.fragments_viewmodel.vehicle_settings.setting_keyboard
 import com.example.nts_pim.utilities.enums.MeterEnum
 import com.example.nts_pim.utilities.enums.PIMStatusEnum
 import com.example.nts_pim.utilities.enums.SharedPrefEnum
+import com.example.nts_pim.utilities.enums.VehicleStatusEnum
 import com.example.nts_pim.utilities.keyboards.PhoneKeyboard
-import com.example.nts_pim.utilities.mutation_helper.PIMMutationHelper
 import com.example.nts_pim.utilities.power_cycle.PowerAccessibilityService
 import com.example.nts_pim.utilities.sound_helper.SoundHelper
 import com.example.nts_pim.utilities.view_helper.ViewHelper
@@ -50,10 +51,12 @@ import com.squareup.sdk.reader.checkout.CurrencyCode
 import com.squareup.sdk.reader.checkout.Money
 import kotlinx.android.synthetic.main.welcome_screen.*
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import org.kodein.di.KodeinAware
 import org.kodein.di.android.x.closestKodein
 import org.kodein.di.generic.instance
+import type.UpdatePimStatusInput
 import java.time.LocalDateTime
 import java.util.*
 import kotlin.concurrent.timerTask
@@ -74,12 +77,13 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
     private var cabNumber = ""
     private var buttonCount = 0
     private var isPasswordEntered = false
-    private var meterState = ""
     private val password = "1234"
     private val fullBrightness = 255
     private val dimBrightness = 10
     private var isOnActiveTrip = false
+    private var lastTrip:Pair<Boolean?, String> = Pair(false, "")
     private val currentFragmentId = R.id.welcome_fragment
+    private var pimIsReadyToTakeTrip = false
 
     private val batteryCheckTimer = object : CountDownTimer(1800000, 1000) {
         //Every 30 minutes  we are doing a battery check.
@@ -103,14 +107,27 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
             }
         }
     }
-
+    private val restartAppTimer = object: CountDownTimer(30000, 1000){
+        override fun onTick(millisUntilFinished: Long) {
+            val seconds = millisUntilFinished/1000
+            showToastMessage("Restarting:  $seconds", 1000)
+        }
+        override fun onFinish() {
+            val action = "com.claren.tablet_control.reboot"
+            val p = "com.claren.tablet_control"
+            val intent = Intent()
+            intent.action = action
+            intent.`package` = p
+            intent.addFlags(Intent.FLAG_INCLUDE_STOPPED_PACKAGES)
+            activity?.sendBroadcast(intent)
+        }
+    }
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
         return inflater.inflate(R.layout.welcome_screen, container, false)
     }
-
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         mAWSAppSyncClient = ClientFactory.getInstance(context)
@@ -132,22 +149,20 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
         setUpKeyboard()
         checkSquareMode()
         ViewHelper.checkForNotifications(activity!!)
-        if (checkToSeeIfOnTrip().first != null) {
-            isOnActiveTrip = checkToSeeIfOnTrip().first!!
-        }
-        if(checkToSeeIfOnTrip().second != null){
-            //This should be the last Trip Id that was saved internally.
-            tripId = checkToSeeIfOnTrip().second
+        lastTrip = checkToSeeIfOnTrip()
+        if (lastTrip.first != null) {
+            isOnActiveTrip = lastTrip.first!!
+            tripId = lastTrip.second
         }
         viewModel.isSetupComplete()
         vehicleId = viewModel.getVehicleId()
         updateVehicleInfoUI()
-        updatePimStatus()
         batteryCheckTimer.start()
         dimScreenTimer.start()
         if (!VehicleTripArrayHolder.squareHasBeenSetUp) {
             startSquareFlow()
         }
+        checkAppBuildVersion()
         //This is encase you have to restart the app during a trip or a trip
         keyboardViewModel.isPhoneKeyboardUp().observe(this, androidx.lifecycle.Observer {
             if (it) {
@@ -187,6 +202,7 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
                 if (buttonCount % 2 == 0) {
                     open_vehicle_settings_button.animate().alpha(0.0f).setDuration(500)
                     ViewHelper.viewSlideDown(password_scroll_view, 500)
+                    password_editText.setText("")
                     keyboardViewModel.bothKeyboardsDown()
                 } else {
                     open_vehicle_settings_button.animate().alpha(1.00f).setDuration(500)
@@ -196,34 +212,27 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
             }
         }
         tripIsCurrentlyRunning(isOnActiveTrip)
-//        callBackViewModel.getMeterState().observe(this, Observer{
-//            val meterState = it
-//            if (meterState == MeterEnum.METER_ON.state) {
-////                Log.i( changeScreenBrightness(fullBrightness)
-////               "Welcome Screen","Meter State subscription changed to ON and Leaving Welcome Screen")
-////                checkAnimation()
-//            }
-//        })
-
         callBackViewModel.hasNewTripStarted().observe(this, androidx.lifecycle.Observer { tripStarted ->
             if(tripStarted){
                 val newTripId = callBackViewModel.getTripId()
-                if(newTripId != tripId) {
-                    // if the new trip Id doesn't equal the one that was saved internal a new trip has started.
-                    Log.i("Welcome Screen", "newTrip has started")
-                    changeScreenBrightness(fullBrightness)
-                    checkAnimation()
+                if(newTripId != lastTrip.second &&
+                    newTripId != "") {
+                            Log.i("Welcome Screen", "new trip has started for trip Id: $newTripId")
+                        }
                 }
-//                checkAnimation()
-//                val tripId = callBackViewModel.getTripId()
-//                Toast.makeText(context!!, " new Trip has started so I'm querying meter state", Toast.LENGTH_LONG).show()
-//                getMeterStatusQuery(tripId)
+            })
+        callBackViewModel.getTripStatus().observe(this, androidx.lifecycle.Observer {
+            if (it == VehicleStatusEnum.TRIP_PICKED_UP.status){
+                changeScreenBrightness(fullBrightness)
+                checkAnimation()
             }
         })
 
         welcome_screen_next_screen_button.setOnClickListener {
             // toLiveMeterScreen()
         }
+
+
     }
     private fun checkAnimation() {
         val animationIsOn = resources.getBoolean(R.bool.animationIsOn)
@@ -247,10 +256,11 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
         if (!isTripActive){
             return
         }
-        val tripIdMeterQuery = checkToSeeIfOnTrip().second
+        val tripId = lastTrip.second
         changeScreenBrightness(fullBrightness)
-        Toast.makeText(context!!, "Trip is active and Query Trip Id ",Toast.LENGTH_LONG).show()
-        getMeterStatusQueryForTripSync(tripIdMeterQuery)
+        Log.i("Welcome Screen", "Trip Active: $isActive Trip Id: $tripId")
+        toLiveMeterScreen()
+
     }
     private fun updateUI(companyName: String) {
         thank_you_text_view.text = "Thank you for choosing $companyName"
@@ -300,13 +310,13 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
                 || status == BatteryManager.BATTERY_STATUS_FULL
         val batteryPowerPermission = callBackViewModel.batteryPowerStatePermission()
         if (!isCharging && !batteryPowerPermission) {
-            //We change the audio to avoid a static sound when turing off
-            val audioManager = context!!.getSystemService(Context.AUDIO_SERVICE) as AudioManager
-            audioManager.mode = (AudioManager.MODE_NORMAL)
-            val intent = Intent(activity, PowerAccessibilityService::class.java)
-            intent.action = "com.claren.tablet_control.shutdown"
+            val action =  "com.claren.tablet_control.shutdown"
+            val p = "com.claren.tablet_control"
+            val intent = Intent()
+            intent.setAction(action)
+            intent.`package` = p
             intent.addFlags(Intent.FLAG_INCLUDE_STOPPED_PACKAGES)
-            activity!!.startService(intent)
+            activity?.sendBroadcast(intent)
         }
 
         if (isCharging) {
@@ -346,72 +356,44 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
 
     private fun checkToSeeIfOnTrip(): Pair<Boolean?, String>{
         if (!resources.getBoolean(R.bool.isDevModeOn)){
-            val currentTrip = ModelPreferences(context!!)
+            val lastTrip = ModelPreferences(context!!)
                 .getObject(SharedPrefEnum.CURRENT_TRIP.key,
                     CurrentTrip::class.java)
-            if (currentTrip == null){
+            Log.i("Welcome Screen", "Last Trip Id${lastTrip?.tripID}. Is trip active: ${lastTrip?.isActive}, Last Trip MeterState: ${lastTrip?.lastMeterState}")
+            if (lastTrip == null){
                 return Pair(false, "")
             }
-            if (currentTrip.isActive!!){
+            if (lastTrip.isActive!!){
                     callBackViewModel.reSyncTrip()
-                    return Pair(currentTrip.isActive, currentTrip.tripID)
+                    return Pair(lastTrip.isActive, lastTrip.tripID)
             }
-            if(!currentTrip.isActive!!){
-                return Pair(false, currentTrip.tripID)
+            if(!lastTrip.isActive!!){
+                return Pair(false, lastTrip.tripID)
             }
-            Log.i("Welcome Screen", "Last Trip Id${currentTrip.tripID}. Is trip active: ${currentTrip.isActive}")
+
         }
         return Pair(false, "")
     }
 
-    private fun getMeterStatusQueryForTripSync(tripId: String) {
-        if (mAWSAppSyncClient == null) {
-            mAWSAppSyncClient = ClientFactory.getInstance(context)
-        }
-        mAWSAppSyncClient?.query(GetTripQuery.builder().tripId(tripId).build())
-            ?.responseFetcher(AppSyncResponseFetchers.CACHE_AND_NETWORK)
-            ?.enqueue(getTripMeterQueryCallBack)
+    private fun updatePIMStatus(vehicleId: String, pimStatusUpdate: String, appSyncClient: AWSAppSyncClient) = launch(Dispatchers.IO){
+        val updatePimStatusInput = UpdatePimStatusInput.builder()?.vehicleId(vehicleId)?.pimStatus(pimStatusUpdate)?.build()
+
+        appSyncClient.mutate(UpdatePimStatusMutation.builder().parameters(updatePimStatusInput).build())
+            ?.enqueue(mutationCallbackOnPIM)
+        // We are setting the internal PIM Status
+        VehicleTripArrayHolder.updateInternalPIMStatus(pimStatusUpdate)
     }
 
-    private var getTripMeterQueryCallBack = object : GraphQLCall.Callback<GetTripQuery.Data>() {
-        override fun onResponse(response: Response<GetTripQuery.Data>) {
-            if (response.data() != null) {
-               meterState = response.data()?.trip?.meterState().toString()
-                Log.i("Welcome Screen","Meter State Query is for trip Sync worked and Leaving Welcome Screen")
-                if (meterState == MeterEnum.METER_ON.state || meterState == MeterEnum.METER_TIME_OFF.state) {
-                    toLiveMeterScreen()
-                }
+    private val mutationCallbackOnPIM = object : GraphQLCall.Callback<UpdatePimStatusMutation.Data>() {
+        override fun onResponse(response: Response<UpdatePimStatusMutation.Data>) {
+            Log.i("Results", "PIM Status Updated ${response.data()}")
+            if(!response.hasErrors()){
+                pimIsReadyToTakeTrip = true
             }
         }
-        override fun onFailure(e: ApolloException) {
-            println("Failure")
-        }
-    }
 
-    private fun getMeterStatusQuery(tripId: String) {
-        if (mAWSAppSyncClient == null) {
-            mAWSAppSyncClient = ClientFactory.getInstance(context)
-        }
-        mAWSAppSyncClient?.query(GetTripQuery.builder().tripId(tripId).build())
-            ?.responseFetcher(AppSyncResponseFetchers.CACHE_AND_NETWORK)
-            ?.enqueue(getTripMeterQuery)
-    }
-
-    private var getTripMeterQuery = object : GraphQLCall.Callback<GetTripQuery.Data>() {
-        override fun onResponse(response: Response<GetTripQuery.Data>) {
-            if (response.data() != null) {
-               val meterState = response.data()?.trip?.meterState().toString()
-                if (meterState == MeterEnum.METER_ON.state) {
-                    Log.i("Welcome Screen","Meter State Query is ON and Leaving Welcome Screen")
-                    launch(Dispatchers.Main.immediate) {
-                        changeScreenBrightness(fullBrightness)
-                        checkAnimation()
-                    }
-                }
-            }
-        }
         override fun onFailure(e: ApolloException) {
-            println("Failure")
+            Log.e("Error", "There was an issue updating the pimStatus: $e")
         }
     }
 
@@ -424,6 +406,7 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
             parametersBuilder.skipReceipt(false)
             val checkoutManager = ReaderSdk.checkoutManager()
             checkoutManager.startCheckoutActivity(context!!, parametersBuilder.build())
+
     }
 
     private fun updateVehicleInfoUI(){
@@ -435,14 +418,28 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
         }
     }
 
-    private fun updatePimStatus(){
-        PIMMutationHelper.updatePIMStatus(
-            vehicleId,
-            PIMStatusEnum.START_SCREEN.status,
-            mAWSAppSyncClient!!
-        )
+    private fun checkAppBuildVersion(){
+        val lastSavedAppVersion = ModelPreferences(context!!.applicationContext).getObject(SharedPrefEnum.BUILD_VERSION.key,
+            AppVersion::class.java)
+        val currentBuildVersion = BuildConfig.VERSION_NAME
+        if(lastSavedAppVersion == null){
+            saveAppBuildVersion()
+        } else if (lastSavedAppVersion.version != currentBuildVersion){
+            Log.i("VERSION", "Build Version is different. Updating ${lastSavedAppVersion.version} to $currentBuildVersion")
+            lastSavedAppVersion.version = currentBuildVersion
+            ModelPreferences(context!!.applicationContext).putObject(SharedPrefEnum.BUILD_VERSION.key, lastSavedAppVersion)
+            // if we wanted to restart PIM this is where we would write that code.
+            restartAppTimer.start()
+        } else {
+            Log.i("VERSION", "Build Version is the same as last saved amount")
+        }
     }
-
+    private fun saveAppBuildVersion(){
+        val buildName = BuildConfig.VERSION_NAME
+        val appVersion = AppVersion(buildName)
+        ModelPreferences(context!!.applicationContext).putObject(SharedPrefEnum.BUILD_VERSION.key,appVersion)
+        Log.i("VERSION", "Current app version is $buildName. It has been saved to Model Preferences")
+    }
     // Navigation
     private fun toLiveMeterScreen() = launch(Dispatchers.Main.immediate) {
         val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
@@ -476,6 +473,9 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
         super.onResume()
         ViewHelper.hideSystemUI(activity!!)
         vehicleId = viewModel.getVehicleId()
+        updatePIMStatus(vehicleId,
+            PIMStatusEnum.START_SCREEN.status,
+            mAWSAppSyncClient!!)
         batteryCheckTimer.cancel()
         batteryCheckTimer.start()
         dimScreenTimer.cancel()
@@ -484,7 +484,8 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
 
     override fun onDestroy() {
         super.onDestroy()
-     //   callBackViewModel.getMeterState().removeObservers(this)
+        callBackViewModel.getTripStatus().removeObservers(this)
         callBackViewModel.hasNewTripStarted().removeObservers(this)
+        restartAppTimer.cancel()
     }
 }

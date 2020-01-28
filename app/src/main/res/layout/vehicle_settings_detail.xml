@@ -148,4 +148,28 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/last_trip_id_textView" />
 
+    <Button
+            android:id="@+id/vehicle_settings_unpair_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Unpair"
+            app:layout_constraintEnd_toStartOf="@+id/battery_btn"
+            app:layout_constraintHorizontal_bias="1.0"
+            app:layout_constraintStart_toEndOf="@+id/settings_detail_textView"
+            app:layout_constraintTop_toTopOf="@+id/battery_btn" />
+
+    <TextView
+            android:id="@+id/power_status_textView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:fontFamily="@font/source_sans_pro"
+            android:text="power_status"
+            android:textColor="@color/whiteTextColor"
+            android:textSize="24sp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.02"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/build_version_textView" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>

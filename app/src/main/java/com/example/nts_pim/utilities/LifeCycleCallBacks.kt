@@ -4,6 +4,7 @@ import android.app.Activity
 import android.app.Application
 import android.os.Bundle
 import com.example.nts_pim.utilities.Square_Service.SquareService
+import com.example.nts_pim.utilities.sound_helper.SoundHelper
 
 class LifeCycleCallBacks : Application.ActivityLifecycleCallbacks {
 
@@ -14,7 +15,7 @@ class LifeCycleCallBacks : Application.ActivityLifecycleCallbacks {
     override fun onActivityDestroyed(activity: Activity?) {
        val name = activity?.localClassName
         if (name == "com.squareup.ui.main.ApiMainActivity"){
-
+                SoundHelper.turnOnSound(activity.applicationContext)
         }
 
     }

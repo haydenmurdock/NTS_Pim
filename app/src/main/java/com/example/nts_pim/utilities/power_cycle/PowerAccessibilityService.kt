@@ -1,6 +1,7 @@
 package com.example.nts_pim.utilities.power_cycle
 
 import android.accessibilityservice.AccessibilityService
+import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -10,6 +11,9 @@ import android.util.Log
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import android.widget.Toast
+import androidx.core.app.NotificationCompat
+import com.example.nts_pim.R
+
 
 class PowerAccessibilityService: AccessibilityService() {
 
@@ -18,6 +22,8 @@ class PowerAccessibilityService: AccessibilityService() {
     private var samsungVolumneWarning = false
     private var bluetoothPairing = false
     private val clarenTablet = "com.claren.tablet_control.shutdown"
+//    private var serviceLooper: Looper? = null
+//    private var serviceHandler: ServiceHandler? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val rtn = super.onStartCommand(intent, flags, startId)
@@ -44,6 +50,24 @@ class PowerAccessibilityService: AccessibilityService() {
     }
     override fun onInterrupt() {
 
+    }
+
+    override fun onServiceConnected() {
+        Log.i("Power", "The power accessiblity service has been connected")
+        super.onServiceConnected()
+
+    }
+
+    override fun onCreate() {
+        val pi = PendingIntent.getActivity(this, 0, Intent(), 0)
+        val notification = NotificationCompat.Builder(this, "powerservicechannel")
+            .setContentTitle("NTS PIM")
+            .setContentText("Power service is running")
+            .setSmallIcon(R.drawable.ic_wrench)
+            .setContentIntent(pi)
+            .build()
+
+        startForeground(1, notification)
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {

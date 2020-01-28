@@ -55,12 +55,12 @@ class CallBackViewModel(
 
     internal fun batteryPowerStatePermission() = vehicleTripArrayHolder.getBatteryPowerPermission()
 
-    internal fun createCurrentTrip(isTripActive: Boolean, tripId: String, context: Context){
-        vehicleTripArrayHolder.createCurrentTrip(isTripActive,tripId,context)
+    internal fun createCurrentTrip(isTripActive: Boolean, tripId: String, lastMeterState: String, context: Context){
+        vehicleTripArrayHolder.createCurrentTrip(isTripActive,tripId,lastMeterState,context)
     }
 
-    internal fun updateCurrentTrip(isTripActive: Boolean?, tripId: String, context: Context){
-        vehicleTripArrayHolder.updateCurrentTrip(isTripActive,tripId,context)
+    internal fun updateCurrentTrip(isTripActive: Boolean?, tripId: String,lastMeterState: String, context: Context){
+        vehicleTripArrayHolder.updateCurrentTrip(isTripActive,tripId,lastMeterState,context)
     }
 
     internal fun getReSyncStatus() = vehicleTripArrayHolder.getReSyncStatus()
@@ -111,6 +111,6 @@ class CallBackViewModel(
         VehicleTripArrayHolder.setAmountForSquareDisplay(double)
     }
 
-    fun getAmountForSquarDisplay()  = VehicleTripArrayHolder.getAmountForSquarDisplay()
+    fun getAmountForSquarDisplay()  = VehicleTripArrayHolder.getAmountForSquareDisplay()
 
 }

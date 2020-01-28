@@ -18,6 +18,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModelProviders
 import androidx.navigation.Navigation
+import com.amazonaws.amplify.generated.graphql.SavePaymentDetailsMutation
 import com.amazonaws.amplify.generated.graphql.UpdateTripMutation
 import com.amazonaws.mobileconnectors.appsync.AWSAppSyncClient
 import com.apollographql.apollo.GraphQLCall
@@ -37,6 +38,7 @@ import kotlinx.coroutines.launch
 import org.kodein.di.KodeinAware
 import org.kodein.di.android.x.closestKodein
 import org.kodein.di.generic.instance
+import type.SavePaymentDetailsInput
 import type.UpdateTripInput
 import java.util.*
 
@@ -90,6 +92,11 @@ class ReceiptInformationEmailFragment: ScopedFragment(), KodeinAware {
                 if (s.contains("@") && s.contains(".")) {
                     enableSendEmailBtn()
                 }
+                if(inactiveScreenTimer != null){
+                    inactiveScreenTimer?.cancel()
+                    Log.i("Email Receipt", "inactivity time was canceled and started")
+                    inactiveScreenTimer?.start()
+                }
             }
         })
         getTripDetails()
@@ -99,7 +106,6 @@ class ReceiptInformationEmailFragment: ScopedFragment(), KodeinAware {
             closeSoftKeyboard()
             }
         }
-
         view.setOnTouchListener(object : View.OnTouchListener {
             override fun onTouch(v: View?, event: MotionEvent?): Boolean {
                 when (event?.action) {
@@ -145,12 +151,14 @@ class ReceiptInformationEmailFragment: ScopedFragment(), KodeinAware {
         send_email_btn_receipt.setOnClickListener {
             callBackViewModel.setTransactionId(transactionId)
             email = email_editText.text.toString().trim()
-            launch {
-                updatePaymentDetailsApi().invokeOnCompletion {
-                    sendEmail(email)
-                }
+            if(paymentType == "CASH" ||
+                    paymentType == "cash"){
+                updatePaymentDetails(transactionId, tripNumber,vehicleId, mAWSAppSyncClient!!,paymentType,tripId)
+            } else {
+                sendEmail(email)
             }
         }
+
         back_btn_email_receipt.setOnClickListener {
             backToEmailOrText()
         }
@@ -201,15 +209,17 @@ class ReceiptInformationEmailFragment: ScopedFragment(), KodeinAware {
         val networkInfo = connectivityManager.activeNetworkInfo
         return networkInfo != null && networkInfo.isConnected
     }
-    private fun updatePaymentDetailsApi() = launch(Dispatchers.IO) {
-        PIMMutationHelper.updatePaymentDetails(transactionId, tripNumber, vehicleId, mAWSAppSyncClient!!,paymentType, tripId)
-    }
+//    private fun updatePaymentDetailsApi() = launch(Dispatchers.IO) {
+//        PIMMutationHelper.updatePaymentDetails(transactionId, tripNumber, vehicleId, mAWSAppSyncClient!!,paymentType, tripId)
+//    }
     private fun sendEmail(email: String){
         if(vehicleId.isNotEmpty()&&
             tripId.isNotEmpty()&&
             paymentType.isNotEmpty()&&
             tripTotal > 0){
             updateCustomerEmail(email)
+        } else {
+            Log.i("Email Receipt", "Did not update cust email because one of the following was empty or zero. vehicle ID: $vehicleId, tripId: $tripId paymentType: $paymentType, tripTotal: $tripTotal")
         }
         TripDetails.receiptSentTo = email
         toConfirmation()
@@ -231,19 +241,21 @@ class ReceiptInformationEmailFragment: ScopedFragment(), KodeinAware {
 
     private val mutationCustomerEmailCallback = object : GraphQLCall.Callback<UpdateTripMutation.Data>() {
         override fun onResponse(response: Response<UpdateTripMutation.Data>) {
-            Log.i("Results", "Meter Table Updated ${response.data()}")
+            Log.i("Email Receipt", "Meter Table Updated Customer Email}")
             val tripId = callBackViewModel.getTripId()
-            val paymentType = response.data()?.updateTrip()?.paymentType()
             val transactionId = callBackViewModel.getTransactionId()
 
-            if(response.hasErrors()){
+            if (response.hasErrors()) {
                 Log.i("Email Receipt", "Response from Aws had errors so did not send email")
                 return
             }
-            if(response.data() != null &&
-                 paymentType != null){
-                launch(Dispatchers.IO){
-                    EmailHelper.sendEmail(tripId, paymentType, transactionId)
+            if (!response.hasErrors()) {
+                if (response.data() != null)
+                 {
+                    launch(Dispatchers.IO) {
+                        Log.i("Email Receipt", "update custEmail successfully. Step 2: complete")
+                        EmailHelper.sendEmail(tripId, paymentType, transactionId)
+                    }
                 }
             }
         }
@@ -252,14 +264,42 @@ class ReceiptInformationEmailFragment: ScopedFragment(), KodeinAware {
         }
     }
 
+    private fun updatePaymentDetails(transactionId: String, tripNumber: Int, vehicleId: String, appSyncClient: AWSAppSyncClient, paymentMethod: String, tripId: String){
+        Log.i("Email Receipts", "Trying to send the following to Payment AWS. TransactionId: $transactionId, tripNumber: $tripNumber, vehicleId: $vehicleId, paymentMethod: $paymentMethod, tripID: $tripId")
+        val updatePaymentInput = SavePaymentDetailsInput.builder().paymentId(transactionId).tripNbr(tripNumber).vehicleId(vehicleId).paymentMethod(paymentMethod).tripId(tripId).build()
+
+        appSyncClient.mutate(SavePaymentDetailsMutation.builder().parameters(updatePaymentInput).build())
+        ?.enqueue(mutationCallbackPaymentDetails)
+    }
+    private val mutationCallbackPaymentDetails = object : GraphQLCall.Callback<SavePaymentDetailsMutation.Data>() {
+        override fun onResponse(response: Response<SavePaymentDetailsMutation.Data>) {
+
+            if(!response.hasErrors()){
+                Log.i(
+                    "Email Receipts",
+                    "update payment Api successfully. Step 1: Complete")
+                launch(Dispatchers.IO) {
+                    sendEmail(email)
+                }
+            }else{
+                Log.i(
+                    "Email Receipts",
+                    "update payment Api Unsuccessfully. Step 1: Incomplete")
+            }
+
+
+        }
+
+        override fun onFailure(e: ApolloException) {
+            Log.e("Email Receipts", "There was an issue updating payment api: $e")
+        }
+    }
+
     private fun startInactivityTimeout(){
         inactiveScreenTimer = object: CountDownTimer(60000, 1000) {
             // this is set to 1 min and will finish if a new trip is started.
             override fun onTick(millisUntilFinished: Long) {
-                val hasNewTripStarted = callBackViewModel.hasNewTripStarted().value
-                if(hasNewTripStarted!!){
-//                    inactiveScreenTimer?.onFinish()
-                }
+
             }
             override fun onFinish() {
                 if (!resources.getBoolean(R.bool.isSquareBuildOn) &&
@@ -304,7 +344,9 @@ class ReceiptInformationEmailFragment: ScopedFragment(), KodeinAware {
 
 
     override fun onDestroy() {
-        super.onDestroy()
+        inactiveScreenTimer?.cancel()
+        Log.i("Email Receipt", "inactivity timer was canceled")
         closeSoftKeyboard()
+        super.onDestroy()
     }
 }

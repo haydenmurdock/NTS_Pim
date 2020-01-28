@@ -40,8 +40,6 @@ object VehicleTripArrayHolder {
 
     var squareHasBeenSetUp = false
 
-    var internetIsConnected = false
-
     private var newTripHasStarted = false
     private var newTripHasStartedMutableLiveData = MutableLiveData<Boolean>()
 
@@ -64,8 +62,7 @@ object VehicleTripArrayHolder {
 
     private var amountForSquareDisplay = "0"
 
-
-
+   var paymentTypeSelected = "none"
 
 
 // Adds the status from the main activity app sync subscription. It goes to a live data array to be watched for changes. There is only 1 status in the array at all times.
@@ -92,8 +89,10 @@ object VehicleTripArrayHolder {
     // need to add last part of where the meter change status is added for the first time.
     fun addMeterState(meterStateAWS: String) {
     if (meterStatePIM != meterStateAWS){
+        Log.i("Results","METER STATE has changed from $meterStatePIM to $meterStateAWS")
         meterStatePIM = meterStateAWS
         meterStatePIMMutableLiveData.value = meterStatePIM
+
     }
 }
 // Returns the meter status as Live Data
@@ -130,11 +129,12 @@ object VehicleTripArrayHolder {
 
 
     fun addTripId(enteredTripId: String, context: Context){
-        if(enteredTripId != tripId){
+        if(enteredTripId != tripId &&
+                enteredTripId != ""){
             tripId = enteredTripId
             newTripHasStarted = true
             newTripHasStartedMutableLiveData.value = newTripHasStarted
-            createCurrentTrip(true, enteredTripId, context)
+            createCurrentTrip(true, enteredTripId, "none", context)
             tripEnded = false
             tripEndedMutableLiveData.value = tripEnded
             newTripHasStarted = false
@@ -175,6 +175,9 @@ object VehicleTripArrayHolder {
         isSquareTransactionComplete = false
         tripNumber = 0
         transactionID = ""
+        meterStatePIM = "off"
+        meterStatePIMMutableLiveData.value = meterStatePIM
+        paymentTypeSelected = "none"
         Log.i("Results", "All Trip Information has been cleared")
     }
 
@@ -184,8 +187,8 @@ object VehicleTripArrayHolder {
 
     fun getInternalPIMStatus() = internalPIMStatus
 
-    fun createCurrentTrip(isTripActive: Boolean, tripID: String, context: Context){
-        val currentTrip = CurrentTrip(isTripActive, tripID)
+    fun createCurrentTrip(isTripActive: Boolean, tripID: String, lastMeterState: String, context: Context){
+        val currentTrip = CurrentTrip(isTripActive, tripID, lastMeterState)
         val oldTrip = ModelPreferences(context).getObject(SharedPrefEnum.CURRENT_TRIP.key, CurrentTrip::class.java)
         if (oldTrip == null){
             // This is the first trip so it is current
@@ -200,19 +203,19 @@ object VehicleTripArrayHolder {
         }
     }
 
-    fun updateCurrentTrip(isTripActive: Boolean?, tripID: String, context: Context){
+    fun updateCurrentTrip(isTripActive: Boolean?, tripID: String, lastMeterState: String, context: Context){
         val  oldCurrentTrip =  ModelPreferences(context).getObject(
             SharedPrefEnum.CURRENT_TRIP.key,
             CurrentTrip::class.java
         )
         if (isTripActive != null){
-            val  newCurrentTrip = CurrentTrip(isTripActive, tripID)
+            val  newCurrentTrip = CurrentTrip(isTripActive, tripID, lastMeterState)
             if (newCurrentTrip != oldCurrentTrip){
                 ModelPreferences(context).putObject(SharedPrefEnum.CURRENT_TRIP.key, newCurrentTrip)
             }
         } else{
             if (oldCurrentTrip != null){
-                val newCurrentTrip = CurrentTrip(oldCurrentTrip.isActive, tripID)
+                val newCurrentTrip = CurrentTrip(oldCurrentTrip.isActive, tripID, lastMeterState)
                 if (newCurrentTrip != oldCurrentTrip){
                     ModelPreferences(context).putObject(SharedPrefEnum.CURRENT_TRIP.key, newCurrentTrip)
                 }
@@ -281,7 +284,7 @@ object VehicleTripArrayHolder {
         amountForSquareDisplay = double.toString()
     }
 
-    fun getAmountForSquarDisplay()  = amountForSquareDisplay
+    fun getAmountForSquareDisplay()  = amountForSquareDisplay
 
 }
 

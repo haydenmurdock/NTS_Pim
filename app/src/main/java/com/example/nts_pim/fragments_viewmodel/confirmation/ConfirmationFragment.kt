@@ -3,6 +3,7 @@ package com.example.nts_pim.fragments_viewmodel.confirmation
 import android.os.Bundle
 import android.os.CountDownTimer
 import android.text.method.PasswordTransformationMethod
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -42,6 +43,9 @@ class ConfirmationFragment: ScopedFragment(), KodeinAware {
     private val currentFragmentId = R.id.confirmationFragment
     private val restartAppTimer = object: CountDownTimer(10000, 1000) {
         override fun onTick(millisUntilFinished: Long) {
+            if(confirmation_type_textView == null){
+                cancel()
+            }
         }
         override fun onFinish() {
             callbackViewModel.clearAllTripValues()
@@ -140,7 +144,9 @@ class ConfirmationFragment: ScopedFragment(), KodeinAware {
         } else {
             if (tipAmount > 0){
                 val formattedTripTotal = decimalFormatter.format(tripTotal)
-                tripTotal_textView.text = "$$formattedTripTotal(($originalTripTotal+ $tipAmount)"
+                val formattedOriginalTipAmount = decimalFormatter.format(originalTripTotal)
+                val formattedTipAmount = decimalFormatter.format(tipAmount)
+                tripTotal_textView.text = "$$formattedTripTotal($formattedOriginalTipAmount + $formattedTipAmount)"
             } else {
                 val formattedTripTotal = decimalFormatter.format(tripTotal)
                 tripTotal_textView.text = "$$formattedTripTotal"
@@ -213,11 +219,8 @@ class ConfirmationFragment: ScopedFragment(), KodeinAware {
 
     override fun onDestroy() {
         super.onDestroy()
+        restartAppTimer.cancel()
         callbackViewModel.clearAllTripValues()
     }
 
-    override fun onPause() {
-        super.onPause()
-        callbackViewModel.clearAllTripValues()
-    }
 }

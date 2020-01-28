@@ -7,6 +7,7 @@ import android.os.Bundle
 import android.os.CountDownTimer
 import android.util.Log
 import android.view.LayoutInflater
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import androidx.core.view.isVisible
@@ -38,6 +39,8 @@ import com.example.nts_pim.data.repository.providers.ModelPreferences
 import com.example.nts_pim.utilities.enums.*
 import com.example.nts_pim.utilities.mutation_helper.PIMMutationHelper
 import com.example.nts_pim.utilities.sound_helper.SoundHelper
+import com.example.nts_pim.utilities.swipe_touch_listner.OnSwipeTouchListener
+import kotlinx.android.synthetic.main.recent_trip_aws_screen.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
@@ -60,7 +63,7 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
     private var audioManager: AudioManager? = null
     private var requestMeterStateValueTimer:CountDownTimer? = null
     private val visible = View.VISIBLE
-
+    private var currentTrip:CurrentTrip? = null
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -79,26 +82,33 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
         callbackViewModel =
             ViewModelProviders.of(this, callbackFactory).get(CallBackViewModel::class.java)
         vehicleId = viewModel.getVehicleID()
-        tripID = callbackViewModel.getTripId()
          audioManager = context?.getSystemService(Context.AUDIO_SERVICE) as AudioManager
-        val currentTrip = ModelPreferences(context!!)
+         currentTrip = ModelPreferences(context!!)
             .getObject(SharedPrefEnum.CURRENT_TRIP.key, CurrentTrip::class.java)
+        tripID = callbackViewModel.getTripId()
+        if(tripID == "" &&
+                currentTrip != null){
+
+            tripID = currentTrip!!.tripID
+            getMeterOwedQuery(tripID)
+        }
         updateTickerUI()
         checkCurrentTrip()
         updatePIMStatus()
         updateMeterFromTripReview()
-        if(tripID != ""){
-            Log.i("Live Meter", "There was Trip id so queried MeterValue")
-            getMeterOwedQuery(tripID)
-        } else if(currentTrip != null && currentTrip.tripID != ""){
-            Log.i("Live Meter", "There was no Trip id but was on a current trip so it was queried")
-            getMeterOwedQuery(currentTrip.tripID)
-        } else {
-            Log.i("Live Meter", "There no Trip id so queried tripId")
-            getTripId(vehicleId)
+        meterValue = "2.85"
+        meterState = callbackViewModel.getMeterState().value.toString()
+        if(meterState == "off"){
+            callbackViewModel.addMeterState("ON")
         }
         live_meter_next_screen_button.setOnClickListener {
 //            toTripReview()
+        }
+        if(meterState ==MeterEnum.METER_TIME_OFF.state){
+            if(audioManager!!.isMicrophoneMute){
+                playTimeOffSound()
+            }
+            toTripReview()
         }
 
         callbackViewModel.getMeterOwed().observe(this@LiveMeterFragment, Observer {meterOwedValue ->
@@ -106,8 +116,9 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
                 val df = decimalFormatter.format(meterOwedValue)
                 meterValue = df.toString()
                 tickerView.setText(meterValue, true)
-                if(!live_meter_dollar_sign.isVisible &&
-                    live_meter_dollar_sign != null){
+                if (!live_meter_dollar_sign.isVisible &&
+                    live_meter_dollar_sign != null
+                ) {
                     live_meter_dollar_sign.visibility = visible
                 }
                 if (!tickerView.isVisible && tickerView != null) {
@@ -142,10 +153,13 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
     }
     private fun toTripReview()=launch(Dispatchers.Main.immediate) {
         if(meterValue != ""){
-            val priceAsFloat = meterValue.toFloat()
-            val action = LiveMeterFragmentDirections.toTripReviewFragment(priceAsFloat).setMeterOwedPrice(priceAsFloat)
             val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
             if(navController.currentDestination?.id == R.id.live_meter_fragment){
+                if(currentTrip != null){
+                    callbackViewModel.updateCurrentTrip(true, tripID, "TIME_OFF", context!!)
+                }
+                val priceAsFloat = meterValue.toFloat()
+                val action = LiveMeterFragmentDirections.toTripReviewFragment(priceAsFloat).setMeterOwedPrice(priceAsFloat)
                 navController.navigate(action)
             }
         }
@@ -212,16 +226,13 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
 
     private var getTripQueryCallBack = object: GraphQLCall.Callback<GetTripQuery.Data>(){
         override fun onResponse(response: Response<GetTripQuery.Data>) {
-            if (response.data()?.trip != null) {
+            if (response.data()?.trip != null && this@LiveMeterFragment.isAdded) {
                 val startingMeterValue = response.data()!!.trip.owedPrice()
                 val startingMeterState = response.data()!!.trip.meterState()
 
                 if (startingMeterState != null) {
                         Log.i("Live Meter", "Meter is $meterState and is now $startingMeterState from meter query")
                     meterState = startingMeterState
-                    launch(Dispatchers.Main) {
-                            callbackViewModel.addMeterState(startingMeterState)
-                    }
                 }
 
                 if(startingMeterValue != null){
@@ -247,86 +258,24 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
                     toTripReview()
                 }
                 initialMeterValueSet = true
-                reSyncComplete() }
-
-                }
+                reSyncComplete()
+            }
+        }
         override fun onFailure(e: ApolloException) {
                 Log.e("ERROR", e.toString())
             }
         }
-    private fun getMeterValueQuery(tripId: String) = launch(Dispatchers.IO){
-        if (mAWSAppSyncClient == null) {
-            mAWSAppSyncClient = ClientFactory.getInstance(context!!)
-        }
-        mAWSAppSyncClient?.query(GetTripQuery.builder().tripId(tripId).build())
-            ?.responseFetcher(AppSyncResponseFetchers.CACHE_AND_NETWORK)
-            ?.enqueue(getMeterStateQueryCallBack)
-    }
-
-    private var getMeterStateQueryCallBack = object: GraphQLCall.Callback<GetTripQuery.Data>(){
-        override fun onResponse(response: Response<GetTripQuery.Data>) {
-            if (response.data()?.trip != null) {
-                val queriedMeterState = response.data()!!.trip.meterState()
-
-                if (queriedMeterState != null) {
-                    if (meterState != queriedMeterState){
-                        meterState = queriedMeterState
-                    }
-                    launch(Dispatchers.Main) {
-                        Log.i("Live Meter", "The queriedMeterState: $queriedMeterState was added to callbackViewModel")
-                        callbackViewModel.addMeterState(queriedMeterState)
-                    }
-                }
-            }
-        }
-        override fun onFailure(e: ApolloException) {
-            Log.e("ERROR", e.toString())
-        }
-    }
-
-    private fun getTripId(vehicleId: String) = launch(Dispatchers.IO){
-        if (mAWSAppSyncClient == null) {
-            mAWSAppSyncClient = ClientFactory.getInstance(context!!)
-        }
-        mAWSAppSyncClient?.query(GetStatusQuery.builder().vehicleId(vehicleId).build())
-            ?.responseFetcher(AppSyncResponseFetchers.CACHE_AND_NETWORK)
-            ?.enqueue(tripIdCallBack)
-    }
-    private var tripIdCallBack = object: GraphQLCall.Callback<GetStatusQuery.Data>(){
-        override fun onResponse(response: Response<GetStatusQuery.Data>) {
-            if (response.data() != null) {
-                if (response.data()!!.status.tripId() != null || response.data()!!.status.tripId() != "") {
-                    val tripId = response.data()!!.status.tripId()
-                    if(tripId != null){
-                        tripID = tripId
-                        launch(Dispatchers.Main.immediate) {
-                            callbackViewModel.addTripId(tripId,context!!)
-                        }
-                        launch(Dispatchers.IO) {
-                            getMeterOwedQuery(tripID)
-                        }
-                    }
-                }
-            }
-         }
-        override fun onFailure(e: ApolloException) {
-            Log.e("ERROR", e.toString())
-        }
-    }
 
     private fun reSyncComplete() = launch(Dispatchers.Main.immediate) {
-        callbackViewModel.updateCurrentTrip(true, tripID, context!!)
+        callbackViewModel.updateCurrentTrip(true, tripID, meterState, context!!)
         callbackViewModel.reSyncComplete()
     }
-    private fun requestMeterStateValueTimer(){
+    private fun requestMeterStateValue(){
           requestMeterStateValueTimer = object:CountDownTimer(10000,1000){
             override fun onTick(millisUntilFinished: Long) {
             }
             override fun onFinish() {
-                if(tripID != ""){
-                    getMeterValueQuery(tripID)
-                }
-                requestMeterStateValueTimer()
+
             }
         }.start()
     }
@@ -342,7 +291,7 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
 
     override fun onResume() {
         super.onResume()
-        requestMeterStateValueTimer()
+        requestMeterStateValue()
     }
 
     override fun onPause() {
@@ -351,12 +300,12 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
     }
 
     override fun onDestroy() {
-        super.onDestroy()
         callbackViewModel.getMeterOwed().removeObservers(this)
         callbackViewModel.getMeterState().removeObservers(this)
         callbackViewModel.getTripStatus().removeObservers(this)
         requestMeterStateValueTimer?.cancel()
         Log.i("Observer", "Live Meter observer removed.")
+        super.onDestroy()
     }
 }
 

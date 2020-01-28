@@ -10,4 +10,12 @@ class VehicleSettingsDetailViewModel (
 
     internal fun getVehicleID() = tripRepository.getVehicleID()
 
+    internal fun squareIsNotAuthorized() = tripRepository.squareIsNotAuthorized()
+
+    internal fun vehicleIdDoesNotExist() = tripRepository.vehicleIdDoesNotExist()
+
+    internal fun recheckAuth() = tripRepository.recheckAuthCode()
+
+    internal fun companyNameNoLongerExists() = tripRepository.companyNameNoLongerExists()
+
 }

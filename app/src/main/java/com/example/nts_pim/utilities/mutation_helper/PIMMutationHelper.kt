@@ -67,6 +67,7 @@ object PIMMutationHelper {
     }
 
     fun updatePaymentDetails(transactionId: String, tripNumber: Int, vehicleId: String, appSyncClient: AWSAppSyncClient, paymentMethod: String, tripId: String){
+        Log.i("Payment AWS", "Trying to send the following to Payment AWS. TransactionId: $transactionId, tripNumber: $tripNumber, vehicleId: $vehicleId, paymentMethod: $paymentMethod, tripID: $tripId")
         val updatePaymentInput = SavePaymentDetailsInput.builder().paymentId(transactionId).tripNbr(tripNumber).vehicleId(vehicleId).paymentMethod(paymentMethod).tripId(tripId).build()
 
         appSyncClient.mutate(SavePaymentDetailsMutation.builder().parameters(updatePaymentInput).build())?.enqueue(
@@ -74,7 +75,7 @@ object PIMMutationHelper {
     }
     private val mutationCallbackPaymentDetails = object : GraphQLCall.Callback<SavePaymentDetailsMutation.Data>() {
         override fun onResponse(response: Response<SavePaymentDetailsMutation.Data>) {
-            Log.i("Payment AWS", "payment details have been updated to ${response.data()}")
+            Log.i("Payment AWS", "payment details have been updated to ${response.data()?.savePaymentDetails().toString()}")
 
         }
 

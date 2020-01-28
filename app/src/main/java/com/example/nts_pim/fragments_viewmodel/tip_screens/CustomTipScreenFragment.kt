@@ -14,6 +14,9 @@ import com.example.nts_pim.fragments_viewmodel.base.ScopedFragment
 import kotlinx.android.synthetic.main.custom_tip_screen.*
 import java.text.DecimalFormat
 import android.os.Handler
+import androidx.lifecycle.ViewModelProviders
+import com.example.nts_pim.fragments_viewmodel.InjectorUtiles
+import com.example.nts_pim.fragments_viewmodel.callback.CallBackViewModel
 import java.util.*
 
 
@@ -24,11 +27,13 @@ class CustomTipScreenFragment : ScopedFragment() {
     private var customTipViewAmountString = ""
     private var tripTotal = 00.00
     private var tripTotalWithTip = 00.00
+    private var tipPicked: Float = 0.0.toFloat()
     private val tripTotalDF = DecimalFormat("####00.00")
     private val tripTotalDFUnderTen = DecimalFormat("###0.00")
     private var timer: Timer? = null
     private lateinit var handler: Handler
     private var cursorTimer: CountDownTimer? = null
+    private lateinit var callbackViewModel: CallBackViewModel
 
     val screenTimeOutTimer = object: CountDownTimer(45000, 1000) {
         // this is set to 45 seconds.
@@ -47,7 +52,9 @@ class CustomTipScreenFragment : ScopedFragment() {
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-
+        val factory = InjectorUtiles.provideCallBackModelFactory()
+        callbackViewModel = ViewModelProviders.of(this, factory)
+            .get(CallBackViewModel::class.java)
         updateUI()
         screenTimeOutTimer.start()
         view.setOnTouchListener(object : View.OnTouchListener {
@@ -433,7 +440,7 @@ class CustomTipScreenFragment : ScopedFragment() {
             custom_tip_screen_editText.setText(customTipViewAmountString)
         }
         custom_tip_screen_minus_btn.setOnClickListener {
-           if (customTipViewAmountString != "0") {
+           if (customTipViewAmountString != "0" && customTipViewAmountString != "") {
                val tipInt = customTipViewAmountString.toInt()
                val newValue = tipInt - 1
                customTipViewAmountString = newValue.toString()
@@ -445,15 +452,15 @@ class CustomTipScreenFragment : ScopedFragment() {
         }
         custom_tip_screen_done_btn.setOnClickListener {
             val  tipAmountInEditText = custom_tip_screen_editText.text.toString()
-            val tipPicked: Float
             if (customTipViewPercentageMode){
-                tipPicked = tipAmountInEditText.toFloat() * 0.01.toFloat()
+                tipPicked = tipPicked
             } else {
                 tipPicked = tipAmountInEditText.toFloat()
             }
-
+            callbackViewModel.setTipAmount(tipPicked.toDouble())
             val action = CustomTipScreenFragmentDirections.backToTipScreenFragment(tripTotal.toFloat(), tipPicked)
                 .setTipScreenTripTotal(tripTotal.toFloat())
+                .setPercentagePickedForCustomTip(customTipViewPercentageMode)
                 .setDoneButtonTouchedOnCustomTipScreen(true)
                 .setTipChosenFromCustomTipScreen(tipPicked)
             val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
@@ -529,16 +536,17 @@ class CustomTipScreenFragment : ScopedFragment() {
             //this is for tip amount set for percentage
             val percentage = customTipViewAmountString.toDouble() * 00.01
             val tripTotalPercent = tripTotal * percentage
-            val triptotalPercentFormatted = formatString(tripTotalPercent)
+            val tripTotalPercentFormatted = formatString(tripTotalPercent)
+            tipPicked = tripTotalPercentFormatted.toFloat()
             val tripTotalFormatted = formatString(tripTotal)
-            tripTotalWithTip = tripTotal + tripTotalPercent
+            tripTotalWithTip = tripTotalFormatted.toDouble() + tripTotalPercentFormatted.toDouble()
             if (tripTotalWithTip < 10) {
                 val formattedTripTotal = tripTotalDFUnderTen.format(tripTotalWithTip)
                 custom_tip_screen_trip_total_textView.text = "$$formattedTripTotal"
                 if(!custom_tip_screen_tip_breakdown_textView2.isVisible){
                     custom_tip_screen_tip_breakdown_textView2.visibility = View.VISIBLE
                 }
-                custom_tip_screen_tip_breakdown_textView2.text = (" ($$tripTotalFormatted + $$triptotalPercentFormatted tip)")
+                custom_tip_screen_tip_breakdown_textView2.text = (" ($$tripTotalFormatted + $$tripTotalPercentFormatted tip)")
             } else {
                 val formattedTripTotal = tripTotalDF.format(tripTotalWithTip)
                 custom_tip_screen_trip_total_textView.text = "$$formattedTripTotal"
@@ -546,12 +554,12 @@ class CustomTipScreenFragment : ScopedFragment() {
                     if(!custom_tip_screen_tip_breakdown_textView.isVisible){
                         custom_tip_screen_tip_breakdown_textView.visibility = View.VISIBLE
                     }
-                    custom_tip_screen_tip_breakdown_textView.text = (" ($$tripTotalFormatted + $$triptotalPercentFormatted tip)")
+                    custom_tip_screen_tip_breakdown_textView.text = (" ($$tripTotalFormatted + $$tripTotalPercentFormatted tip)")
                 } else {
                     if(!custom_tip_screen_tip_breakdown_textView2.isVisible){
                         custom_tip_screen_tip_breakdown_textView2.visibility = View.VISIBLE
                     }
-                    custom_tip_screen_tip_breakdown_textView2.text = (" ($$tripTotalFormatted + $$triptotalPercentFormatted tip)")
+                    custom_tip_screen_tip_breakdown_textView2.text = (" ($$tripTotalFormatted + $$tripTotalPercentFormatted tip)")
                 }
             }
         } else if (!customTipViewPercentageMode && customTipViewAmountString != "") {

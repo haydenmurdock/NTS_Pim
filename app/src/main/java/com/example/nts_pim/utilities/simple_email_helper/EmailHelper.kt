@@ -40,14 +40,19 @@ object EmailHelper {
             .build()
         try {
            client.newCall(request).execute().use {response ->
-                if (!response.isSuccessful) throw IOException("Unexpected code")
+                if (!response.isSuccessful) {
+                    Log.i("Email Receipt", "Not successful: please check Email Helper function: response code: ${response.code}")
+                }
                 else {
+                    Log.i("Email Receipt", "Receipt Successful: please check Email Helper function: response code: ${response.code}")
+                    Log.i("Email Receipt", "sent receipt to email successfully. Step 3: complete")
                     TripDetails.isReceiptSent = true
                     TripDetails.receiptCode = response.code
                     TripDetails.receiptMessage = response.message
                 }
             }
         }  catch (e: IOException) {
+            Log.i("Email Receipt", "Not successful: please check Email Helper function")
             TripDetails.isReceiptSent = false
             TripDetails.receiptCode = e.hashCode()
             TripDetails.receiptMessage = e.localizedMessage

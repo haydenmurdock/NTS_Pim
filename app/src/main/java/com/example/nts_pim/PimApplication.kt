@@ -1,10 +1,8 @@
 package com.example.nts_pim
 
 import android.app.Application
-import android.content.Context
-import android.util.Log
-import com.example.nts_pim.data.repository.model_objects.PimError
-import com.example.nts_pim.data.repository.providers.ModelPreferences
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import com.example.nts_pim.data.repository.trip_repository.TripRepository
 import com.example.nts_pim.data.repository.trip_repository.TripRepositoryImpl
 import com.example.nts_pim.fragments_viewmodel.check_vehicle_info.CheckVehicleInfoModelFactory
@@ -55,7 +53,7 @@ class PimApplication : Application(), KodeinAware{
         bind() from provider { InteractionCompleteViewModelFactory(instance()) }
         }
 
-    var exceptionHandler: Thread.UncaughtExceptionHandler? = null
+    val CHANNEL_ID = "powerservicechannel"
 
         override fun onCreate() {
             super.onCreate()
@@ -63,5 +61,16 @@ class PimApplication : Application(), KodeinAware{
             AndroidThreeTen.init(this)
 
             registerActivityLifecycleCallbacks(LifeCycleCallBacks())
+            createNotificationChannel()
         }
+        private fun createNotificationChannel(){
+           val notificationChannel = NotificationChannel(
+               CHANNEL_ID,
+               "Power Service Channel",
+               NotificationManager.IMPORTANCE_HIGH
+           )
+            val manager: NotificationManager = getSystemService(NotificationManager::class.java)
+            manager.createNotificationChannel(notificationChannel)
+        }
+
     }

@@ -43,9 +43,14 @@ object SmsHelper {
               client.newCall(request).execute().use { response ->
                   Log.i("URL","response code : ${response.code} response message: ${response.message}")
 
-                  if (!response.isSuccessful) throw IOException("Unexpected code $response")
-                  else{
+                  if (response.isSuccessful){
+                      Log.i("Text Receipt", "Send Text receipt successful. Step 3: Complete")
                       TripDetails.isReceiptSent = true
+                      TripDetails.receiptCode = response.code
+                      TripDetails.receiptMessage = response.message
+                  } else {
+                      Log.i("Text Receipt", "Send Text receipt unsuccessful. Step 3: Fail")
+                      TripDetails.isReceiptSent = false
                       TripDetails.receiptCode = response.code
                       TripDetails.receiptMessage = response.message
                   }

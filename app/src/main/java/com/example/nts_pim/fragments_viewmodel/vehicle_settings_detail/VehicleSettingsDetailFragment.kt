@@ -1,6 +1,7 @@
 package com.example.nts_pim.fragments_viewmodel.vehicle_settings_detail
 
 import android.app.AlertDialog
+import android.app.usage.UsageStatsManager
 import android.content.*
 import android.media.AudioManager
 import android.os.Bundle
@@ -27,7 +28,13 @@ import org.kodein.di.KodeinAware
 import org.kodein.di.android.x.closestKodein
 import org.kodein.di.generic.instance
 import android.content.Intent
+import android.util.Log
 import com.example.nts_pim.BuildConfig
+import com.example.nts_pim.data.repository.model_objects.*
+import com.example.nts_pim.data.repository.providers.ModelPreferences
+import com.example.nts_pim.fragments_viewmodel.vehicle_settings.setting_keyboard_viewModels.SettingsKeyboardViewModel
+import com.example.nts_pim.fragments_viewmodel.vehicle_setup.VehicleSetupViewModel
+import com.example.nts_pim.utilities.enums.SharedPrefEnum
 
 
 class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
@@ -37,6 +44,7 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
     private val viewModelFactory: VehicleSettingsDetailViewModelFactory by instance()
     private lateinit var callBackViewModel: CallBackViewModel
     private lateinit var viewModel: VehicleSettingsDetailViewModel
+    private lateinit var keyboardViewModel: SettingsKeyboardViewModel
     private var readerSettingsCallbackRef: CallbackReference? = null
     private val currentFragmentId = R.id.vehicle_settings_detail_fragment
     private var vehicleID = ""
@@ -61,14 +69,24 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
         val readerManager = ReaderSdk.readerManager()
         readerSettingsCallbackRef =
             readerManager.addReaderSettingsActivityCallback(this::onReaderSettingsResult)
+
+        val keyboardFactory = InjectorUtiles.provideSettingKeyboardModelFactory()
+
+        keyboardViewModel = ViewModelProviders.of(this, keyboardFactory)
+            .get(SettingsKeyboardViewModel::class.java)
         vehicleID = viewModel.getVehicleID()
-        tripID = callBackViewModel.getTripId()
+
+        tripID = ModelPreferences(context!!)
+            .getObject(
+                SharedPrefEnum.CURRENT_TRIP.key,
+                CurrentTrip::class.java)?.tripID ?: ""
+
         val batteryStatus = callBackViewModel.batteryPowerStatePermission()
         updateUI(batteryStatus)
         activity_indicator_vehicle_detail.visibility = View.INVISIBLE
 
         check_bluetooth_btn.setOnClickListener {
-            SoundHelper.turnOffSound(context!!)
+            //** Scott **
             screenDisabled()
             activity_indicator_vehicle_detail.animate()
             activity_indicator_vehicle_detail.visibility = View.VISIBLE
@@ -78,7 +96,6 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
         setting_detail_back_btn.setOnClickListener {
             Navigation.findNavController(view).navigate(R.id.back_to_welcome_fragment)
         }
-
         exit_app_btn.setOnClickListener {
             PIMDialogComposer.exitApplication(activity!!)
         }
@@ -88,11 +105,13 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
         recent_trip_button.setOnClickListener {
             toRecentTrip()
         }
+        vehicle_settings_unpair_button.setOnClickListener {
+            showUnPairDialog()
+        }
 
         battery_btn.setOnClickListener {
             callBackViewModel.enableOrDisableBatteryPower()
             val batteryPermission = callBackViewModel.batteryPowerStatePermission()
-
             Toast.makeText(
                 context!!,
                 "Allow Battery Power: $batteryPermission", Toast.LENGTH_LONG
@@ -100,16 +119,61 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
             updatePowerButtonUI(batteryPermission)
         }
     }
+    private fun showUnPairDialog(){
+        val powerOffApplicationAlert = AlertDialog.Builder(this.activity)
+        powerOffApplicationAlert.setTitle("Unpair PIM")
+        powerOffApplicationAlert.setMessage("Would you like to unpair from $vehicleID?")
+            .setPositiveButton("Yes"){ _, _->
+                unPair()
+            }
+            .setNegativeButton("Cancel",null)
+            .show()
+    }
 
+    private fun unPair(){
+        context?.deleteSharedPreferences("MODEL_PREFERENCES")
+        val currentTrip = ModelPreferences(context!!.applicationContext)
+            .getObject(
+                SharedPrefEnum.CURRENT_TRIP.key,
+                CurrentTrip::class.java)
+        val vehicleSettings = ModelPreferences(context!!.applicationContext)
+            .getObject(SharedPrefEnum.VEHICLE_SETTINGS.key,
+                VehicleSettings::class.java)
+        val pin = ModelPreferences(context!!.applicationContext)
+            .getObject(SharedPrefEnum.PIN_PASSWORD.key, PIN::class.java)
+        val deviceID = ModelPreferences(context!!.applicationContext)
+            .getObject(SharedPrefEnum.DEVICE_ID.key, DeviceID::class.java)
+        val statusObject = ModelPreferences(context!!.applicationContext)
+            .getObject(SharedPrefEnum.SETUP_COMPLETE.key, SetupComplete::class.java)
 
+        if(currentTrip == null && vehicleSettings == null && pin == null && deviceID == null && statusObject == null){
+            callBackViewModel.clearAllTripValues()
+            viewModel.squareIsNotAuthorized()
+            viewModel.vehicleIdDoesNotExist()
+            viewModel.recheckAuth()
+            viewModel.companyNameNoLongerExists()
+            ReaderSdk.authorizationManager().deauthorize()
+            keyboardViewModel.qwertyKeyboardIsUp()
+            Log.i("Vehicle Settings", "unpair successful, restarting Pim")
+            activity?.recreate()
+        } else {
+            Log.i("Vehicle Settings",
+                "currentTrip: $currentTrip, vehicle Settings $vehicleSettings, pin $pin,deviceID $deviceID, setUpStatus: $statusObject")
+        }
+    }
+    //** Scott **
     private fun onReaderSettingsResult(result: Result<Void, ResultError<ReaderSettingsErrorCode>>) {
         if (result.isSuccess){
             println("success")
-            activity_indicator_vehicle_detail.visibility = View.INVISIBLE
+            if (activity_indicator_vehicle_detail != null){
+                activity_indicator_vehicle_detail.visibility = View.INVISIBLE
+            }
+            // sound on if square call wasn't successful in turning sound back on
             SoundHelper.turnOnSound(context!!)
             screenEnabled()
         }
         if (result.isError) {
+            //sound on if square call wasn't successful in turning sound back on
             SoundHelper.turnOnSound(context!!)
             screenEnabled()
             activity_indicator_vehicle_detail.visibility = View.INVISIBLE
@@ -130,9 +194,17 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
         val alpha = 1.00f
         val duration = 500.toLong()
         val buildName = BuildConfig.VERSION_NAME
-
         settings_detail_textView.text = "Vehicle ID: $vehicleID"
         build_version_textView.text = "Build Version: $buildName"
+        val c = context?.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
+        val bucket = c.appStandbyBucket.toString()
+        when(bucket){
+            "10" ->  power_status_textView.text = "Power Status: Active"
+            "20" -> power_status_textView.text = "Power Status:Working Set"
+            "30" -> power_status_textView.text = "Power Status:Frequent"
+            "40" -> power_status_textView.text = "Power Status:Stand by"
+        }
+
         if(tripID.isNotEmpty()){
             last_trip_id_textView.text = "Trip Id: $tripID"
         } else {
@@ -167,12 +239,23 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
             powerOffApplicationAlert.setTitle("Power Off Application")
             powerOffApplicationAlert.setMessage("Would you like to power off the application?")
                 .setPositiveButton("Yes"){ _, _->
-                    val audioManager = context!!.getSystemService(Context.AUDIO_SERVICE) as AudioManager
-                    audioManager.mode = (AudioManager.MODE_NORMAL)
-                    val intent = Intent(activity, PowerAccessibilityService::class.java)
-                    intent.action = "com.claren.tablet_control.shutdown"
-                    intent.addFlags(Intent.FLAG_INCLUDE_STOPPED_PACKAGES)
-                    activity!!.startService(intent)
+                    //This is for inside our own app.
+//                    val audioManager = context!!.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+//                    audioManager.mode = (AudioManager.MODE_NORMAL)
+//                    val intent = Intent(activity, PowerAccessibilityService::class.java)
+//                    intent.action = "com.claren.tablet_control.shutdown"
+//                    intent.addFlags(Intent.FLAG_INCLUDE_STOPPED_PACKAGES)
+//                    activity!!.startService(intent)
+
+
+
+                    val action =  "com.claren.tablet_control.shutdown"
+                    val p = "com.claren.tablet_control"
+                    val intent = Intent()
+                    intent.action = action
+                    intent.`package` = p
+                    intent.addFlags(Intent.FLAG_INCLUDE_STOPPED_PACKAGES);
+                    activity?.sendBroadcast(intent)
 
                 }
                 .setNegativeButton("Cancel",null)
@@ -197,20 +280,33 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
     private fun screenEnabled(){
         val normalAlpha = 1.0f
         val enabled = true
-        exit_app_btn.alpha = normalAlpha
-        check_bluetooth_btn.alpha = normalAlpha
-        power_Off_PIM_btn.alpha = normalAlpha
-        setting_detail_back_btn.alpha = normalAlpha
-        recent_trip_button.alpha = normalAlpha
+        if(exit_app_btn != null){
+            exit_app_btn.alpha = normalAlpha
+            exit_app_btn.isEnabled = enabled
+        }
+        if(check_bluetooth_btn != null){
+            check_bluetooth_btn.alpha = normalAlpha
+            check_bluetooth_btn.isEnabled = enabled
+        }
+        if(power_Off_PIM_btn != null){
+            power_Off_PIM_btn.alpha = normalAlpha
+            power_Off_PIM_btn.isEnabled = enabled
+        }
+        if(setting_detail_back_btn != null){
+            setting_detail_back_btn.alpha = normalAlpha
+            setting_detail_back_btn.isEnabled = enabled
 
-        exit_app_btn.isEnabled = enabled
-        check_bluetooth_btn.isEnabled = enabled
-        power_Off_PIM_btn.isEnabled = enabled
-        setting_detail_back_btn.isEnabled = enabled
-        battery_btn.isEnabled = enabled
-        recent_trip_button.isEnabled = enabled
+        }
+        if(recent_trip_button != null){
+            recent_trip_button.alpha = normalAlpha
+            recent_trip_button.isEnabled = enabled
+        }
+
+        if(battery_btn != null){
+            recent_trip_button.isEnabled = enabled
+        }
     }
-
+//Navigation
     private fun toRecentTrip(){
         val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
         if (navController.currentDestination?.id == currentFragmentId){

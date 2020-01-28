@@ -208,6 +208,7 @@ class EmailOrTextFragment : ScopedFragment(), KodeinAware {
             val tripTotalAsString = df.toString()
             amount_text_View.text = "$$tripTotalAsString"
         }
+
         if(paymentTypeArgs == "CASH"){
             val transactionId = UUID.randomUUID().toString()
             callBackViewModel.setTransactionId(transactionId)

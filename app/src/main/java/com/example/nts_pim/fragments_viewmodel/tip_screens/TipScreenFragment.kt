@@ -26,6 +26,7 @@ import com.example.nts_pim.fragments_viewmodel.live_meter.LiveMeterViewModel
 import com.example.nts_pim.fragments_viewmodel.live_meter.LiveMeterViewModelFactory
 import com.example.nts_pim.utilities.enums.MeterEnum
 import com.example.nts_pim.utilities.enums.PIMStatusEnum
+import com.example.nts_pim.utilities.enums.PaymentTypeEnum
 import com.example.nts_pim.utilities.mutation_helper.PIMMutationHelper
 import com.example.nts_pim.utilities.sound_helper.SoundHelper
 import com.example.nts_pim.utilities.view_helper.ViewHelper
@@ -50,6 +51,7 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
     private val viewModelFactory: LiveMeterViewModelFactory by instance()
     private var tripTotal = 00.00
     private var tripTotalReset = 00.00
+    private var amountForSquare = 00.00
     private val tripTotalDF = DecimalFormat("####00.00")
     private val tripTotalDFUnderTen = DecimalFormat("###0.00")
     private var tripTotalOption1 = 00.00
@@ -73,6 +75,7 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
     var cardInfo = ""
     private var transactionDate: Date? = null
     private var transactionId = ""
+    private var paymentSentForSquare = false
 
 
     val screenTimeOutTimer = object: CountDownTimer(30000, 1000) {
@@ -92,7 +95,7 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         getArgsFromTripReview()
-        getArgsFromCustomTipScreen()
+
         updateUI()
         tripTotalReset = tripTotal
         mAWSAppSyncClient = ClientFactory.getInstance(context)
@@ -109,6 +112,7 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
         tripNumber = callbackViewModel.getTripNumber()
         val checkoutManager = ReaderSdk.checkoutManager()
         checkoutCallbackRef = checkoutManager.addCheckoutActivityCallback(this::onCheckoutResult)
+        getArgsFromCustomTipScreen()
         PIMMutationHelper.updatePIMStatus(vehicleId, PIMStatusEnum.TIP_SCREEN.status, mAWSAppSyncClient!!)
 
         view.setOnTouchListener(object : View.OnTouchListener {
@@ -230,37 +234,57 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
             }
         }
         fifteen_percent_btn.setOnClickListener {
-                tripTotal = tripTotalOption1
-                squareCheckout(tripTotalOption1)
+                amountForSquare = tripTotalOption1
+                squareCheckout(amountForSquare)
                 updateTripTotalTextField(tripTotalOption1)
                 tipAmountPassedToSquare = fifteenPercent
-                tipPercentPicked = 00.15
+                callbackViewModel.setTipAmount(tipAmountPassedToSquare)
+                if(tripTotal < 10.00){
+                    tipPercentPicked = 0.0
+                } else {
+                    tipPercentPicked = 00.15
+                }
                 lowerAlpha()
-
         }
         twenty_percent_btn.setOnClickListener {
-                tripTotal = tripTotalOption2
-                squareCheckout(tripTotalOption2)
-                updateTripTotalTextField(tripTotal)
+                amountForSquare = tripTotalOption2
+                squareCheckout(amountForSquare)
+                updateTripTotalTextField(amountForSquare)
                 tipAmountPassedToSquare = twentyPercent
-                tipPercentPicked = 00.20
+                callbackViewModel.setTipAmount(tipAmountPassedToSquare)
+                 if(tripTotal < 10.00){
+                     tipPercentPicked = 0.0
+                 } else {
+                     tipPercentPicked = 00.20
+                 }
                 lowerAlpha()
         }
         twenty_five_percent_btn.setOnClickListener {
-                tripTotal = tripTotalOption3
-                squareCheckout(tripTotalOption3)
-                updateTripTotalTextField(tripTotal)
+                amountForSquare= tripTotalOption3
+                squareCheckout(amountForSquare)
+                updateTripTotalTextField(amountForSquare)
                 tipAmountPassedToSquare = twentyFivePercent
-                tipPercentPicked = 00.25
+                callbackViewModel.setTipAmount(tipAmountPassedToSquare)
+                 if(tripTotal < 10.00){
+                    tipPercentPicked = 0.0
+                } else {
+                     tipPercentPicked = 00.25
+                }
+
                 lowerAlpha()
 
         }
         thirty_percent_btn.setOnClickListener {
-            tripTotal = tripTotalOption4
-            squareCheckout(tripTotalOption4)
-            updateTripTotalTextField(tripTotal)
+            amountForSquare = tripTotalOption4
+            squareCheckout(amountForSquare)
+            updateTripTotalTextField(amountForSquare)
             tipAmountPassedToSquare = thirtyPercent
-            tipPercentPicked = 00.30
+            callbackViewModel.setTipAmount(tipAmountPassedToSquare)
+            if(tripTotal < 10.00){
+                tipPercentPicked = 0.0
+            } else {
+                tipPercentPicked = 00.30
+            }
             lowerAlpha()
         }
         customTipAmountBtn.setOnClickListener {
@@ -422,32 +446,40 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
         val hasCustomTipBeingPicked = arguments?.getBoolean("doneButtonTouchedOnCustomTipScreen")
         val tripTotalBeforeTip = arguments?.getFloat("tipScreenTripTotal")
         val tipAmount = arguments?.getFloat("tipChosenFromCustomTipScreen")
-        val amountForSquare = tripTotalBeforeTip!! + tipAmount!!.toFloat()
+        val hasCustomerPickedPercentage = arguments?.getBoolean("percentagePickedForCustomTip")
+        val amountForSquareArgs = tripTotalBeforeTip!! + tipAmount!!.toFloat()
         if (tripTotalBeforeTip != null &&
             tipAmount != null) {
             if (amountForSquare < 10.00) {
                 tripTotal = tripTotalBeforeTip.toDouble()
+                amountForSquare = amountForSquareArgs.toDouble()
                 tipAmountPassedToSquare = tipAmount.toDouble()
                 val formattedArgs = tripTotalDFUnderTen.format(amountForSquare)
                 val tripTotalToString = formattedArgs.toString()
                 tip_screen_trip_total_textView.text = "$$tripTotalToString"
             } else {
                 tripTotal = tripTotalBeforeTip.toDouble()
+                amountForSquare = amountForSquareArgs.toDouble()
                 tipAmountPassedToSquare = tipAmount.toDouble()
                 val formattedArgs = tripTotalDF.format(amountForSquare)
                 val tripTotalToString = formattedArgs.toString()
                 tip_screen_trip_total_textView.text = "$$tripTotalToString"
             }
-        }
-        if(hasCustomTipBeingPicked!!) {
-            squareCheckout(amountForSquare.toDouble())
-            lowerAlpha()
+            if(hasCustomTipBeingPicked!!) {
+                tipAmountPassedToSquare = tipAmount.toDouble()
+                if(hasCustomerPickedPercentage != null && hasCustomerPickedPercentage){
+                    tipPercentPicked = tipAmountPassedToSquare/amountForSquare
+                }
+                squareCheckout(amountForSquare)
+                lowerAlpha()
+            }
         }
     }
     private fun squareCheckout(checkOutAmount: Double) = launch {
+        //Function for square
         callbackViewModel.setAmountForSquareDisplay(checkOutAmount)
         val p = checkOutAmount * 100.00
-        val checkOutTotal = p.toLong()
+        val checkOutTotal = Math.round(p)
         val amountMoney = Money(checkOutTotal, CurrencyCode.current())
         val parametersBuilder = CheckoutParameters.newBuilder(amountMoney)
         parametersBuilder.skipReceipt(false)
@@ -541,6 +573,7 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
         if(no_tip_btn != null){
             no_tip_btn.setTextColor(ContextCompat.getColor(context!!, R.color.whiteTextColor))
         }
+        callbackViewModel.setTipAmount(0.0)
         screenTimeOutTimer.cancel()
         screenTimeOutTimer.start()
     }
@@ -590,18 +623,24 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
             val cardName = i.cardDetails.card.brand.name
             cardInfo = cardName + " " + i.cardDetails.card.lastFourDigits
             tripTotalBackFromSquare = i.totalMoney.amount.toDouble()
+            val tipBackFromSquare = i.tipMoney.amount.toDouble()
         }
 
-        if (cardInfo != ""){
-            updateLocalTripDetails()
+        if (cardInfo != "") {
+           // updateLocalTripDetails()
+        }
+        if(cardInfo != "" ) {
+            val tipAmountToSendToAWS = callbackViewModel.getTipAmount()
             updateTransactionInfo(
-                tipAmountPassedToSquare,
+                tipAmountToSendToAWS,
                 cardInfo,
                 tipPercentPicked,
-                tripTotal,
+                amountForSquare,
                 updatedTransactionDate,
                 transactionId)
+        }
 
+        if(cardInfo != "") {
             updatePaymentDetail(
                 transactionId,
                 tripNumber,
@@ -610,7 +649,6 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
                 "card",
                 tripId)
         }
-
     }
     private fun updatePaymentDetail(transactionId: String, tripNumber: Int, vehicleId: String, awsAppSyncClient: AWSAppSyncClient, paymentType: String, tripId: String) = launch(Dispatchers.IO){
         PIMMutationHelper.updatePaymentDetails(transactionId, tripNumber, vehicleId, awsAppSyncClient, paymentType, tripId)
@@ -651,8 +689,9 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
             }
         }
     }
-    private fun updateTransactionInfo(tipAmount: Double, cardInfo: String, tipPercent: Double, paidAmount: Double, transactionDate: String, transactionId: String) = launch {
-
+    private fun updateTransactionInfo(tipAmount: Double, cardInfo: String, tipPercent: Double, paidAmount: Double, transactionDate: String, transactionId: String) = launch(Dispatchers.IO) {
+    if(!paymentSentForSquare){
+        paymentSentForSquare = true
         val updateTripInput = UpdateTripInput.builder()
             .vehicleId(vehicleId)
             .tripId(tripId)
@@ -662,10 +701,13 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
             .pimPaidAmt(paidAmount)
             .pimTransDate(transactionDate)
             .pimTransId(transactionId)
+            .paymentType("card")
             .build()
 
         mAWSAppSyncClient?.mutate(UpdateTripMutation.builder().parameters(updateTripInput).build())
             ?.enqueue(transactionInfoCallback)
+    }
+
     }
     private val transactionInfoCallback = object : GraphQLCall.Callback<UpdateTripMutation.Data>() {
         override fun onResponse(response: Response<UpdateTripMutation.Data>) {
@@ -688,8 +730,8 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
     private  fun toEmailOrText(){
         val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
         if(navController.currentDestination?.id == (R.id.tipScreenFragment)){
-            val action = TipScreenFragmentDirections.tipFragmentToEmailorTextFragment(tripTotal.toFloat(), "CARD")
-                .setPaymentType("CARD").setTripTotal(tripTotal.toFloat())
+            val action = TipScreenFragmentDirections.tipFragmentToEmailorTextFragment(amountForSquare.toFloat(), "CARD")
+                .setPaymentType("CARD").setTripTotal(amountForSquare.toFloat())
             navController.navigate(action)
         }
     }

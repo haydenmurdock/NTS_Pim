@@ -9,7 +9,10 @@ import android.view.ViewGroup
 import androidx.lifecycle.ViewModelProviders
 import androidx.navigation.Navigation
 import com.example.nts_pim.R
+import com.example.nts_pim.data.repository.model_objects.CurrentTrip
+import com.example.nts_pim.data.repository.providers.ModelPreferences
 import com.example.nts_pim.fragments_viewmodel.base.ScopedFragment
+import com.example.nts_pim.utilities.enums.SharedPrefEnum
 import kotlinx.android.synthetic.main.taxi_number_screen.*
 import org.kodein.di.KodeinAware
 import org.kodein.di.android.x.closestKodein
@@ -58,15 +61,12 @@ class TaxiNumberFragment : ScopedFragment(), KodeinAware {
         val animationIsOn = resources.getBoolean(R.bool.animationIsOn)
 
         if (animationIsOn) {
-
             taxi_number_text_view.animate().alpha(1f).setDuration(2500).withEndAction(Runnable {
-
                 taxi_number_text_view.animate().alpha(0.0f).setDuration(2500).withEndAction(Runnable {
                     println("view should be gone")
                     navigate(view)
                 })
-            }
-            )
+            })
         } else {
             toNextScreen(view)
         }
