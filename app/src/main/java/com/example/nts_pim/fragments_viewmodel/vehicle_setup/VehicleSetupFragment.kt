@@ -9,6 +9,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
+import android.provider.Settings
 import android.telephony.TelephonyManager
 import android.text.InputType
 import android.util.Log
@@ -26,6 +27,7 @@ import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProviders
 import androidx.navigation.Navigation
 import com.amazonaws.amplify.generated.graphql.GetPimSettingsQuery
+import com.amazonaws.amplify.generated.graphql.UpdateDeviceIdToImeiMutation
 import com.amazonaws.mobileconnectors.appsync.AWSAppSyncClient
 import com.amazonaws.mobileconnectors.appsync.fetcher.AppSyncResponseFetchers
 import com.apollographql.apollo.GraphQLCall
@@ -65,6 +67,7 @@ import okhttp3.Request
 import org.kodein.di.KodeinAware
 import org.kodein.di.android.x.closestKodein
 import org.kodein.di.generic.instance
+import type.UpdateDeviceIdToIMEIInput
 import java.io.IOException
 import java.lang.Error
 import java.util.*
@@ -85,6 +88,7 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
         arrayOf("UUID", "PIN", "Vehicle ID", "Authorization","Knox Startup", "Bluetooth Setup")
     private val setBooleanArray = arrayOf(false, false, false, false, false,false)
     private var imei = ""
+    private var androidId = ""
     private var pin = ""
     private var vehicleID = ""
     private var authCode = ""
@@ -92,10 +96,13 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
     private var isSquareAuthorized = false
     private val currentFragment = R.id.vehicleSetupFragment
     private val alreadyAuthString = "authorize_already_authorized"
+    private var checkedIMEI = false
+    private var checkedAndroidId = false
     var pinEntered = false
     var incorrectPin = ""
     var adapter: Adapter? = null
     var doesVehicleIdExist = false
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -139,7 +146,6 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
                 keyboardViewModel.qwertyKeyboardIsUp()
             }
         })
-
         doesVehicleIdExist = viewModel.doesVehicleIDExist()
             if (!doesVehicleIdExist) {
                 checkDeviceID(view, adapter as MyCustomAdapter)
@@ -300,9 +306,19 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
             ?.enqueue(pimSettingsQueryCallBack)
     }
     private fun checkForPairedVehicleID(deviceID: String){
-        mAWSAppSyncClient?.query(GetPimSettingsQuery.builder().deviceId(deviceID).build())
-            ?.responseFetcher(AppSyncResponseFetchers.CACHE_AND_NETWORK)
-            ?.enqueue(vehicleIdQueryCallBack)
+        if (deviceID == imei){
+            checkedIMEI = true
+            mAWSAppSyncClient?.query(GetPimSettingsQuery.builder().deviceId(deviceID).build())
+                ?.responseFetcher(AppSyncResponseFetchers.CACHE_AND_NETWORK)
+                ?.enqueue(vehicleIdQueryCallBack)
+        } else {
+            if (!checkedAndroidId){
+                checkedAndroidId = true
+                mAWSAppSyncClient?.query(GetPimSettingsQuery.builder().deviceId(deviceID).build())
+                    ?.responseFetcher(AppSyncResponseFetchers.CACHE_AND_NETWORK)
+                    ?.enqueue(vehicleIdQueryCallBack)
+            }
+        }
     }
 
     private val vehicleIdQueryCallBack = object : GraphQLCall.Callback<GetPimSettingsQuery.Data>() {
@@ -310,19 +326,47 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
             val callBackVehicleID = response.data()?.pimSettings?.vehicleId()
             val errorCode = response.data()?.pimSettings?.errorCode()
             when(errorCode){
-                "1007" -> {
-                    launch(Dispatchers.Main) {
-                        Toast.makeText(context, "PIM device Id has not been assigned, please enter pin", Toast.LENGTH_LONG).show()
+                    "1007" -> {
+                            if(checkedIMEI && !checkedAndroidId) {
+                                checkForPairedVehicleID(androidId)
+                            }
+                        }
+                    }
+            if(!response.hasErrors()){
+                if (callBackVehicleID != null) {
+                    vehicleID = callBackVehicleID
+                    saveVehicleID(vehicleID)
+                    if(checkedAndroidId){
+                        updateDeviceIdToIMEI(imei,vehicleID)
                     }
                 }
             }
-            if (callBackVehicleID != null) {
-                vehicleID = callBackVehicleID
-                saveVehicleID(vehicleID)
-            }
-
         }
         override fun onFailure(e: ApolloException) {
+            Log.i("VehicleSetup", "Response for getting device ID has Apollo Exception. Error: ${e.message}")
+        }
+    }
+
+    private fun updateDeviceIdToIMEI(deviceID: String, vehicleId: String){
+        val input = UpdateDeviceIdToIMEIInput.builder()
+            .deviceId(deviceID)
+            .vehicleId(vehicleId)
+            .build()
+        mAWSAppSyncClient?.mutate(UpdateDeviceIdToImeiMutation.builder().parameters(input).build())
+            ?.enqueue(updateDeviceIdToIMEICallback)
+    }
+
+    private val updateDeviceIdToIMEICallback =  object : GraphQLCall.Callback<UpdateDeviceIdToImeiMutation.Data>(){
+        override fun onResponse(response: Response<UpdateDeviceIdToImeiMutation.Data>) {
+            if(!response.hasErrors()){
+                Log.i("VehicleSetup", "Updated deviceid for $vehicleID from $androidId to $imei")
+            } else {
+                Log.i("VehicleSetup", "Response for updating for device ID has errors. Error: ${response.errors()[0].message()}")
+            }
+        }
+
+        override fun onFailure(e: ApolloException) {
+            Log.i("VehicleSetup", "Response for updating for device ID has Apollo Exception. Error: ${e.message}")
         }
     }
 
@@ -501,7 +545,6 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
         startActivity(browser)
         Log.i("URL", "$url")
     }
-
     //Toasts
     private fun showVehicleIDToast(vehicleID: String){
         if(!vehicleID.isNullOrBlank()){
@@ -513,7 +556,6 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
             toast.show()
         }
     }
-
     private fun showAuthorizationToast(){
         val toast =
             Toast.makeText(context,
@@ -534,7 +576,6 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
             Toast.LENGTH_LONG)
             .show()
     }
-
     private fun showErrorToastUsageReader(error: ResultError<ReaderSettingsErrorCode>){
         Toast.makeText(
             context!!,
@@ -574,7 +615,6 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
         qwertyKeyboard.setInputConnection(ic)
         ViewHelper.hideSystemUI(activity!!)
     }
-
     private fun updateChecklist(position: Int, boolean: Boolean, adapter: MyCustomAdapter) {
         setBooleanArray[position] = boolean
         adapter.notifyDataSetChanged()
@@ -618,6 +658,9 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
                 arrayOf(Manifest.permission.READ_PHONE_STATE),
                 REQUEST_PHONE_STATE_PERMSSION_CODE)
         } else {
+            // We need phoneStatePermission to get Android Id.
+            androidId = Settings.Secure.getString(activity!!.getContentResolver(),
+                Settings.Secure.ANDROID_ID)
             if(!isSquareAuthorized){
                 checkDeviceID(this.view!!, adapter as MyCustomAdapter)
             }
@@ -711,6 +754,7 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
     }
     override fun onResume() {
         super.onResume()
+
         requestMic()
         requestStorage()
         requestLocation()

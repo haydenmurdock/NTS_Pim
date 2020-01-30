@@ -94,6 +94,7 @@ class TripReviewFragment : ScopedFragment(), KodeinAware {
         //we check this value for updating the Trip Review
         pimMeterValue = callbackViewModel.getMeterOwed().value ?: 0.0
         pimPayAmount = callbackViewModel.getPimPayAmount()
+        tripTotal = pimPayAmount
         currentTrip = ModelPreferences(context!!)
             .getObject(SharedPrefEnum.CURRENT_TRIP.key, CurrentTrip::class.java)
         Log.i("Trip Review","Pim Pay amount at the start of page was $pimPayAmount")
@@ -232,8 +233,8 @@ class TripReviewFragment : ScopedFragment(), KodeinAware {
 
     private fun updateTripInfo() {
         if (resources.getBoolean(R.bool.isDevModeOn)) {
-            val dollar = 1
-            val formattedArgs = decimalFormatter.format(dollar)
+            val dollar = 1.25
+            val formattedArgs = tripTotalDFUnderTen.format(dollar)
             tripTotal = formattedArgs.toDouble()
             val tripTotalToString = formattedArgs.toString()
             trip_total_for_tip_text_view.text = "$$tripTotalToString"
@@ -260,8 +261,7 @@ class TripReviewFragment : ScopedFragment(), KodeinAware {
         //We don't need to take a payment if the pimPayAmount is zero or enteredPimPaidAmount is greater than zero
         if (enteredPimPayAmount == 0.toDouble() ||
             enteredPimPayAmount == 00.00 ||
-            enteredPimPaidAmount > 0.toDouble()
-        ) {
+            enteredPimPaidAmount > 0.toDouble()) {
             Log.i("Trip Review: Trip didn't need payment","Pim Pay amount: $enteredPimPayAmount, Pim paid Amount: $enteredPimPaidAmount")
             doesPimNeedToTakePayment = false
             pimPayAmount = enteredPimPaidAmount

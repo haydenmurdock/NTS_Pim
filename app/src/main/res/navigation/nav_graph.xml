@@ -18,6 +18,9 @@
         <action
                 android:id="@+id/welcomeFragmentToLiveMeterSceen"
                 app:destination="@id/live_meter_fragment" />
+        <action
+                android:id="@+id/action_welcome_fragment_to_trip_review_fragment"
+                app:destination="@id/trip_review_fragment" />
     </fragment>
 
     <fragment

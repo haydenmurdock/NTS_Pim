@@ -241,6 +241,7 @@ mutation UpdateTrip($parameters: updateTripInput) {
     custEmail
     discountAmt
     discountPercent
+    driverId
     dropoffAddress {
       apt
       city
@@ -378,80 +379,24 @@ mutation UploadSettings($parameters: updateSettingsInput) {
     zapFareStart
   }
 }
-mutation TriggerMeterTrips($tripId: String!) {
-  triggerMeterTrips(tripId: $tripId) {
-    airportFee
-    appliedFareMin
-    appliedFareRate
-    cardInfo
-    custPhoneNbr
-    custEmail
-    discountAmt
-    discountPercent
-    dropoffAddress {
-      apt
-      city
-      state
-      street
-      zip
-    }
-    dropoffLocation {
-      lat
-      lng
-    }
-    error
-    errorCode
-    meterDistFare
-    meterDistance
-    meterError
-    meterFare
-    meterRate
-    meterState
-    meterTimeFare
-    meterWaitTime
-    owedPrice
-    owedPriceSource
-    paidAmt
-    paymentType
-    pimNoReceipt
-    pimPayAmt
-    pimPaidAmt
-    pimTransId
-    pimTransDate
-    pickupAddress {
-      apt
-      city
-      state
-      street
-      zip
-    }
-    pickupLocation {
-      lat
-      lng
-    }
-    tipAmt
-    tipPercent
-    toll
-    tripEndTime
-    tripId
-    tripNbr
-    tripStartTime
-    tripStatus
-    tripTime
-    upfrontPriceAdj
-    upfrontPriceDist
-    upfrontPriceOrig
-    upfrontPriceTime
-    upfrontPriceWaitAmt
-    vehicleId
-    voucherAcctNbr
-    voucherEnteredAmt
-    voucherNbr
-  }
-}
 mutation SavePaymentDetails($parameters: savePaymentDetailsInput) {
   savePaymentDetails(parameters: $parameters) {
     error
     errorCode
+  }
+}
+mutation ProcessRyPayment($parameters: processRYPaymentInput) {
+  processRYPayment(parameters: $parameters) {
+    error
+    errorCode
+    cardInfo
+  }
+}
+mutation UpdateDeviceIdToImei($parameters: updateDeviceIdToIMEIInput) {
+  updateDeviceIdToIMEI(parameters: $parameters) {
+    deviceId
+    error
+    errorCode
+    vehicleId
   }
 }

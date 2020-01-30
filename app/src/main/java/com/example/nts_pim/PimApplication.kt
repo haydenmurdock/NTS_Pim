@@ -3,6 +3,7 @@ package com.example.nts_pim
 import android.app.Application
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.util.Log
 import com.example.nts_pim.data.repository.trip_repository.TripRepository
 import com.example.nts_pim.data.repository.trip_repository.TripRepositoryImpl
 import com.example.nts_pim.fragments_viewmodel.check_vehicle_info.CheckVehicleInfoModelFactory
@@ -54,12 +55,11 @@ class PimApplication : Application(), KodeinAware{
         }
 
     val CHANNEL_ID = "powerservicechannel"
-
+    private var isReaderInit = false
         override fun onCreate() {
             super.onCreate()
-            ReaderSdk.initialize(this)
-            AndroidThreeTen.init(this)
 
+            AndroidThreeTen.init(this)
             registerActivityLifecycleCallbacks(LifeCycleCallBacks())
             createNotificationChannel()
         }
@@ -73,4 +73,11 @@ class PimApplication : Application(), KodeinAware{
             manager.createNotificationChannel(notificationChannel)
         }
 
+        fun initReaderSdk(){
+            if(!isReaderInit){
+                ReaderSdk.initialize(this)
+                isReaderInit = true
+                Log.i("PimApplication", "reader has been init")
+            }
+        }
     }

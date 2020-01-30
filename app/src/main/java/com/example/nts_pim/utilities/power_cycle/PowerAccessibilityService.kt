@@ -14,7 +14,6 @@ import android.widget.Toast
 import androidx.core.app.NotificationCompat
 import com.example.nts_pim.R
 
-
 class PowerAccessibilityService: AccessibilityService() {
 
     private var loggingEnabled = false
@@ -90,68 +89,6 @@ class PowerAccessibilityService: AccessibilityService() {
     }
     private fun logViewHierarchy(nodeInfo: AccessibilityNodeInfo, depth: Int) {
         try {
-            if (nodeInfo == null) return
-            if (nodeInfo.className != null) {
-                //install APK - SAMSUNG
-                if (nodeInfo.viewIdResourceName != null && nodeInfo.text != null) {
-                    if (nodeInfo.viewIdResourceName.contains("ok_button") && nodeInfo.text.toString().contains(
-                            "INSTALL"
-                        ) && nodeInfo.packageName.toString().contains("com.google.android.packageinstaller")
-                    ) {
-                        nodeInfo.performAction(AccessibilityNodeInfo.ACTION_CLICK)
-                    }
-                }
-                // Samsung power off
-                if (nodeInfo.viewIdResourceName != null && nodeInfo.contentDescription != null) {
-                    if (nodeInfo.className.toString().contains("ImageView") && nodeInfo.viewIdResourceName.contains(
-                            "sec_global_actions_icon"
-                        ) && nodeInfo.contentDescription.toString().contains("Power")
-                    ) {
-                        nodeInfo.performAction(AccessibilityNodeInfo.ACTION_FOCUS) // needed for Android 7 on samsung
-                        nodeInfo.performAction(AccessibilityNodeInfo.ACTION_CLICK)
-                        nodeInfo.performAction(AccessibilityNodeInfo.ACTION_CLICK) // 2 clicks for android 8
-                    }
-                    if (nodeInfo.className.toString().contains("FrameLayout") && nodeInfo.viewIdResourceName.contains(
-                            "global_actions_item_image_layout"
-                        ) && nodeInfo.contentDescription.toString().contains("Power")
-                    ) {
-                        Log.i("Power", "Ready to perform clicks")
-                        nodeInfo.performAction(AccessibilityNodeInfo.ACTION_FOCUS) // needed for Android 7 on samsung
-                        nodeInfo.performAction(AccessibilityNodeInfo.ACTION_CLICK)
-                        nodeInfo.performAction(AccessibilityNodeInfo.ACTION_CLICK) // 2 clicks for android 8
-                    }
-                    if (nodeInfo.className.toString().contains("TextView") && nodeInfo.text.toString().contains(
-                            "Power off"
-                        )
-                    ) {
-                        nodeInfo.parent.parent.performAction(AccessibilityNodeInfo.ACTION_CLICK)
-                    }
-                }
-                // Alcatel power off
-                if (nodeInfo.text != null) {
-                    if (nodeInfo.className.toString().contains("TextView") && nodeInfo.text.toString().contains(
-                            "Power off"
-                        )
-                    ) {
-
-                        nodeInfo.parent.parent.performAction(AccessibilityNodeInfo.ACTION_CLICK)
-                    }
-                }
-                if (loggingEnabled) {
-                    var spacerString = ""
-                    for (i in 0 until depth) {
-                        spacerString += '-'.toString()
-                    }
-                    //Log the info you care about here... I picked a classname and view resource name, because they are simple, but interesting.
-                    if (nodeInfo.className.toString().contains("TextView")) {
-                        val cs = nodeInfo.text
-                    }
-                }
-                for (i in 0 until nodeInfo.childCount) {
-                    logViewHierarchy(nodeInfo.getChild(i), depth + 1)
-                }
-
-            }
         }catch (e: Exception) {
             e.printStackTrace()
         }

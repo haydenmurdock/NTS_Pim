@@ -147,21 +147,19 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
             .get(SettingsKeyboardViewModel::class.java)
         // checks for animation and navigates to next Screen
         setUpKeyboard()
-        checkSquareMode()
+
         ViewHelper.checkForNotifications(activity!!)
         lastTrip = checkToSeeIfOnTrip()
         if (lastTrip.first != null) {
             isOnActiveTrip = lastTrip.first!!
             tripId = lastTrip.second
         }
+        checkSquareMode()
         viewModel.isSetupComplete()
         vehicleId = viewModel.getVehicleId()
         updateVehicleInfoUI()
         batteryCheckTimer.start()
         dimScreenTimer.start()
-        if (!VehicleTripArrayHolder.squareHasBeenSetUp) {
-            startSquareFlow()
-        }
         checkAppBuildVersion()
         //This is encase you have to restart the app during a trip or a trip
         keyboardViewModel.isPhoneKeyboardUp().observe(this, androidx.lifecycle.Observer {
@@ -229,10 +227,9 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
         })
 
         welcome_screen_next_screen_button.setOnClickListener {
-            // toLiveMeterScreen()
+            callBackViewModel.setPimPayAmount(1.25)
+            toCashOrCard()
         }
-
-
     }
     private fun checkAnimation() {
         val animationIsOn = resources.getBoolean(R.bool.animationIsOn)
@@ -429,7 +426,7 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
             lastSavedAppVersion.version = currentBuildVersion
             ModelPreferences(context!!.applicationContext).putObject(SharedPrefEnum.BUILD_VERSION.key, lastSavedAppVersion)
             // if we wanted to restart PIM this is where we would write that code.
-            restartAppTimer.start()
+//            restartAppTimer.start()
         } else {
             Log.i("VERSION", "Build Version is the same as last saved amount")
         }
@@ -454,9 +451,16 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
             navController.navigate(R.id.toTaxiNumber)
         }
     }
+    private fun toCashOrCard(){
+        val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
+        if (navController.currentDestination?.id == currentFragmentId){
+            navController.navigate(R.id.trip_review_fragment)
+        }
+    }
 
     override fun onStop() {
         super.onStop()
+        Log.i("PimApplication", "OnStop")
         keyboardViewModel.bothKeyboardsDown()
         batteryCheckTimer.cancel()
         dimScreenTimer.cancel()
@@ -464,12 +468,14 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
 
     override fun onPause() {
         super.onPause()
+        Log.i("PimApplication", "OnPause")
         ViewHelper.hideSystemUI(activity!!)
         batteryCheckTimer.cancel()
         dimScreenTimer.cancel()
     }
 
     override fun onResume() {
+        Log.i("PimApplication", "OnResume")
         super.onResume()
         ViewHelper.hideSystemUI(activity!!)
         vehicleId = viewModel.getVehicleId()
@@ -480,12 +486,16 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
         batteryCheckTimer.start()
         dimScreenTimer.cancel()
         dimScreenTimer.start()
+        if (!VehicleTripArrayHolder.squareHasBeenSetUp) {
+            Log.i("PimApplication", "started squareFlow")
+            startSquareFlow()
+        }
     }
 
     override fun onDestroy() {
         super.onDestroy()
         callBackViewModel.getTripStatus().removeObservers(this)
         callBackViewModel.hasNewTripStarted().removeObservers(this)
-        restartAppTimer.cancel()
+//        restartAppTimer.cancel()
     }
 }

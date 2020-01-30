@@ -50,9 +50,6 @@ import org.kodein.di.android.closestKodein
 import org.kodein.di.generic.instance
 import kotlin.coroutines.CoroutineContext
 import androidx.navigation.Navigation.findNavController
-import com.example.nts_pim.BuildConfig
-import com.example.nts_pim.IntentReceiver
-import com.example.nts_pim.data.repository.model_objects.AppVersion
 
 
 class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
@@ -91,7 +88,6 @@ class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
         viewModel = ViewModelProviders.of(this, viewModelFactory)
             .get(VehicleSetupViewModel::class.java)
         val intentFilter = IntentFilter()
-        this.registerReceiver(IntentReceiver(),intentFilter)
         viewModel.watchSetUpComplete().observe(this, Observer {successfulSetup ->
             if (successfulSetup){
                 mSuccessfulSetup = successfulSetup
@@ -326,7 +322,7 @@ class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
         }
     private fun forceSpeaker() {
         try {
-          playTestSound()
+//          playTestSound()
         } catch (e: Exception) {
             Log.e(ContentValues.TAG, e.toString())
         }

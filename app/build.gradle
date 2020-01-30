@@ -15,10 +15,10 @@ android {
     buildToolsVersion "28.0.3"
     defaultConfig {
         applicationId "com.example.nts_pim"
-        minSdkVersion 28
+        minSdkVersion 26
         targetSdkVersion 28
-        versionCode 1049
-        versionName "1.049"
+        versionCode 104942
+        versionName "1.049.41"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         multiDexEnabled true
     }
@@ -27,6 +27,11 @@ android {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
+        debug {
+            debuggable = true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+
     }
     packagingOptions {
         exclude 'META-INF/DEPENDENCIES'
@@ -68,7 +73,6 @@ dependencies {
     implementation 'androidx.navigation:navigation-ui-ktx:2.1.0'
 
     //These are for Room
-
     implementation "androidx.legacy:legacy-support-v4:1.0.0"
     kapt "androidx.room:room-compiler:$room_version"
 
@@ -85,7 +89,7 @@ dependencies {
     api 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.2.0-alpha04'
 
     //Multidex
-    implementation 'androidx.multidex:multidex:2.0.1'
+
 
     //Gson
     implementation "com.google.code.gson:gson:2.8.5"

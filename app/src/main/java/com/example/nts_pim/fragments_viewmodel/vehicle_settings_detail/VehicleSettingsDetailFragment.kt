@@ -1,7 +1,10 @@
 package com.example.nts_pim.fragments_viewmodel.vehicle_settings_detail
 
+import android.Manifest
 import android.app.AlertDialog
 import android.app.usage.UsageStatsManager
+import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothAssignedNumbers
 import android.content.*
 import android.media.AudioManager
 import android.os.Bundle
@@ -28,6 +31,9 @@ import org.kodein.di.KodeinAware
 import org.kodein.di.android.x.closestKodein
 import org.kodein.di.generic.instance
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
+import android.telephony.TelephonyManager
 import android.util.Log
 import com.example.nts_pim.BuildConfig
 import com.example.nts_pim.data.repository.model_objects.*
@@ -49,7 +55,8 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
     private val currentFragmentId = R.id.vehicle_settings_detail_fragment
     private var vehicleID = ""
     private var tripID = ""
-
+    private var imei = ""
+    private val bluetoothDeviceAdapter = BluetoothAdapter.getDefaultAdapter()
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
@@ -82,14 +89,23 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
                 CurrentTrip::class.java)?.tripID ?: ""
 
         val batteryStatus = callBackViewModel.batteryPowerStatePermission()
-        updateUI(batteryStatus)
         activity_indicator_vehicle_detail.visibility = View.INVISIBLE
-
+        val telephonyManager = activity!!.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
+        if(context?.checkCallingOrSelfPermission(Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED) {
+            imei = telephonyManager.imei
+        }
+        updateUI(batteryStatus)
         check_bluetooth_btn.setOnClickListener {
             //** Scott **
             screenDisabled()
             activity_indicator_vehicle_detail.animate()
             activity_indicator_vehicle_detail.visibility = View.VISIBLE
+           Log.d("VehicleSettingsDetailFragment", "BlueToothDeviceAdapter: State- ${bluetoothDeviceAdapter.state}, " +
+                   "Enabled:  ${bluetoothDeviceAdapter.isEnabled}" +
+                   "Address: ${bluetoothDeviceAdapter.address}" +
+                   "Bonded Devices: ${bluetoothDeviceAdapter.bondedDevices}" +
+                   "Scan Mode: ${bluetoothDeviceAdapter.scanMode}" +
+                   "isDiscovering: ${bluetoothDeviceAdapter.isDiscovering}")
             readerManager.startReaderSettingsActivity(context!!)
         }
 
@@ -152,10 +168,10 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
             viewModel.vehicleIdDoesNotExist()
             viewModel.recheckAuth()
             viewModel.companyNameNoLongerExists()
-            ReaderSdk.authorizationManager().deauthorize()
             keyboardViewModel.qwertyKeyboardIsUp()
             Log.i("Vehicle Settings", "unpair successful, restarting Pim")
             activity?.recreate()
+            toStartUp()
         } else {
             Log.i("Vehicle Settings",
                 "currentTrip: $currentTrip, vehicle Settings $vehicleSettings, pin $pin,deviceID $deviceID, setUpStatus: $statusObject")
@@ -163,6 +179,12 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
     }
     //** Scott **
     private fun onReaderSettingsResult(result: Result<Void, ResultError<ReaderSettingsErrorCode>>) {
+        Log.d("VehicleSettingsDetailFragment", "BlueToothDeviceAdapter: State- ${bluetoothDeviceAdapter.state}, " +
+                "Enabled:  ${bluetoothDeviceAdapter.isEnabled}" +
+                "Address: ${bluetoothDeviceAdapter.address}" +
+                "Bonded Devices: ${bluetoothDeviceAdapter.bondedDevices}" +
+                "Scan Mode: ${bluetoothDeviceAdapter.scanMode}" +
+                "isDiscovering: ${bluetoothDeviceAdapter.isDiscovering}")
         if (result.isSuccess){
             println("success")
             if (activity_indicator_vehicle_detail != null){
@@ -196,8 +218,13 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
         val buildName = BuildConfig.VERSION_NAME
         settings_detail_textView.text = "Vehicle ID: $vehicleID"
         build_version_textView.text = "Build Version: $buildName"
+        imei_textView.text = "IMEI: $imei"
         val c = context?.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
-        val bucket = c.appStandbyBucket.toString()
+        val bucket = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            c.appStandbyBucket.toString()
+        } else {
+          ""
+        }
         when(bucket){
             "10" ->  power_status_textView.text = "Power Status: Active"
             "20" -> power_status_textView.text = "Power Status:Working Set"
@@ -247,16 +274,13 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
 //                    intent.addFlags(Intent.FLAG_INCLUDE_STOPPED_PACKAGES)
 //                    activity!!.startService(intent)
 
-
-
                     val action =  "com.claren.tablet_control.shutdown"
                     val p = "com.claren.tablet_control"
                     val intent = Intent()
                     intent.action = action
                     intent.`package` = p
-                    intent.addFlags(Intent.FLAG_INCLUDE_STOPPED_PACKAGES);
+                    intent.addFlags(Intent.FLAG_INCLUDE_STOPPED_PACKAGES)
                     activity?.sendBroadcast(intent)
-
                 }
                 .setNegativeButton("Cancel",null)
                 .show()
@@ -313,5 +337,14 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
             navController.navigate(R.id.action_vehicle_settings_detail_fragment_to_recentTripAWSFragment)
         }
     }
+
+    private fun toStartUp(){
+        val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
+        if (navController.currentDestination?.id == currentFragmentId){
+            navController.navigate(R.id.action_vehicle_settings_detail_fragment_to_startupFragment)
+        }
+    }
+
+
 
 }

@@ -85,6 +85,7 @@ subscription OnTripUpdate($tripId: String) {
     custEmail
     discountAmt
     discountPercent
+    driverId
     dropoffAddress {
       apt
       city

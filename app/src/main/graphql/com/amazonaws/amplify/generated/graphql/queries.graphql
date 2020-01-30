@@ -171,6 +171,7 @@ query GetTrip($tripId: String!) {
     custEmail
     discountAmt
     discountPercent
+    driverId
     dropoffAddress {
       apt
       city
@@ -242,6 +243,7 @@ query GetTripsByNbr($endDate: String, $startDate: String, $tripNbr: Int!) {
     custEmail
     discountAmt
     discountPercent
+    driverId
     dropoffAddress {
       apt
       city
@@ -313,6 +315,7 @@ query GetTripsByVehId($vehicleId: String!) {
     custEmail
     discountAmt
     discountPercent
+    driverId
     dropoffAddress {
       apt
       city
