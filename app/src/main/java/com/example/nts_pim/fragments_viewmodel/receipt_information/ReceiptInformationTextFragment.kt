@@ -45,6 +45,7 @@ import com.amazonaws.amplify.generated.graphql.SavePaymentDetailsMutation
 import com.amazonaws.amplify.generated.graphql.UpdateTripMutation
 import com.apollographql.apollo.GraphQLCall
 import com.apollographql.apollo.exception.ApolloException
+import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import type.SavePaymentDetailsInput
 import type.UpdateTripInput
 import java.util.*
@@ -75,6 +76,7 @@ class ReceiptInformationTextFragment: ScopedFragment(), KodeinAware {
     private var countryListIsShowing = false
     private var internationalNumber = false
     private var inactiveScreenTimer: CountDownTimer? = null
+    private val logFragment = "Text Fragment"
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -466,6 +468,7 @@ class ReceiptInformationTextFragment: ScopedFragment(), KodeinAware {
         }
         //on clickListeners for other buttons
         no_receipt_btn_text.setOnClickListener {
+            LoggerHelper.writeToLog(context!!, "$logFragment, no receipt hit")
             toThankYou()
         }
         send_text_btn_receipt.setOnClickListener {
@@ -477,6 +480,7 @@ class ReceiptInformationTextFragment: ScopedFragment(), KodeinAware {
             }
         }
         back_btn_text_receipt.setOnClickListener {
+            LoggerHelper.writeToLog(context!!, "$logFragment, back button hit")
             backToEmailOrText()
         }
     }
@@ -546,6 +550,7 @@ class ReceiptInformationTextFragment: ScopedFragment(), KodeinAware {
     private fun isOnline(context: Context): Boolean {
         val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
         val networkInfo = connectivityManager.activeNetworkInfo
+        LoggerHelper.writeToLog(context!!, "$logFragment, Checked internet Connection. Connection ${networkInfo.isConnected}")
         return networkInfo != null && networkInfo.isConnected
     }
     private fun startInactivityTimeout(){
@@ -557,6 +562,7 @@ class ReceiptInformationTextFragment: ScopedFragment(), KodeinAware {
             override fun onFinish() {
                 if (!resources.getBoolean(R.bool.isSquareBuildOn) &&
                     no_receipt_btn_text != null) {
+                    LoggerHelper.writeToLog(context!!, "$logFragment, Inactivity Timer finished")
                     no_receipt_btn_text.performClick()
                 }
             }
@@ -639,6 +645,7 @@ class ReceiptInformationTextFragment: ScopedFragment(), KodeinAware {
             if(!response.hasErrors()){
                launch(Dispatchers.IO) {
                    Log.i("Text Receipt", "Payment details have been updated successful. Step 1 Complete")
+                   LoggerHelper.writeToLog(context!!, "Payment details have been updated successful. Step 1 Complete")
                    sendTextReceipt()
                }
             }
@@ -663,12 +670,14 @@ class ReceiptInformationTextFragment: ScopedFragment(), KodeinAware {
 
             if(response.hasErrors()){
                 Log.i("Text Receipt", "Response from aws had errors so did not send text message")
+                LoggerHelper.writeToLog(context!!, "Response from aws had errors so did not send text message ${response.errors().get(0).message()}")
                 return
             }
             if(!response.hasErrors()){
                 if(response.data() != null){
                     launch(Dispatchers.IO) {
                         Log.i("Text Receipt", "Updated custPhone number successfully. Step 2 Complete")
+                        LoggerHelper.writeToLog(context!!, "$logFragment,Updated custPhone number successfully. Step 2 Complete")
                         SmsHelper.sendSMS(tripId, paymentType, transactionId)
                     }
                 }

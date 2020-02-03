@@ -398,5 +398,6 @@ mutation UpdateDeviceIdToImei($parameters: updateDeviceIdToIMEIInput) {
     error
     errorCode
     vehicleId
+    log
   }
 }

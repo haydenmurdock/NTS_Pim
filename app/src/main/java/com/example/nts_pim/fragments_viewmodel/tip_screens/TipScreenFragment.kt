@@ -27,6 +27,7 @@ import com.example.nts_pim.fragments_viewmodel.live_meter.LiveMeterViewModelFact
 import com.example.nts_pim.utilities.enums.MeterEnum
 import com.example.nts_pim.utilities.enums.PIMStatusEnum
 import com.example.nts_pim.utilities.enums.PaymentTypeEnum
+import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import com.example.nts_pim.utilities.mutation_helper.PIMMutationHelper
 import com.example.nts_pim.utilities.sound_helper.SoundHelper
 import com.example.nts_pim.utilities.view_helper.ViewHelper
@@ -76,6 +77,7 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
     private var transactionDate: Date? = null
     private var transactionId = ""
     private var paymentSentForSquare = false
+    private val logFragment = "Tip Screen"
 
 
     val screenTimeOutTimer = object: CountDownTimer(30000, 1000) {
@@ -227,11 +229,13 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
         }))
 
         closeTipScreenBtn.setOnClickListener {
+            LoggerHelper.writeToLog(context!!, "$logFragment, Back button hit")
             val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
             if(navController.currentDestination?.id == (R.id.tipScreenFragment)){
                 val action = TipScreenFragmentDirections.backToTripReview(tripTotal.toFloat()).setMeterOwedPrice(tripTotal.toFloat())
                 navController.navigate(action)
             }
+
         }
         fifteen_percent_btn.setOnClickListener {
                 amountForSquare = tripTotalOption1
@@ -477,6 +481,7 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
     }
     private fun squareCheckout(checkOutAmount: Double) = launch {
         //Function for square
+        LoggerHelper.writeToLog(context!!, "$logFragment,  $checkOutAmount send to start square checkout")
         callbackViewModel.setAmountForSquareDisplay(checkOutAmount)
         val p = checkOutAmount * 100.00
         val checkOutTotal = Math.round(p)
@@ -511,6 +516,7 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
         no_tip_btn.isEnabled = isClickable
         screenTimeOutTimer.cancel()
         screenTimeOutTimer.start()
+        LoggerHelper.writeToLog(context!!, "$logFragment,  Lowered Alpha for Square payment")
     }
     private fun raiseAlphaUI(){
         val alpha = 1.0f
@@ -576,10 +582,12 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
         callbackViewModel.setTipAmount(0.0)
         screenTimeOutTimer.cancel()
         screenTimeOutTimer.start()
+        LoggerHelper.writeToLog(context!!, "$logFragment,  Raised Alpha after Square payment")
     }
     private fun onCheckoutResult(result: Result<CheckoutResult, ResultError<CheckoutErrorCode>>) {
         SoundHelper.turnOnSound(context!!)
         if (result.isSuccess) {
+            LoggerHelper.writeToLog(context!!, "$logFragment,  Square payment result: Success")
             val checkoutResult = result.successValue
             showCheckoutResult(checkoutResult)
             ViewHelper.hideSystemUI(activity!!)
@@ -595,6 +603,7 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
                     Toast.LENGTH_SHORT
                 ).show()
                 PIMMutationHelper.updatePIMStatus(vehicleId, PIMStatusEnum.PAYMENT_ERROR.status, mAWSAppSyncClient!!)
+                LoggerHelper.writeToLog(context!!, "$logFragment,  SDK not authorized for square transaction")
             }
             if (error.code == CheckoutErrorCode.CANCELED) {
                 val toast = Toast.makeText(context,
@@ -603,6 +612,7 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
                 toast.setGravity(Gravity.TOP, 0,0)
                 toast.show()
                 PIMMutationHelper.updatePIMStatus(vehicleId, PIMStatusEnum.CANCELED_SQUARE_PAYMENT.status, mAWSAppSyncClient!!)
+                LoggerHelper.writeToLog(context!!, "$logFragment,  square payment canceled")
             }
             if (error.code ==  CheckoutErrorCode.USAGE_ERROR) {
                 Toast.makeText(context,
@@ -610,6 +620,7 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
                     Toast.LENGTH_SHORT
                 ).show()
                 PIMMutationHelper.updatePIMStatus(vehicleId, PIMStatusEnum.PAYMENT_ERROR.status, mAWSAppSyncClient!!)
+                LoggerHelper.writeToLog(context!!, "$logFragment,  Usage Error from square sdk")
             }
         }
     }
@@ -625,6 +636,7 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
             tripTotalBackFromSquare = i.totalMoney.amount.toDouble()
             val tipBackFromSquare = i.tipMoney.amount.toDouble()
         }
+        LoggerHelper.writeToLog(context!!, "$logFragment,  transaction id: $transactionId, cardInfo: $cardInfo, trip total back from Square, $tripTotalBackFromSquare")
 
         if (cardInfo != "") {
            // updateLocalTripDetails()
@@ -651,6 +663,7 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
         }
     }
     private fun updatePaymentDetail(transactionId: String, tripNumber: Int, vehicleId: String, awsAppSyncClient: AWSAppSyncClient, paymentType: String, tripId: String) = launch(Dispatchers.IO){
+        LoggerHelper.writeToLog(context!!, "$logFragment,  Updated Payment Detail Api. transaction id: $transactionId, trip number: $tripNumber, payment type, $paymentType, trip id: $tripId")
         PIMMutationHelper.updatePaymentDetails(transactionId, tripNumber, vehicleId, awsAppSyncClient, paymentType, tripId)
     }
     private fun updateLocalTripDetails(){
@@ -660,6 +673,7 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
         tripTotal = tripTotalReset
         updateTripTotalTextField(tripTotal)
         tipAmountPassedToSquare = 00.00
+        LoggerHelper.writeToLog(context!!, "$logFragment, reset screen function")
         updateUI()
     }
     private fun setTextToGreyForButtonPress(textView: TextView){
@@ -706,12 +720,18 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
 
         mAWSAppSyncClient?.mutate(UpdateTripMutation.builder().parameters(updateTripInput).build())
             ?.enqueue(transactionInfoCallback)
+
     }
 
     }
     private val transactionInfoCallback = object : GraphQLCall.Callback<UpdateTripMutation.Data>() {
         override fun onResponse(response: Response<UpdateTripMutation.Data>) {
             Log.i("Results", "Trip Transaction was set for card and tip amount in AppSync")
+            LoggerHelper.writeToLog(context!!, "$logFragment,  Updated aws meter trips table. transaction id:" +
+                    " ${response.data()?.updateTrip()?.pimTransId()}, tipAmt: ${response.data()?.updateTrip()?.tipAmt()}" +
+                    "payment type, ${response.data()?.updateTrip()?.paymentType()}" +
+                    ", TransactionDate: ${response.data()?.updateTrip()?.pimTransDate()}" +
+                    ", Card Info: ${response.data()?.updateTrip()?.cardInfo()}")
         }
 
         override fun onFailure(e: ApolloException) {

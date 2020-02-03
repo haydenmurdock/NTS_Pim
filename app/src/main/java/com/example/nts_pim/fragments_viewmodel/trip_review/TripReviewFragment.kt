@@ -32,6 +32,7 @@ import com.example.nts_pim.fragments_viewmodel.base.ScopedFragment
 import com.example.nts_pim.utilities.mutation_helper.PIMMutationHelper
 import com.example.nts_pim.utilities.Square_Service.SquareService
 import com.example.nts_pim.utilities.enums.*
+import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import com.example.nts_pim.utilities.view_helper.ViewHelper
 import kotlinx.android.synthetic.main.please_wait.*
 import kotlinx.android.synthetic.main.trip_review_screen.*
@@ -67,6 +68,7 @@ class TripReviewFragment : ScopedFragment(), KodeinAware {
     private var doesPimNeedToTakePayment = true
     private var textToSpeech: TextToSpeech? = null
     private var currentTrip:CurrentTrip? = null
+    private val logFragment = "Cash or Card"
 
 
     override fun onCreateView(
@@ -185,12 +187,14 @@ class TripReviewFragment : ScopedFragment(), KodeinAware {
             if (tripTotal > 1.00) {
                 VehicleTripArrayHolder.paymentTypeSelected = "card"
                 toTipScreen()
+                LoggerHelper.writeToLog(context!!, "$logFragment: Customer Picked Card")
             } else {
                 showLessThanDollarToast()
             }
         }
         //To the Email or Text Screen
         cash_btn.setOnClickListener {
+            LoggerHelper.writeToLog(context!!, "$logFragment: Customer Picked Cash")
             VehicleTripArrayHolder.paymentTypeSelected = "cash"
             launch {
                 toEmailOrTextWithPayment()
@@ -202,12 +206,14 @@ class TripReviewFragment : ScopedFragment(), KodeinAware {
         callbackViewModel.getIsTransactionComplete()
             .observe(this, Observer { transactionIsComplete ->
                 if (transactionIsComplete) {
+                    LoggerHelper.writeToLog(context!!, "$logFragment: Square Transaction Complete: Going to Email Or Text")
                     toEmailOrTextForSquareTransactionComplete()
                 }
             })
 
         callbackViewModel.getMeterState().observe(this, Observer { meterState ->
             if (meterState == MeterEnum.METER_ON.state) {
+                LoggerHelper.writeToLog(context!!, "$logFragment: Meter State Change: $meterState. Going Back to Live Meter")
                 backToLiveMeter()
             }
         })
@@ -243,18 +249,23 @@ class TripReviewFragment : ScopedFragment(), KodeinAware {
                 val formattedArgs = tripTotalDFUnderTen.format(pimPayAmount)
                 tripTotal = formattedArgs.toDouble()
                 val tripTotalToString = formattedArgs.toString()
-                trip_total_for_tip_text_view.text = "$$tripTotalToString"
+                if (trip_total_for_tip_text_view != null){
+                    trip_total_for_tip_text_view.text = "$$tripTotalToString"
+                }
             } else {
                 val formattedArgs = decimalFormatter.format(pimPayAmount)
                 tripTotal = formattedArgs.toDouble()
                 val tripTotalToString = formattedArgs.toString()
-                trip_total_for_tip_text_view.text = "$$tripTotalToString"
+                if (trip_total_for_tip_text_view != null){
+                    trip_total_for_tip_text_view.text = "$$tripTotalToString"
+                }
             }
         }
         val args = arguments?.getFloat("meterOwedPrice")?.toDouble()
         if (args != null) {
             Log.i("TripReview", "The meterValue passed along was$args")
         }
+        LoggerHelper.writeToLog(context!!, "$logFragment,  Customer is seeing $tripTotal")
     }
 
     private fun checkIfPIMNeedsToTakePayment(enteredPimPayAmount: Double, enteredPimPaidAmount: Double) {
@@ -263,6 +274,7 @@ class TripReviewFragment : ScopedFragment(), KodeinAware {
             enteredPimPayAmount == 00.00 ||
             enteredPimPaidAmount > 0.toDouble()) {
             Log.i("Trip Review: Trip didn't need payment","Pim Pay amount: $enteredPimPayAmount, Pim paid Amount: $enteredPimPaidAmount")
+            LoggerHelper.writeToLog(context!!, "$logFragment, Trip Review: Trip didn't need payment - Pim Pay amount: $enteredPimPayAmount, Pim paid Amount: $enteredPimPaidAmount")
             doesPimNeedToTakePayment = false
             pimPayAmount = enteredPimPaidAmount
             toEmailOrTextWithoutPayment()
@@ -319,6 +331,7 @@ class TripReviewFragment : ScopedFragment(), KodeinAware {
             TextToSpeech.QUEUE_FLUSH,
             null
         )
+        LoggerHelper.writeToLog(context!!, "$logFragment,  Pim Read $messageToSpeak to customer")
     }
     private fun updateAWSWithCashButtonSelection() {
         val coroutineTwo =
@@ -411,12 +424,14 @@ class TripReviewFragment : ScopedFragment(), KodeinAware {
 
             override fun onTick(millisUntilFinished: Long) {
                 if (audioManager.isMicrophoneMute) {
+                    LoggerHelper.writeToLog(context!!, "$logFragment,  Removed Please wait screen early because microphone was muted")
                     removeWaitScreenTimer?.onFinish()
                 }
             }
 
             override fun onFinish() {
                 removePleaseWaitScreen()
+                LoggerHelper.writeToLog(context!!, "$logFragment,  Removed Please wait screen")
                 checkIfPIMNeedsToTakePayment(pimPayAmount, pimPaidAmount)
             }
         }.start()

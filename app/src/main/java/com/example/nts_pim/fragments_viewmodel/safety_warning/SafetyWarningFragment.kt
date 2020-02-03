@@ -11,21 +11,23 @@ import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.navigation.Navigation
 import com.example.nts_pim.R
+import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import kotlinx.android.synthetic.main.safety_warning_screen.*
 import java.util.*
 import kotlin.concurrent.timerTask
 
 class SafetyWarningFragment : Fragment() {
     //This Fragment does not need ViewModel/Factory since it doesn't touch the Repo
-
+    val currentFragmentId = R.id.safety_warning_fragment
+    val logFragment = "Safety Warning"
     private val safetyScreenWarningTimer = object: CountDownTimer(7000, 1000){
         override fun onTick(millisUntilFinished: Long) {
         }
 
         override fun onFinish() {
             if(view != null &&
-                !this@SafetyWarningFragment.isRemoving ||
                 !this@SafetyWarningFragment.isVisible){
+                LoggerHelper.writeToLog(context!!, "$logFragment: Did not play safety message")
                 toNextScreen(view!!)
             }
         }
@@ -44,13 +46,17 @@ class SafetyWarningFragment : Fragment() {
     }
 
     private fun toNextScreen(view: View){
+        LoggerHelper.writeToLog(context!!, "$logFragment: Going to Live Meter Screen")
         Timer().schedule(timerTask {
             navigate(view)
         }, 5000)
     }
 
     private fun navigate(view: View){
-        Navigation.findNavController(view).navigate(R.id.toLiveMeter)
+        val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
+        if (navController.currentDestination?.id == currentFragmentId){
+            navController.navigate(R.id.toLiveMeter)
+        }
     }
 
     private fun checkAnimation(view: View) {
@@ -75,10 +81,12 @@ class SafetyWarningFragment : Fragment() {
             if(view != null){
                 navigate(view!!)
             }
+            LoggerHelper.writeToLog(context!!, "$logFragment: Finished Safety Message")
             mediaPlayer.release()
         }
         mediaPlayer.start()
-        }
+        LoggerHelper.writeToLog(context!!, "$logFragment: Started Safety Message")
+    }
 
     override fun onResume() {
         super.onResume()

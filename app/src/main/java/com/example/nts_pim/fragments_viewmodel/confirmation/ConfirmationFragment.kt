@@ -22,6 +22,7 @@ import com.example.nts_pim.fragments_viewmodel.interaction_complete.InteractionC
 import com.example.nts_pim.fragments_viewmodel.interaction_complete.InteractionCompleteViewModelFactory
 import com.example.nts_pim.utilities.enums.SharedPrefEnum
 import com.example.nts_pim.utilities.enums.VehicleStatusEnum
+import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import com.example.nts_pim.utilities.mutation_helper.PIMMutationHelper
 import kotlinx.android.synthetic.main.confirmation_screen.*
 import kotlinx.coroutines.Dispatchers
@@ -41,6 +42,7 @@ class ConfirmationFragment: ScopedFragment(), KodeinAware {
     private lateinit var callbackViewModel: CallBackViewModel
     private lateinit var viewModel: InteractionCompleteViewModel
     private val currentFragmentId = R.id.confirmationFragment
+    private val logFragment = "Confirmation fragment"
     private val restartAppTimer = object: CountDownTimer(10000, 1000) {
         override fun onTick(millisUntilFinished: Long) {
             if(confirmation_type_textView == null){
@@ -215,6 +217,7 @@ class ConfirmationFragment: ScopedFragment(), KodeinAware {
             CurrentTrip::class.java)
         currentTrip?.isActive = false
         ModelPreferences(context!!).putObject(SharedPrefEnum.CURRENT_TRIP.key, currentTrip)
+        LoggerHelper.writeToLog(context!!, "$logFragment, internal trip status changed. Trip Active ${currentTrip?.isActive}")
     }
 
     override fun onDestroy() {

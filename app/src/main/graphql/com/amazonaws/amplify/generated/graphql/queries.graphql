@@ -83,6 +83,7 @@ query GetPimSettings($deviceId: String!, $pin: String) {
     error
     errorCode
     vehicleId
+    log
   }
 }
 query GetSettings($deviceId: String!, $pin: String) {
@@ -400,5 +401,14 @@ query GetVehicleEvents(
     tripId
     vehicleId
     vehicleNbr
+  }
+}
+query GetLoggingSettings($deviceId: String!) {
+  getLoggingSettings(deviceId: $deviceId) {
+    deviceId
+    error
+    errorCode
+    vehicleId
+    log
   }
 }

@@ -42,6 +42,7 @@ import com.example.nts_pim.utilities.enums.PIMStatusEnum
 import com.example.nts_pim.utilities.enums.SharedPrefEnum
 import com.example.nts_pim.utilities.enums.VehicleStatusEnum
 import com.example.nts_pim.utilities.keyboards.PhoneKeyboard
+import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import com.example.nts_pim.utilities.power_cycle.PowerAccessibilityService
 import com.example.nts_pim.utilities.sound_helper.SoundHelper
 import com.example.nts_pim.utilities.view_helper.ViewHelper
@@ -84,6 +85,7 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
     private var lastTrip:Pair<Boolean?, String> = Pair(false, "")
     private val currentFragmentId = R.id.welcome_fragment
     private var pimIsReadyToTakeTrip = false
+    private val logFragment = "Welcome Screen"
 
     private val batteryCheckTimer = object : CountDownTimer(1800000, 1000) {
         //Every 30 minutes  we are doing a battery check.
@@ -113,7 +115,7 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
             showToastMessage("Restarting:  $seconds", 1000)
         }
         override fun onFinish() {
-            val action = "com.claren.tablet_control.reboot"
+            val action =  "com.claren.tablet_control.shutdown"
             val p = "com.claren.tablet_control"
             val intent = Intent()
             intent.action = action
@@ -222,6 +224,7 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
         callBackViewModel.getTripStatus().observe(this, androidx.lifecycle.Observer {
             if (it == VehicleStatusEnum.TRIP_PICKED_UP.status){
                 changeScreenBrightness(fullBrightness)
+                LoggerHelper.writeToLog(context!!, "$logFragment received Trip_Pick_Up_Status. Starting Animation")
                 checkAnimation()
             }
         })
@@ -251,11 +254,13 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
 
     private fun tripIsCurrentlyRunning(isTripActive: Boolean){
         if (!isTripActive){
+            LoggerHelper.writeToLog(context!!, "$logFragment. Trip Check: Last saved trip is not active")
             return
         }
         val tripId = lastTrip.second
         changeScreenBrightness(fullBrightness)
         Log.i("Welcome Screen", "Trip Active: $isActive Trip Id: $tripId")
+        LoggerHelper.writeToLog(context!!, "$logFragment Trip Check: Last saved trip is active. To Meter Screen")
         toLiveMeterScreen()
 
     }
@@ -273,6 +278,8 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
     private fun markPimStartTime(){
         val time = LocalDateTime.now()
         TripDetails.tripStartTime = time
+        LoggerHelper.writeToLog(context!!, "$logFragment: PimMarkStartTime")
+
     }
     private fun checkPassword() {
         if (password_editText.text.toString() == password) {
@@ -307,6 +314,7 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
                 || status == BatteryManager.BATTERY_STATUS_FULL
         val batteryPowerPermission = callBackViewModel.batteryPowerStatePermission()
         if (!isCharging && !batteryPowerPermission) {
+            LoggerHelper.writeToLog(context!!, "$logFragment: Battery Check: is charging: $isCharging, sending request for shutdown")
             val action =  "com.claren.tablet_control.shutdown"
             val p = "com.claren.tablet_control"
             val intent = Intent()
@@ -317,6 +325,7 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
         }
 
         if (isCharging) {
+            LoggerHelper.writeToLog(context!!, "$logFragment: Battery Check: is charging: $isCharging")
             batteryCheckTimer.cancel()
             batteryCheckTimer.start()
         }
@@ -340,6 +349,7 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
         val lp = activity?.window?.attributes
         lp?.screenBrightness = br.toFloat() / 255
         activity?.window?.attributes = lp
+        LoggerHelper.writeToLog(context!!, "$logFragment: Screen set to Max Brightness")
     }
 
     private fun checkSquareMode(){
@@ -395,6 +405,7 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
     }
 
     private fun startSquareFlow(){
+            LoggerHelper.writeToLog(context!!, "$logFragment: Started Square Checkout flow")
             SoundHelper.turnOffSound(context!!)
             val p = 100.00
             val checkOutTotal = p.toLong()
@@ -425,10 +436,12 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
             Log.i("VERSION", "Build Version is different. Updating ${lastSavedAppVersion.version} to $currentBuildVersion")
             lastSavedAppVersion.version = currentBuildVersion
             ModelPreferences(context!!.applicationContext).putObject(SharedPrefEnum.BUILD_VERSION.key, lastSavedAppVersion)
+            LoggerHelper.writeToLog(context!!, "${logFragment}: Build Version is different. Updating ${lastSavedAppVersion.version} to $currentBuildVersion. Restarting Tablet")
             // if we wanted to restart PIM this is where we would write that code.
-//            restartAppTimer.start()
+            restartAppTimer.start()
         } else {
             Log.i("VERSION", "Build Version is the same as last saved amount")
+            LoggerHelper.writeToLog(context!!, "${logFragment}: Build Version is the same from last startup. Build version $currentBuildVersion")
         }
     }
     private fun saveAppBuildVersion(){
@@ -446,6 +459,9 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
     }
     private fun toTaxiNumber() {
         markPimStartTime()
+        if(tripId != ""){
+            callBackViewModel.updateCurrentTrip(true, tripId, "off", context!!)
+        }
         val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
         if (navController.currentDestination?.id == currentFragmentId){
             navController.navigate(R.id.toTaxiNumber)
@@ -496,6 +512,6 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
         super.onDestroy()
         callBackViewModel.getTripStatus().removeObservers(this)
         callBackViewModel.hasNewTripStarted().removeObservers(this)
-//        restartAppTimer.cancel()
+        restartAppTimer.cancel()
     }
 }

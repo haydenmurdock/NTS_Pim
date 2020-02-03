@@ -41,6 +41,7 @@ import com.example.nts_pim.data.repository.providers.ModelPreferences
 import com.example.nts_pim.fragments_viewmodel.vehicle_settings.setting_keyboard_viewModels.SettingsKeyboardViewModel
 import com.example.nts_pim.fragments_viewmodel.vehicle_setup.VehicleSetupViewModel
 import com.example.nts_pim.utilities.enums.SharedPrefEnum
+import com.example.nts_pim.utilities.logging_service.LoggerHelper
 
 
 class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
@@ -216,9 +217,11 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
         val alpha = 1.00f
         val duration = 500.toLong()
         val buildName = BuildConfig.VERSION_NAME
+        val isLoggingOn = LoggerHelper.logging
         settings_detail_textView.text = "Vehicle ID: $vehicleID"
         build_version_textView.text = "Build Version: $buildName"
         imei_textView.text = "IMEI: $imei"
+        logging_textView.text = "Logging: $isLoggingOn"
         val c = context?.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
         val bucket = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             c.appStandbyBucket.toString()

@@ -29,6 +29,7 @@ import com.example.nts_pim.fragments_viewmodel.callback.CallBackViewModel
 import com.example.nts_pim.utilities.enums.PIMStatusEnum
 import com.example.nts_pim.utilities.enums.VehicleStatusEnum
 import com.example.nts_pim.utilities.international_phone_number.CountryPhoneNumber
+import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import com.example.nts_pim.utilities.mutation_helper.PIMMutationHelper
 import com.example.nts_pim.utilities.sound_helper.SoundHelper
 import com.example.nts_pim.utilities.view_helper.ViewHelper
@@ -62,6 +63,7 @@ class EmailOrTextFragment : ScopedFragment(), KodeinAware {
     private val decimalFormatter = DecimalFormat("####0.00")
     private var inactiveScreenTimer: CountDownTimer? = null
     private val currentFragmentId = R.id.email_or_text_fragment
+    private val logFragment = "Email or Text"
 
 
     override fun onCreateView(
@@ -173,18 +175,22 @@ class EmailOrTextFragment : ScopedFragment(), KodeinAware {
             }
         })
         email_or_text_back_btn.setOnClickListener {
+            LoggerHelper.writeToLog(context!!, "$logFragment, Back button hit")
            backToCreditOrCash()
         }
         //Email Button
         email_btn.setOnClickListener {
+            LoggerHelper.writeToLog(context!!, "$logFragment, Email button hit")
            toEmailReceipt()
         }
         //Text Message Button
         text_message_btn.setOnClickListener {
+            LoggerHelper.writeToLog(context!!, "$logFragment, Text Message button hit")
             toTextReceipt()
         }
         //No Receipt Button
         no_receipt_btn.setOnClickListener {
+            LoggerHelper.writeToLog(context!!, "$logFragment, No receipt button hit")
            toThankYou()
         }
     }
@@ -218,6 +224,7 @@ class EmailOrTextFragment : ScopedFragment(), KodeinAware {
     }
 
     private fun updatePaymentDetail(transactionId: String, tripNumber: Int, vehicleId: String, awsAppSyncClient: AWSAppSyncClient, paymentType: String, tripID: String) = launch(Dispatchers.IO){
+        LoggerHelper.writeToLog(context!!, "$logFragment, Cash selected so updated Payment API, $transactionId, $tripNumber, $paymentType")
         PIMMutationHelper.updatePaymentDetails(transactionId, tripNumber, vehicleId, awsAppSyncClient, paymentType, tripID)
     }
 
@@ -240,6 +247,7 @@ class EmailOrTextFragment : ScopedFragment(), KodeinAware {
             }
             override fun onFinish() {
                 if (!resources.getBoolean(R.bool.isSquareBuildOn)) {
+                    LoggerHelper.writeToLog(context!!, "$logFragment, Inactivity Timer finished")
                     toThankYou()
                 }
             }
@@ -261,12 +269,14 @@ class EmailOrTextFragment : ScopedFragment(), KodeinAware {
                 !response.data()!!.trip.custEmail().isNullOrBlank()) {
                 val previousEmailAWS = response.data()?.trip?.custEmail() as String
                 previousEmail = previousEmailAWS
+                LoggerHelper.writeToLog(context!!, "$logFragment, checked AWS for custEmail. $previousEmail")
             }
 
             if(!response.data()!!.trip.custPhoneNbr().isNullOrEmpty() ||
                 !response.data()!!.trip.custPhoneNbr().isNullOrBlank()) {
                 val previousPhoneNumberAWS = response.data()?.trip?.custPhoneNbr() as String
                 previousPhoneNumber = previousPhoneNumberAWS
+                LoggerHelper.writeToLog(context!!, "$logFragment, checked AWS for custEmail. $previousPhoneNumber")
             }
          }
         override fun onFailure(e: ApolloException) {
@@ -276,6 +286,7 @@ class EmailOrTextFragment : ScopedFragment(), KodeinAware {
     private fun receiptCheck(pimNoReceipt: Boolean){
         //True if the customer does not need a receipt
         if(pimNoReceipt){
+            LoggerHelper.writeToLog(context!!, "$logFragment, PIM does not need to take receipt")
             toThankYou()
         }
     }
@@ -329,7 +340,6 @@ class EmailOrTextFragment : ScopedFragment(), KodeinAware {
         callBackViewModel.getTripStatus().removeObservers(this)
         callBackViewModel.getIsTransactionComplete().removeObservers(this)
     }
-
 }
 
 

@@ -13,6 +13,7 @@ import com.example.nts_pim.data.repository.model_objects.CurrentTrip
 import com.example.nts_pim.data.repository.providers.ModelPreferences
 import com.example.nts_pim.fragments_viewmodel.base.ScopedFragment
 import com.example.nts_pim.utilities.enums.SharedPrefEnum
+import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import kotlinx.android.synthetic.main.taxi_number_screen.*
 import org.kodein.di.KodeinAware
 import org.kodein.di.android.x.closestKodein
@@ -24,11 +25,10 @@ class TaxiNumberFragment : ScopedFragment(), KodeinAware {
 
     //Kodein and viewModel/Factory
     override val kodein by closestKodein()
-
     private val viewModelFactory: TaxiNumberViewModelFactory by instance()
-
     private lateinit var viewModel: TaxiNumberViewModel
     private var fullBrightness = 255
+    private val logFragment = "Taxi Number"
 
     //Local Variables
 
@@ -48,6 +48,7 @@ class TaxiNumberFragment : ScopedFragment(), KodeinAware {
         val settings = viewModel.getVehicleSettings()
         if (settings != null){
             updateUI(settings.cabNumber)
+            LoggerHelper.writeToLog(context!!, "$logFragment: updated cab number. Starting animation")
             checkAnimation(view)
         }
         val br = Settings.System.getInt(context?.contentResolver, Settings.System.SCREEN_BRIGHTNESS)
@@ -61,12 +62,18 @@ class TaxiNumberFragment : ScopedFragment(), KodeinAware {
         val animationIsOn = resources.getBoolean(R.bool.animationIsOn)
 
         if (animationIsOn) {
-            taxi_number_text_view.animate().alpha(1f).setDuration(2500).withEndAction(Runnable {
-                taxi_number_text_view.animate().alpha(0.0f).setDuration(2500).withEndAction(Runnable {
-                    println("view should be gone")
-                    navigate(view)
+            if (taxi_number_text_view != null){
+                taxi_number_text_view.animate().alpha(1f).setDuration(2500).withEndAction(Runnable {
+                    if (taxi_number_text_view != null){
+                        taxi_number_text_view.animate().alpha(0.0f).setDuration(2500).withEndAction(Runnable {
+                            println("view should be gone")
+                            navigate(view)
+                        })
+                    }else {
+                        navigate(view)
+                    }
                 })
-            })
+            }
         } else {
             toNextScreen(view)
         }

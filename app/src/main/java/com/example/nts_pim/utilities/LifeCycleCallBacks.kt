@@ -31,8 +31,6 @@ class LifeCycleCallBacks : Application.ActivityLifecycleCallbacks {
     }
 
     override fun onActivityResumed(activity: Activity?) {
-        val application = activity?.application as PimApplication
-        application.initReaderSdk()
 
         val name = activity?.localClassName
         if (name == "com.squareup.ui.main.ApiMainActivity"){

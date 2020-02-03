@@ -37,6 +37,7 @@ import com.amazonaws.mobile.auth.core.internal.util.ThreadUtils.runOnUiThread
 import com.example.nts_pim.data.repository.model_objects.CurrentTrip
 import com.example.nts_pim.data.repository.providers.ModelPreferences
 import com.example.nts_pim.utilities.enums.*
+import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import com.example.nts_pim.utilities.mutation_helper.PIMMutationHelper
 import com.example.nts_pim.utilities.sound_helper.SoundHelper
 import com.example.nts_pim.utilities.swipe_touch_listner.OnSwipeTouchListener
@@ -64,6 +65,7 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
     private var requestMeterStateValueTimer:CountDownTimer? = null
     private val visible = View.VISIBLE
     private var currentTrip:CurrentTrip? = null
+    private val logFragment = "Live Meter"
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -91,6 +93,7 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
 
             tripID = currentTrip!!.tripID
             getMeterOwedQuery(tripID)
+            LoggerHelper.writeToLog(context!!, "$logFragment: had to query Meter Owed for $tripID")
         }
         updateTickerUI()
         checkCurrentTrip()
@@ -104,7 +107,7 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
         live_meter_next_screen_button.setOnClickListener {
 //            toTripReview()
         }
-        if(meterState ==MeterEnum.METER_TIME_OFF.state){
+        if(meterState == MeterEnum.METER_TIME_OFF.state){
             if(audioManager!!.isMicrophoneMute){
                 playTimeOffSound()
             }
@@ -116,6 +119,7 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
                 val df = decimalFormatter.format(meterOwedValue)
                 meterValue = df.toString()
                 tickerView.setText(meterValue, true)
+                LoggerHelper.writeToLog(context!!, "$logFragment: Meter UI is displaying $meterValue")
                 if (!live_meter_dollar_sign.isVisible &&
                     live_meter_dollar_sign != null
                 ) {
@@ -191,6 +195,7 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
             initialMeterValueSet = true
             if (tickerView != null){
                 tickerView.setText(tripTotalToString, true)
+                LoggerHelper.writeToLog(context!!, "$logFragment: Meter UI is displaying $tripTotalToString")
             }
         }
     }
@@ -241,6 +246,7 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
 
                     runOnUiThread {
                         if (tickerView != null) {
+                            LoggerHelper.writeToLog(context!!, "$logFragment: Meter UI is displaying $meterValue from trip Query")
                             tickerView.setText(meterValue, true)
                             if(!live_meter_dollar_sign.isVisible){
                                 live_meter_dollar_sign.visibility = visible
@@ -269,6 +275,7 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
     private fun reSyncComplete() = launch(Dispatchers.Main.immediate) {
         callbackViewModel.updateCurrentTrip(true, tripID, meterState, context!!)
         callbackViewModel.reSyncComplete()
+        LoggerHelper.writeToLog(context!!, "$logFragment: Resync Complete")
     }
     private fun requestMeterStateValue(){
           requestMeterStateValueTimer = object:CountDownTimer(10000,1000){
@@ -284,6 +291,7 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
         SoundHelper.turnOnSound(context!!)
         val mediaPlayer = MediaPlayer.create(context, R.raw.time_off_test_sound)
         mediaPlayer.setOnCompletionListener {
+            LoggerHelper.writeToLog(context!!, "$logFragment: Time Off Sound Played")
             mediaPlayer.release()
         }
        mediaPlayer.start()

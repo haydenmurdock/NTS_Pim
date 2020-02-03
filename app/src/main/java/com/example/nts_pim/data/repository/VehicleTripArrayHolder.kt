@@ -134,7 +134,7 @@ object VehicleTripArrayHolder {
             tripId = enteredTripId
             newTripHasStarted = true
             newTripHasStartedMutableLiveData.value = newTripHasStarted
-            createCurrentTrip(true, enteredTripId, "none", context)
+            createCurrentTrip(false, enteredTripId, "none", context)
             tripEnded = false
             tripEndedMutableLiveData.value = tripEnded
             newTripHasStarted = false

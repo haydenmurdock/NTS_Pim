@@ -23,6 +23,7 @@ import com.example.nts_pim.fragments_viewmodel.base.ScopedFragment
 import com.example.nts_pim.utilities.driver_receipt.DriverReceiptHelper
 import com.example.nts_pim.utilities.enums.SharedPrefEnum
 import com.example.nts_pim.utilities.enums.VehicleStatusEnum
+import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import com.example.nts_pim.utilities.mutation_helper.PIMMutationHelper
 import kotlinx.coroutines.*
 import org.kodein.di.KodeinAware
@@ -42,6 +43,8 @@ class InteractionCompleteFragment : ScopedFragment(), KodeinAware {
     private var mAWSAppSyncClient: AWSAppSyncClient? = null
     private lateinit var callbackViewModel: CallBackViewModel
     private lateinit var viewModel: InteractionCompleteViewModel
+
+    private val logFragment = "Thank you screen"
     private val restartAppTimer = object: CountDownTimer(10000, 1000) {
         override fun onTick(millisUntilFinished: Long) {
             if(thank_you_textView == null){
@@ -51,6 +54,7 @@ class InteractionCompleteFragment : ScopedFragment(), KodeinAware {
         }
         override fun onFinish() {
             callbackViewModel.clearAllTripValues()
+            LoggerHelper.writeToLog(context!!, "$logFragment, restart Timer Finished")
             restartApp()
         }
     }
@@ -113,7 +117,7 @@ class InteractionCompleteFragment : ScopedFragment(), KodeinAware {
 
     }
     private fun runEndTripMutation() = launch {
-        if(resources.getBoolean(R.bool.animationIsOn )){
+        if(resources.getBoolean(R.bool.testingWithPimRemote)){
             PIMMutationHelper.updateTripStatus(vehicleId, VehicleStatusEnum.TRIP_END.status, mAWSAppSyncClient!!, tripId)
         }
     }
@@ -123,6 +127,7 @@ class InteractionCompleteFragment : ScopedFragment(), KodeinAware {
             CurrentTrip::class.java)
         currentTrip?.isActive = false
         ModelPreferences(context!!).putObject(SharedPrefEnum.CURRENT_TRIP.key, currentTrip)
+        LoggerHelper.writeToLog(context!!, "$logFragment, internal trip status changed. Trip Active ${currentTrip?.isActive}")
     }
 
     override fun onDestroy() {

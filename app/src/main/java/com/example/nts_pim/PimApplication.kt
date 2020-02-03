@@ -58,7 +58,7 @@ class PimApplication : Application(), KodeinAware{
     private var isReaderInit = false
         override fun onCreate() {
             super.onCreate()
-
+            ReaderSdk.initialize(this)
             AndroidThreeTen.init(this)
             registerActivityLifecycleCallbacks(LifeCycleCallBacks())
             createNotificationChannel()
@@ -71,13 +71,5 @@ class PimApplication : Application(), KodeinAware{
            )
             val manager: NotificationManager = getSystemService(NotificationManager::class.java)
             manager.createNotificationChannel(notificationChannel)
-        }
-
-        fun initReaderSdk(){
-            if(!isReaderInit){
-                ReaderSdk.initialize(this)
-                isReaderInit = true
-                Log.i("PimApplication", "reader has been init")
-            }
         }
     }

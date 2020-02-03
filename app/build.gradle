@@ -11,27 +11,38 @@ apply plugin: "kotlin-kapt"
 apply plugin: 'com.amazonaws.appsync'
 
 android {
+    signingConfigs {
+        debug {
+            storeFile file('/Users/haydenmurdock/Desktop/NTS/SSH/Untitled4.jks')
+            storePassword 'dragons1'
+            keyAlias = 'upload'
+            keyPassword 'dragons1'
+        }
+    }
     compileSdkVersion 28
     buildToolsVersion "28.0.3"
     defaultConfig {
         applicationId "com.example.nts_pim"
-        minSdkVersion 26
+        minSdkVersion 28
         targetSdkVersion 28
-        versionCode 104942
-        versionName "1.049.41"
+        versionCode 1051
+        versionName "1.051"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         multiDexEnabled true
+        signingConfig signingConfigs.debug
     }
+
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.debug
+            multiDexEnabled = true
         }
         debug {
-            debuggable = true
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.debug
+            multiDexEnabled = true
         }
-
     }
     packagingOptions {
         exclude 'META-INF/DEPENDENCIES'
@@ -58,7 +69,7 @@ androidExtensions {
 }
 
 dependencies {
-    def readerSdkVersion = "1.3.3"
+    def readerSdkVersion = "1.3.2"
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
     implementation 'androidx.appcompat:appcompat:1.1.0'
@@ -89,7 +100,7 @@ dependencies {
     api 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.2.0-alpha04'
 
     //Multidex
-
+    implementation 'androidx.multidex:multidex:2.0.1'
 
     //Gson
     implementation "com.google.code.gson:gson:2.8.5"
