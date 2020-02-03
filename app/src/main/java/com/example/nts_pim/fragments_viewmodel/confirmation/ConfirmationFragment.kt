@@ -11,6 +11,7 @@ import androidx.lifecycle.ViewModelProviders
 import androidx.navigation.Navigation
 import com.amazonaws.mobileconnectors.appsync.AWSAppSyncClient
 import com.example.nts_pim.R
+import com.example.nts_pim.activity.MainActivity
 import com.example.nts_pim.data.repository.TripDetails
 import com.example.nts_pim.data.repository.model_objects.CurrentTrip
 import com.example.nts_pim.data.repository.providers.ModelPreferences
@@ -43,6 +44,8 @@ class ConfirmationFragment: ScopedFragment(), KodeinAware {
     private lateinit var viewModel: InteractionCompleteViewModel
     private val currentFragmentId = R.id.confirmationFragment
     private val logFragment = "Confirmation fragment"
+    private var tripStatus:String? = ""
+
     private val restartAppTimer = object: CountDownTimer(10000, 1000) {
         override fun onTick(millisUntilFinished: Long) {
             if(confirmation_type_textView == null){
@@ -82,6 +85,7 @@ class ConfirmationFragment: ScopedFragment(), KodeinAware {
         viewModel = ViewModelProviders.of(this, viewModelFactory).get(InteractionCompleteViewModel::class.java)
         tripId = callbackViewModel.getTripId()
         vehicleId = viewModel.getVehicleID()
+        tripStatus = callbackViewModel.getTripStatus().value
 
         getTripDetails()
         checkIfTransactionIsComplete()
@@ -206,11 +210,13 @@ class ConfirmationFragment: ScopedFragment(), KodeinAware {
             }
         }
     }
-    private fun runEndTripMutation() = launch(Dispatchers.IO) {
-        if(resources.getBoolean(R.bool.animationIsOn )){
-            PIMMutationHelper.updateTripStatus(vehicleId, VehicleStatusEnum.TRIP_END.status, mAWSAppSyncClient!!, tripId)
-        }
+    private fun runEndTripMutation() = launch {
+            if (tripStatus != null && tripStatus == VehicleStatusEnum.TRIP_PICKED_UP.status){
+                Log.i("LOGGER", "trip status was still picked up. Sent end trip status")
+                PIMMutationHelper.updateTripStatus(vehicleId, VehicleStatusEnum.TRIP_END.status, mAWSAppSyncClient!!, tripId)
+       }
     }
+    
     private fun setInternalCurrentTripStatus(){
         val currentTrip = ModelPreferences(context!!).getObject(
             SharedPrefEnum.CURRENT_TRIP.key,
@@ -218,6 +224,7 @@ class ConfirmationFragment: ScopedFragment(), KodeinAware {
         currentTrip?.isActive = false
         ModelPreferences(context!!).putObject(SharedPrefEnum.CURRENT_TRIP.key, currentTrip)
         LoggerHelper.writeToLog(context!!, "$logFragment, internal trip status changed. Trip Active ${currentTrip?.isActive}")
+
     }
 
     override fun onDestroy() {

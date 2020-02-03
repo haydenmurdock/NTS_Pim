@@ -7,7 +7,6 @@ import android.os.Bundle
 import android.os.CountDownTimer
 import android.util.Log
 import android.view.LayoutInflater
-import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import androidx.core.view.isVisible
@@ -23,7 +22,6 @@ import org.kodein.di.KodeinAware
 import org.kodein.di.android.x.closestKodein
 import org.kodein.di.generic.instance
 import androidx.lifecycle.Observer
-import com.amazonaws.amplify.generated.graphql.GetStatusQuery
 import com.amazonaws.amplify.generated.graphql.GetTripQuery
 import com.amazonaws.mobileconnectors.appsync.fetcher.AppSyncResponseFetchers
 import com.apollographql.apollo.GraphQLCall
@@ -40,8 +38,6 @@ import com.example.nts_pim.utilities.enums.*
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import com.example.nts_pim.utilities.mutation_helper.PIMMutationHelper
 import com.example.nts_pim.utilities.sound_helper.SoundHelper
-import com.example.nts_pim.utilities.swipe_touch_listner.OnSwipeTouchListener
-import kotlinx.android.synthetic.main.recent_trip_aws_screen.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
@@ -55,7 +51,7 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
     private var mAWSAppSyncClient: AWSAppSyncClient? = null
     // Local Variables
     private var vehicleId = ""
-    private var tripID = ""
+    private var tripId = ""
     var meterState = ""
     private var meterValue = ""
     private val decimalFormatter = DecimalFormat("####00.00")
@@ -87,13 +83,12 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
          audioManager = context?.getSystemService(Context.AUDIO_SERVICE) as AudioManager
          currentTrip = ModelPreferences(context!!)
             .getObject(SharedPrefEnum.CURRENT_TRIP.key, CurrentTrip::class.java)
-        tripID = callbackViewModel.getTripId()
-        if(tripID == "" &&
+        tripId = callbackViewModel.getTripId()
+        if(tripId == "" &&
                 currentTrip != null){
-
-            tripID = currentTrip!!.tripID
-            getMeterOwedQuery(tripID)
-            LoggerHelper.writeToLog(context!!, "$logFragment: had to query Meter Owed for $tripID")
+            tripId = currentTrip!!.tripID
+            getMeterOwedQuery(tripId)
+            LoggerHelper.writeToLog(context!!, "$logFragment: had to query Meter Owed for $tripId")
         }
         updateTickerUI()
         checkCurrentTrip()
@@ -104,9 +99,7 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
         if(meterState == "off"){
             callbackViewModel.addMeterState("ON")
         }
-        live_meter_next_screen_button.setOnClickListener {
-//            toTripReview()
-        }
+
         if(meterState == MeterEnum.METER_TIME_OFF.state){
             if(audioManager!!.isMicrophoneMute){
                 playTimeOffSound()
@@ -148,6 +141,14 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
                 toEmailText()
             }
         })
+        refresh_button.setOnClickListener {
+            if(refresh_progress_bar != null){
+                refresh_button.isEnabled = false
+                refresh_progress_bar.isVisible = true
+                refresh_progress_bar.animate()
+                getMeterOwedQuery(tripId)
+            }
+        }
     }
 
     private fun updateTickerUI() {
@@ -160,7 +161,7 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
             val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
             if(navController.currentDestination?.id == R.id.live_meter_fragment){
                 if(currentTrip != null){
-                    callbackViewModel.updateCurrentTrip(true, tripID, "TIME_OFF", context!!)
+                    callbackViewModel.updateCurrentTrip(true, tripId, "TIME_OFF", context!!)
                 }
                 val priceAsFloat = meterValue.toFloat()
                 val action = LiveMeterFragmentDirections.toTripReviewFragment(priceAsFloat).setMeterOwedPrice(priceAsFloat)
@@ -206,11 +207,6 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
             if(tickerView.alpha.equals(0.0f)){
                 tickerView.animate().alpha(1.0f).setDuration(2500).start()
             }
-        } else {
-            if(live_meter_next_screen_button != null){
-                live_meter_next_screen_button.isEnabled = false
-                live_meter_next_screen_button.isVisible = false
-            }
         }
     }
 
@@ -255,8 +251,12 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
                                 tickerView.visibility = visible
                                  }
                             }
+                        if (refresh_progress_bar != null){
+                            refresh_progress_bar.isVisible = false
+                            refresh_button.isClickable = true
                         }
                     }
+                }
 
                 if (startingMeterState == MeterEnum.METER_TIME_OFF.state &&
                     startingMeterValue!! != 0.toDouble()){
@@ -273,7 +273,7 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
         }
 
     private fun reSyncComplete() = launch(Dispatchers.Main.immediate) {
-        callbackViewModel.updateCurrentTrip(true, tripID, meterState, context!!)
+        callbackViewModel.updateCurrentTrip(true, tripId, meterState, context!!)
         callbackViewModel.reSyncComplete()
         LoggerHelper.writeToLog(context!!, "$logFragment: Resync Complete")
     }

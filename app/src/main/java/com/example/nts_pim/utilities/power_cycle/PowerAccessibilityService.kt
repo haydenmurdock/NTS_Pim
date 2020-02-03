@@ -1,10 +1,12 @@
 package com.example.nts_pim.utilities.power_cycle
 
+import android.Manifest
 import android.accessibilityservice.AccessibilityService
 import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.provider.Settings
 import android.text.TextUtils
 import android.util.Log
@@ -12,12 +14,13 @@ import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import android.widget.Toast
 import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
 import com.example.nts_pim.R
+import com.example.nts_pim.utilities.logging_service.LoggerHelper
 
 class PowerAccessibilityService: AccessibilityService() {
 
     private var loggingEnabled = false
-    private val receiver: BroadcastReceiver? = null
     private var samsungVolumneWarning = false
     private var bluetoothPairing = false
     private val clarenTablet = "com.claren.tablet_control.shutdown"
@@ -48,15 +51,13 @@ class PowerAccessibilityService: AccessibilityService() {
         }
     }
     override fun onInterrupt() {
-
+        Log.i("LOGGER", "Power service interruped.")
     }
-
     override fun onServiceConnected() {
         Log.i("Power", "The power accessiblity service has been connected")
         super.onServiceConnected()
 
     }
-
     override fun onCreate() {
         val pi = PendingIntent.getActivity(this, 0, Intent(), 0)
         val notification = NotificationCompat.Builder(this, "powerservicechannel")
@@ -65,10 +66,14 @@ class PowerAccessibilityService: AccessibilityService() {
             .setSmallIcon(R.drawable.ic_wrench)
             .setContentIntent(pi)
             .build()
-
-        startForeground(1, notification)
+        try {
+            if(ContextCompat.checkSelfPermission(this, Manifest.permission.FOREGROUND_SERVICE) == PackageManager.PERMISSION_GRANTED){
+                startForeground(1, notification)
+            }
+        } catch (e: Exception){
+            Log.i("LOGGER", "FORGROUND SERVICE NOT STARTED. EXCEPTION:$e")
+        }
     }
-
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         try{
             samsungVolumneWarning = false
@@ -105,9 +110,6 @@ class PowerAccessibilityService: AccessibilityService() {
         } catch (e: Settings.SettingNotFoundException) {
             Log.e(TAG, "Error finding setting, default accessibility to not found: " + e.message)
         }
-
-        val mStringColonSplitter = TextUtils.SimpleStringSplitter(':')
-
         if (accessibilityEnabled == 1) {
             val settingValue = Settings.Secure.getString(
                 mContext.getApplicationContext().getContentResolver(),
@@ -121,7 +123,6 @@ class PowerAccessibilityService: AccessibilityService() {
                 Log.v(TAG, "***ACCESSIBILITY IS DISABLED***")
                 return false
             }
-
         }
         return false
     }

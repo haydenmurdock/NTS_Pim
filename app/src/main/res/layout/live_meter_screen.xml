@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
         xmlns:app="http://schemas.android.com/apk/res-auto"
+        xmlns:tools="http://schemas.android.com/tools"
         android:id="@+id/liveMeterLayout"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -80,17 +81,26 @@
         </androidx.constraintlayout.widget.ConstraintLayout>
     </ScrollView>
 
-    <ImageButton
-            android:id="@+id/live_meter_next_screen_button"
+    <Button
+            android:id="@+id/refresh_button"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginEnd="32dp"
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="16dp"
             android:background="@null"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintVertical_bias="0.499"
-            app:srcCompat="@drawable/ic_arrow_point_to_right" />
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+    <ProgressBar
+            android:id="@+id/refresh_progress_bar"
+            style="?android:attr/progressBarStyle"
+            android:layout_width="38dp"
+            android:layout_height="30dp"
+            android:visibility="invisible"
+            app:layout_constraintBottom_toBottomOf="@+id/refresh_button"
+            app:layout_constraintEnd_toEndOf="@+id/refresh_button"
+            app:layout_constraintStart_toStartOf="@+id/refresh_button"
+            app:layout_constraintTop_toTopOf="@+id/refresh_button" />
 
 
 </androidx.constraintlayout.widget.ConstraintLayout>

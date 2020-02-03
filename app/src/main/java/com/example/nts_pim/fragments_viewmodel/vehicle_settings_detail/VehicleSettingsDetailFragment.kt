@@ -223,11 +223,7 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
         imei_textView.text = "IMEI: $imei"
         logging_textView.text = "Logging: $isLoggingOn"
         val c = context?.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
-        val bucket = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            c.appStandbyBucket.toString()
-        } else {
-          ""
-        }
+        val bucket = c.appStandbyBucket.toString()
         when(bucket){
             "10" ->  power_status_textView.text = "Power Status: Active"
             "20" -> power_status_textView.text = "Power Status:Working Set"

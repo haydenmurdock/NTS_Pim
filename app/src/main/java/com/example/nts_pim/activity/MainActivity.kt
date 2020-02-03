@@ -53,7 +53,7 @@ import androidx.navigation.Navigation.findNavController
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
 
 
-class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
+open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
     override val kodein by closestKodein()
     private val viewModelFactory: VehicleSetupModelFactory by instance()
     private lateinit var viewModel: VehicleSetupViewModel
@@ -72,7 +72,7 @@ class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
     private var lastTrip: CurrentTrip? = null
     private var subscriptionWatcherVehicle: AppSyncSubscriptionCall<OnStatusUpdateSubscription.Data>? =
         null
-    private var subscriptionWatcherTrip: AppSyncSubscriptionCall<OnTripUpdateSubscription.Data>? =
+    var subscriptionWatcherTrip: AppSyncSubscriptionCall<OnTripUpdateSubscription.Data>? =
         null
     private var loggingTimer: CountDownTimer? = null
     private val logFragment = "Background Activity"

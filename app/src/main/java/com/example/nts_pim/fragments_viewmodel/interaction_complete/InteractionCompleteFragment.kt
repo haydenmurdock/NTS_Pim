@@ -43,8 +43,9 @@ class InteractionCompleteFragment : ScopedFragment(), KodeinAware {
     private var mAWSAppSyncClient: AWSAppSyncClient? = null
     private lateinit var callbackViewModel: CallBackViewModel
     private lateinit var viewModel: InteractionCompleteViewModel
-
     private val logFragment = "Thank you screen"
+    private var tripStatus:String? = ""
+
     private val restartAppTimer = object: CountDownTimer(10000, 1000) {
         override fun onTick(millisUntilFinished: Long) {
             if(thank_you_textView == null){
@@ -75,6 +76,7 @@ class InteractionCompleteFragment : ScopedFragment(), KodeinAware {
         tripNumber = callbackViewModel.getTripNumber()
         transactionId = callbackViewModel.getTransactionId()
         transactionType = VehicleTripArrayHolder.paymentTypeSelected
+        tripStatus = callbackViewModel.getTripStatus().value
         if(transactionId == ""){
             transactionId = UUID.randomUUID().toString()
         }
@@ -117,7 +119,8 @@ class InteractionCompleteFragment : ScopedFragment(), KodeinAware {
 
     }
     private fun runEndTripMutation() = launch {
-        if(resources.getBoolean(R.bool.testingWithPimRemote)){
+        if (tripStatus != null && tripStatus == VehicleStatusEnum.TRIP_PICKED_UP.status){
+            Log.i("LOGGER", "trip status was still picked up. Sent end trip status")
             PIMMutationHelper.updateTripStatus(vehicleId, VehicleStatusEnum.TRIP_END.status, mAWSAppSyncClient!!, tripId)
         }
     }
