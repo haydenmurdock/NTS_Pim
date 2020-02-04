@@ -33,7 +33,7 @@ object SmsHelper {
 
         val body = RequestBody.create(JSON, json.toString())
         Log.i("URL","Json body :  ${json}")
-        val url = URL("https://5s27urxc78.execute-api.us-east-2.amazonaws.com/prod/sendReceipt")
+        val url = URL("https://5s27urxc78.execute-api.us-east-2.amazonaws.com/test/sendReceipt")
 
         val request = Request.Builder()
             .url(url)
@@ -53,6 +53,7 @@ object SmsHelper {
                       TripDetails.isReceiptSent = false
                       TripDetails.receiptCode = response.code
                       TripDetails.receiptMessage = response.message
+                      Log.i("Text Receipt", "${response.message} ${response.code}")
                   }
               }
           } catch (e: Error){
