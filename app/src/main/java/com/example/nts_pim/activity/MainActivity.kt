@@ -230,16 +230,64 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
         if (enteredTripId != watchingTripId && enteredTripId != "") {
             Log.i("LOGGER", "Watching ENTERED ID $enteredTripId != $watchingTripId")
             watchingTripId = enteredTripId
-            subscriptionWatcherTrip = SubscriptionWatcher.updateSubscriptionWatcher(enteredTripId, this, tripUpdateCallback)
-//            subscriptionWatcherTrip?.execute(tripUpdateCallback)
+            val tripSubscription = OnTripUpdateSubscription.builder().tripId(enteredTripId).build()
+            subscriptionWatcherTrip = mAWSAppSyncClient?.subscribe(tripSubscription)
+            subscriptionWatcherTrip?.execute(tripUpdateCallback)
+            Log.i("Results", "Watching $tripId for information")
             LoggerHelper.writeToLog(
                 this@MainActivity,
                 "${logFragment}, Subscription watcher started for $tripId"
             )
         }else{
-            Log.i("LOGGER", "ENTERED ID $enteredTripId == $watchingTripId, subscription stayed the same")
+            Log.i("LOGGER", "ENTERED ID $enteredTripId == $watchingTripId")
         }
     }
+
+    // App Sync CallBack for trip Update
+    private var tripUpdateCallback = object : AppSyncSubscriptionCall.Callback<OnTripUpdateSubscription.Data> {
+        override fun onResponse(response: Response<OnTripUpdateSubscription.Data>) {
+            Log.i("TripSubscriptionCallBack", "Successful subscription callback for Trip Update - ${response.data()}")
+            val tripNumber = response.data()?.onTripUpdate()?.tripNbr()
+            val meterState = response.data()?.onTripUpdate()?.meterState()
+            val owedPriceForMeter = response.data()?.onTripUpdate()?.owedPrice()
+            val transactionId = response.data()?.onTripUpdate()?.pimTransId()
+            val pimPaymentAmount = response.data()?.onTripUpdate()?.pimPayAmt()
+            val pimPaidAmount = response.data()?.onTripUpdate()?.pimPaidAmt()
+            val pimNoReceipt = response.data()?.onTripUpdate()?.pimNoReceipt()
+
+            if (tripNumber != null){
+                insertTripNumber(tripNumber)
+                //we get the transactionId when we get the trip number.
+                if (!transactionId.isNullOrBlank()){
+                    insertTransactionID(transactionId)
+                }
+            }
+
+            if (meterState != null) {
+               insertMeterState(meterState)
+            }
+            if (owedPriceForMeter != null && owedPriceForMeter != 0.0){
+                insertMeterValue(owedPriceForMeter)
+            }
+            if(pimPaymentAmount != null){
+                insertPimPayAmount(pimPaymentAmount)
+            }
+            if(pimPaidAmount != null){
+                insertPimPaidAmount(pimPaidAmount)
+            }
+            if(pimNoReceipt != null
+                && pimNoReceipt.trim() == "Y"){
+                insertPimNoReceipt(true)
+            }
+        }
+        override fun onFailure(e: ApolloException) {
+            Log.i("Error", "Error in callback for tripUpdate: $e.")
+        }
+        override fun onCompleted() {
+            Log.i("Results", "Subscription completed")
+        }
+    }
+
     private fun getMeterOwedQuery(tripId: String) = launch(Dispatchers.IO){
         if (mAWSAppSyncClient == null) {
             mAWSAppSyncClient = ClientFactory.getInstance(this@MainActivity.applicationContext)
@@ -258,7 +306,8 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                 val meterValue = response.data()?.trip?.meterState()
                 val tripId = response.data()!!.trip.tripId()
                 if(tripId != null){
-                    startSubscriptionTripUpdate(tripId)
+                    Log.i("LOGGER", "started subscription via meter owed query")
+                    SubscriptionWatcher.updateSubscriptionWatcher(tripId, applicationContext,tripUpdateCallback)
                 }
                 Log.i("PleaseWait", "meterOwed from Meter query = $meterOwed")
                 Log.i("PLeaseWait", "meterValue from Meter query = $meterValue")
@@ -273,50 +322,6 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
             }
         }
         override fun onFailure(e: ApolloException) {
-        }
-    }
-
-    private var tripUpdateCallback = object : AppSyncSubscriptionCall.Callback<OnTripUpdateSubscription.Data> {
-        override fun onResponse(response: Response<OnTripUpdateSubscription.Data>) {
-            Log.i("TripSubscriptionCallBack", "Successful subscription callback for Trip Update - ${response.data()}")
-            val tripNumber = response.data()?.onTripUpdate()?.tripNbr()
-            val meterState = response.data()?.onTripUpdate()?.meterState()
-            val owedPriceForMeter = response.data()?.onTripUpdate()?.owedPrice()
-            val transactionId = response.data()?.onTripUpdate()?.pimTransId()
-            val pimPaymentAmount = response.data()?.onTripUpdate()?.pimPayAmt()
-            val pimPaidAmount = response.data()?.onTripUpdate()?.pimPaidAmt()
-            val pimNoReceipt = response.data()?.onTripUpdate()?.pimNoReceipt()
-
-            if (tripNumber != null){
-               insertTripNumber(tripNumber)
-                //we get the transactionId when we get the trip number.
-                if (!transactionId.isNullOrBlank()){
-                    insertTransactionID(transactionId)
-                }
-            }
-
-            if (meterState != null) {
-                insertMeterState(meterState)
-            }
-            if (owedPriceForMeter != null && owedPriceForMeter != 0.0){
-                insertMeterValue(owedPriceForMeter)
-            }
-            if(pimPaymentAmount != null){
-               insertPimPayAmount(pimPaymentAmount)
-            }
-            if(pimPaidAmount != null){
-               insertPimPaidAmount(pimPaidAmount)
-            }
-            if(pimNoReceipt != null
-                && pimNoReceipt.trim() == "Y"){
-                insertPimNoReceipt(true)
-            }
-        }
-        override fun onFailure(e: ApolloException) {
-            Log.i("Error", "Error in callback for tripUpdate: $e.")
-        }
-        override fun onCompleted() {
-            Log.i("Results", "Subscription completed")
         }
     }
     //Coroutine to insert Meter Value
@@ -479,7 +484,8 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
         if(mSuccessfulSetup){
             ViewHelper.hideSystemUI(this)
         }
-    }
+
+   "?" }
 
     override fun onResume() {
         super.onResume()

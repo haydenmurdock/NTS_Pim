@@ -28,6 +28,7 @@ class TaxiNumberFragment : ScopedFragment(), KodeinAware {
     private val viewModelFactory: TaxiNumberViewModelFactory by instance()
     private lateinit var viewModel: TaxiNumberViewModel
     private var fullBrightness = 255
+    private val currentFragmentId = R.id.taxi_number_fragment
     private val logFragment = "Taxi Number"
 
     //Local Variables
@@ -49,7 +50,7 @@ class TaxiNumberFragment : ScopedFragment(), KodeinAware {
         if (settings != null){
             updateUI(settings.cabNumber)
             LoggerHelper.writeToLog(context!!, "$logFragment: updated cab number. Starting animation")
-            checkAnimation(view)
+            checkAnimation()
         }
         val br = Settings.System.getInt(context?.contentResolver, Settings.System.SCREEN_BRIGHTNESS)
         if(br != fullBrightness){
@@ -57,7 +58,7 @@ class TaxiNumberFragment : ScopedFragment(), KodeinAware {
         }
     }
 
-    private fun checkAnimation(view: View) {
+    private fun checkAnimation() {
         // Checks to see if animations are on or not
         val animationIsOn = resources.getBoolean(R.bool.animationIsOn)
 
@@ -67,15 +68,15 @@ class TaxiNumberFragment : ScopedFragment(), KodeinAware {
                     if (taxi_number_text_view != null){
                         taxi_number_text_view.animate().alpha(0.0f).setDuration(2500).withEndAction(Runnable {
                             println("view should be gone")
-                            navigate(view)
+                            navigate()
                         })
                     }else {
-                        navigate(view)
+                        navigate()
                     }
                 })
             }
         } else {
-            toNextScreen(view)
+            toNextScreen()
         }
     }
 
@@ -104,15 +105,17 @@ class TaxiNumberFragment : ScopedFragment(), KodeinAware {
     }
 
 
-    private fun toNextScreen(view: View) {
+    private fun toNextScreen() {
         // 5 seconds to next screen
         Timer().schedule(timerTask {
-            navigate(view)
+            navigate()
         }, 5000)
     }
 
-    private fun navigate(view: View) {
-        // Navigates to the next screen
-        Navigation.findNavController(view).navigate(R.id.toSafetyWarning)
+    private fun navigate() {
+            val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
+            if (navController.currentDestination?.id == currentFragmentId) {
+               navController.navigate(R.id.toSafetyWarning)
+            }
     }
 }

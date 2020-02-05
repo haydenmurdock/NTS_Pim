@@ -12,14 +12,14 @@
             android:useLevel="false">
 
         <size
-                android:width="14dp"
-                android:height="14dp" />
+                android:width="24dp"
+                android:height="24dp" />
 
         <gradient
                 android:type="sweep"
                 android:useLevel="false"
-                android:startColor="#FFFFFF"
-                android:endColor="#FFFFFF"
+                android:startColor="#596685"
+                android:endColor="#596685"
                 android:angle="0"/>
     </shape>
 </rotate>
