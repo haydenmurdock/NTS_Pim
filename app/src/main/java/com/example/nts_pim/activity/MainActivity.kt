@@ -50,6 +50,7 @@ import org.kodein.di.android.closestKodein
 import org.kodein.di.generic.instance
 import kotlin.coroutines.CoroutineContext
 import androidx.navigation.Navigation.findNavController
+import com.example.nts_pim.data.repository.SubscriptionWatcher
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
 
 
@@ -90,7 +91,6 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
         val factory = InjectorUtiles.provideCallBackModelFactory()
         callbackViewModel = ViewModelProviders.of(this, factory)
             .get(CallBackViewModel::class.java)
-
         viewModel = ViewModelProviders.of(this, viewModelFactory)
             .get(VehicleSetupViewModel::class.java)
         val intentFilter = IntentFilter()
@@ -127,8 +127,8 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                     .getObject(SharedPrefEnum.CURRENT_TRIP.key, CurrentTrip::class.java)
                 lastTrip = currentTrip
                 if (!vehicleSubscriptionComplete) {
-                    startOnStatusUpdateSubscription(vehicleId)
                     Log.i("Results", "Vehicle subscription was started from resync")
+                    startOnStatusUpdateSubscription(vehicleId)
                 }
                 if (currentTrip != null && currentTrip.tripID != "" && internetConnection) {
                     Log.i("Results", "Trip Id was updated on Main Activity from REsync")
@@ -157,7 +157,6 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                 }
             }
         })
-        LoggerHelper.writeToLog(this.applicationContext, "${logFragment}, onCreate Hit")
         if (loggingTimer == null) {
             startTimerToSendLogsToAWS(vehicleId, this@MainActivity)
         }
@@ -170,8 +169,10 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
             val subscription = OnStatusUpdateSubscription.builder().vehicleId(vehicleID).build()
             subscriptionWatcherVehicle = mAWSAppSyncClient?.subscribe(subscription)
             subscriptionWatcherVehicle?.execute(vehicleStatusCallback)
-            Log.i("Results", "Watching $vehicleID for information")
-            Log.i("SubscriptionWatcher", "Subscription watcher started for $vehicleID")
+            Log.i("Results", "" +
+                    "Watching $vehicleID for information")
+            Log.i("SubscriptionWatcher",
+                "Subscription watcher started for $vehicleID")
             LoggerHelper.writeToLog(
                 this@MainActivity,
                 "${logFragment}, Subscription watcher started for $vehicleID"
@@ -305,7 +306,8 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                 val meterValue = response.data()?.trip?.meterState()
                 val tripId = response.data()!!.trip.tripId()
                 if(tripId != null){
-                    startSubscriptionTripUpdate(tripId)
+                    Log.i("LOGGER", "started subscription via meter owed query")
+                    SubscriptionWatcher.updateSubscriptionWatcher(tripId, applicationContext,tripUpdateCallback)
                 }
                 Log.i("PleaseWait", "meterOwed from Meter query = $meterOwed")
                 Log.i("PLeaseWait", "meterValue from Meter query = $meterValue")
@@ -425,18 +427,23 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
         }
         override fun onFinish() {
             if(!internetConnection){
+                LoggerHelper.writeToLog(applicationContext, "$logFragment, recheck internet connection timer finished. internet was not connected. retrying in 5 seconds")
                 recheckInternetConnection(this@MainActivity)
                 // this is for a resync of trip
             } else if (resync) {
                 val currentTrip = ModelPreferences(applicationContext)
                     .getObject(SharedPrefEnum.CURRENT_TRIP.key, CurrentTrip::class.java)
+                LoggerHelper.writeToLog(applicationContext, "$logFragment, recheck internet connection timer finished. Internet is connected. Trying to start subscription on ${vehicleId} due to resync.")
                 startOnStatusUpdateSubscription(vehicleId)
                 if (currentTrip != null && currentTrip.tripID != "" && internetConnection){
-                    startSubscriptionTripUpdate(currentTrip.tripID)
+                    LoggerHelper.writeToLog(applicationContext, "$logFragment, recheck internet connection timer finished.Internet is connected. Trying to start subscription on ${currentTrip.tripID} due to resync.")
+                    //
+//                    startSubscriptionTripUpdate(currentTrip.tripID)
                     resync = false
                 }
             } else {
                 // start subscription since the internet is connected.
+                LoggerHelper.writeToLog(applicationContext, "$logFragment, recheck internet connection timer finished. Internet is connected. Trying to start subscription on ${vehicleId}.")
                 startOnStatusUpdateSubscription(vehicleId)
             }
          }
@@ -473,6 +480,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
         LoggerHelper.writeToLog(this@MainActivity, "${logFragment}, Subscription watcher canceled for $vehicleId, onDestroy hit")
         viewModel.isSquareAuthorized().removeObservers(this)
         callbackViewModel.getTripHasEnded().removeObservers(this)
+        LoggerHelper.writeToLog(this, "$logFragment, MainActivity onDestroy hit")
         stopLogTimer()
         super.onDestroy()
     }
@@ -482,6 +490,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
         if(mSuccessfulSetup){
             ViewHelper.hideSystemUI(this)
         }
+        LoggerHelper.writeToLog(this, "$logFragment, MainActivity onPause hit")
     }
 
     override fun onResume() {

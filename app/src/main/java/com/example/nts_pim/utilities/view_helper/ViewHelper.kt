@@ -9,6 +9,7 @@ import android.view.animation.Animation
 import android.view.animation.TranslateAnimation
 import android.widget.ImageView
 import androidx.core.view.isVisible
+import com.google.android.material.snackbar.Snackbar
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -73,6 +74,13 @@ object ViewHelper {
         val formattedDateString = sdf.format(date)
         val fS = formattedDateString.removeSuffix("+0000")
         return fS.plus("Z")
+    }
+
+    fun makeSnackbar(rootLayout: View, messageToDisplay: String){
+        val snackbar = Snackbar.make(
+            rootLayout, messageToDisplay, Snackbar.LENGTH_LONG
+        )
+        snackbar.show()
     }
 
 

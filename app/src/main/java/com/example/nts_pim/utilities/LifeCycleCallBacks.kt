@@ -18,7 +18,6 @@ class LifeCycleCallBacks : Application.ActivityLifecycleCallbacks {
         if (name == "com.squareup.ui.main.ApiMainActivity"){
                 SoundHelper.turnOnSound(activity.applicationContext)
         }
-
     }
 
     override fun onActivityPaused(activity: Activity?) {

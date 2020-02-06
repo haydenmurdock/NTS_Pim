@@ -32,8 +32,6 @@ class PimApplication : Application(), KodeinAware{
     override val kodein = Kodein.lazy {
         import(androidXModule(this@PimApplication))
 
-
-
         //this connects the repo and the interface together
 
         bind<TripRepository>() with singleton {
