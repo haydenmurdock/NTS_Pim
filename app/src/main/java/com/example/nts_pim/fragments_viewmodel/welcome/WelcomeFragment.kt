@@ -239,19 +239,22 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
         if (animationIsOn) {
             if (welcome_text_view != null) {
                 welcome_text_view.animate().alpha(0.0f).setDuration(2500).withEndAction {
+                    if (thank_you_text_view != null){
                         thank_you_text_view.animate().alpha(1f).setDuration(2500).withEndAction {
-                            thank_you_text_view.animate().alpha(0.0f).setDuration(2500)
-                                .withEndAction {
-                                    toTaxiNumber()
-                                }
+                            if (thank_you_text_view != null){
+                                thank_you_text_view.animate().alpha(0.0f).setDuration(2500)
+                                    .withEndAction {
+                                        toTaxiNumber()
+                                    }
+                            }
                         }
                     }
                 }
-            }else {
+            }
+        }else {
             toNextScreen()
         }
     }
-
     private fun tripIsCurrentlyRunning(isTripActive: Boolean){
         if (!isTripActive){
             LoggerHelper.writeToLog(context!!, "$logFragment. Trip Check: Last saved trip is not active")
@@ -414,7 +417,6 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
             parametersBuilder.skipReceipt(false)
             val checkoutManager = ReaderSdk.checkoutManager()
             checkoutManager.startCheckoutActivity(context!!, parametersBuilder.build())
-
     }
 
     private fun updateVehicleInfoUI(){
