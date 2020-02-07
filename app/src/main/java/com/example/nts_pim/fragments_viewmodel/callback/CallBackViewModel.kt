@@ -3,6 +3,8 @@ package com.example.nts_pim.fragments_viewmodel.callback
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import com.example.nts_pim.data.repository.VehicleTripArrayHolder
+import com.example.nts_pim.utilities.view_helper.ViewHelper
+import com.google.android.gms.maps.model.LatLng
 
 class CallBackViewModel(
     private var vehicleTripArrayHolder: VehicleTripArrayHolder
@@ -111,6 +113,18 @@ class CallBackViewModel(
         VehicleTripArrayHolder.setAmountForSquareDisplay(double)
     }
 
-    fun getAmountForSquarDisplay()  = VehicleTripArrayHolder.getAmountForSquareDisplay()
+    fun getAmountForSquareDisplay()  = VehicleTripArrayHolder.getAmountForSquareDisplay()
+
+    internal fun setTripDropOffLatLong(latLng: LatLng){
+        VehicleTripArrayHolder.setTripLatLong(latLng)
+    }
+
+    internal fun getTripDropOffLatLong() = vehicleTripArrayHolder.getDropOffLatLong()
+
+    internal fun setDriverId(driverId: Int){
+        vehicleTripArrayHolder.setDriverId(driverId)
+    }
+
+    internal fun getDriverId() = vehicleTripArrayHolder.getDriverId()
 
 }

@@ -7,6 +7,7 @@ import androidx.lifecycle.MutableLiveData
 import com.example.nts_pim.data.repository.model_objects.CurrentTrip
 import com.example.nts_pim.data.repository.providers.ModelPreferences
 import com.example.nts_pim.utilities.enums.SharedPrefEnum
+import com.google.android.gms.maps.model.LatLng
 
 
 // The vehicleTripArrayHolder object holds all the arrays for app-sync and LiveData
@@ -62,7 +63,11 @@ object VehicleTripArrayHolder {
 
     private var amountForSquareDisplay = "0"
 
-   var paymentTypeSelected = "none"
+    var paymentTypeSelected = "none"
+
+    private var tripDropoffLatLng: LatLng? = null
+
+    private var driverId = 0
 
 
 // Adds the status from the main activity app sync subscription. It goes to a live data array to be watched for changes. There is only 1 status in the array at all times.
@@ -286,5 +291,20 @@ object VehicleTripArrayHolder {
 
     fun getAmountForSquareDisplay()  = amountForSquareDisplay
 
+    fun setTripLatLong(latLng: LatLng){
+        if(latLng != tripDropoffLatLng){
+            tripDropoffLatLng = latLng
+        }
+    }
+
+    fun getDropOffLatLong() = tripDropoffLatLng
+
+    fun setDriverId(enteredDriverId: Int){
+        if(enteredDriverId != driverId){
+            driverId = enteredDriverId
+        }
+    }
+
+    fun getDriverId() = driverId
 }
 

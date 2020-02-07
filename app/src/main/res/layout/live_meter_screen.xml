@@ -7,6 +7,14 @@
         android:layout_height="match_parent"
         android:background="@color/screenBackgroundColor">
 
+    <com.google.android.gms.maps.MapView
+            android:id="@+id/map_view"
+            android:layout_width="412dp"
+            android:layout_height="297dp"
+            android:apiKey="AIzaSyD6YZ5sdy8GlhwcSbLCg_bmS_R2uro4vTc"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent" />
+
     <com.robinhood.ticker.TickerView
             android:id="@+id/tickerView"
             android:layout_width="wrap_content"

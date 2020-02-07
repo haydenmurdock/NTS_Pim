@@ -55,8 +55,9 @@
         <meta-data
                 android:name="com.google.android.actions"
                 android:resource="@xml/acc_config" />
-
-
+        <meta-data
+                android:name="com.google.android.geo.API_KEY"
+                android:value="AIzaSyD6YZ5sdy8GlhwcSbLCg_bmS_R2uro4vTc" />
 
         <service
                 android:name=".utilities.power_cycle.PowerAccessibilityService"

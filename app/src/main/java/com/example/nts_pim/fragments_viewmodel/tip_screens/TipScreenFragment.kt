@@ -18,6 +18,7 @@ import com.apollographql.apollo.GraphQLCall
 import com.apollographql.apollo.api.Response
 import com.apollographql.apollo.exception.ApolloException
 import com.example.nts_pim.R
+import com.example.nts_pim.data.repository.model_objects.VehicleID
 import com.example.nts_pim.fragments_viewmodel.InjectorUtiles
 import com.example.nts_pim.fragments_viewmodel.base.ClientFactory
 import com.example.nts_pim.fragments_viewmodel.base.ScopedFragment
@@ -45,6 +46,7 @@ import org.kodein.di.generic.instance
 import type.UpdateTripInput
 import java.text.DecimalFormat
 import java.util.*
+import kotlin.math.roundToLong
 
 
 class TipScreenFragment: ScopedFragment(),KodeinAware {
@@ -73,6 +75,7 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
     private var vehicleId = ""
     private var tripId = ""
     private var tripNumber = 0
+    private var driverId = 0
     var cardInfo = ""
     private var transactionDate: Date? = null
     private var transactionId = ""
@@ -112,6 +115,7 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
         vehicleId = viewModel.getVehicleID()
         tripId = callbackViewModel.getTripId()
         tripNumber = callbackViewModel.getTripNumber()
+        driverId = callbackViewModel.getDriverId()
         val checkoutManager = ReaderSdk.checkoutManager()
         checkoutCallbackRef = checkoutManager.addCheckoutActivityCallback(this::onCheckoutResult)
         getArgsFromCustomTipScreen()
@@ -484,10 +488,17 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
         LoggerHelper.writeToLog(context!!, "$logFragment,  $checkOutAmount send to start square checkout")
         callbackViewModel.setAmountForSquareDisplay(checkOutAmount)
         val p = checkOutAmount * 100.00
-        val checkOutTotal = Math.round(p)
+        val checkOutTotal = p.roundToLong()
         val amountMoney = Money(checkOutTotal, CurrencyCode.current())
         val parametersBuilder = CheckoutParameters.newBuilder(amountMoney)
         parametersBuilder.skipReceipt(false)
+        // Format[trip number] [vehicle number]-[driver id]
+        // if trip number is 0 we use the last 8 of trip id
+        if (tripNumber != 0){
+            parametersBuilder.note("[$tripNumber] [$vehicleId] [$driverId]")
+        } else {
+            parametersBuilder.note("[${tripId.substring(8..tripId.length)}] [$vehicleId] [$driverId]")
+        }
         val checkoutManager = ReaderSdk.checkoutManager()
         checkoutManager.startCheckoutActivity(context!!, parametersBuilder.build())
         PIMMutationHelper.updatePIMStatus(vehicleId, PIMStatusEnum.STARTED_SQUARE_PAYMENT.status, mAWSAppSyncClient!!)

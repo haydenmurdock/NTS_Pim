@@ -52,6 +52,7 @@ import kotlin.coroutines.CoroutineContext
 import androidx.navigation.Navigation.findNavController
 import com.example.nts_pim.data.repository.SubscriptionWatcher
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
+import com.google.android.gms.maps.model.LatLng
 
 
 open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
@@ -192,6 +193,8 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                 val tripStatus = response.data()?.onStatusUpdate()?.tripStatus() as String
                 val awsTripId = response.data()?.onStatusUpdate()?.tripId()
                 val pimStatus = response.data()?.onStatusUpdate()?.pimStatus() as String
+                val driverId = response.data()?.onStatusUpdate()?.driverId()
+
                 if (pimStatus == "_") {
                     // sends back requested current pim status
                     sendPIMStatus()
@@ -203,6 +206,9 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                     insertTripId(awsTripId)
                     startSubscriptionTripUpdate(awsTripId)
                     tripId = awsTripId
+                }
+                if(driverId != null){
+                    insertDriverId(driverId)
                 }
             }
 
@@ -223,6 +229,10 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
     //Coroutine to insert Meter State
     private fun insertMeterState(string: String) = launch {
         callbackViewModel.addMeterState(string)
+    }
+
+    private fun insertDriverId(driverId: Int) = launch{
+        callbackViewModel.setDriverId(driverId)
     }
 
     // App Sync subscription for update On Trip
@@ -254,6 +264,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
             val pimPaymentAmount = response.data()?.onTripUpdate()?.pimPayAmt()
             val pimPaidAmount = response.data()?.onTripUpdate()?.pimPaidAmt()
             val pimNoReceipt = response.data()?.onTripUpdate()?.pimNoReceipt()
+            val dropOffLocation = response.data()?.onTripUpdate()?.dropoffLocation()
 
             if (tripNumber != null){
                 insertTripNumber(tripNumber)
@@ -278,6 +289,12 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
             if(pimNoReceipt != null
                 && pimNoReceipt.trim() == "Y"){
                 insertPimNoReceipt(true)
+            }
+            if(dropOffLocation != null){
+                val dropOffLocation = LatLng(dropOffLocation.lat() ?: 0.0,dropOffLocation.lng() ?: 0.0)
+                if(dropOffLocation.latitude != 0.0 || dropOffLocation.longitude != 0.0){
+                    insertDropOffLatLong(dropOffLocation)
+                }
             }
         }
         override fun onFailure(e: ApolloException) {
@@ -346,6 +363,10 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
     }
     private fun insertPimNoReceipt(boolean: Boolean) = launch{
         callbackViewModel.pimDoesNotNeedToDoReceipt(boolean)
+    }
+
+    private fun insertDropOffLatLong(latLng: LatLng) = launch{
+        callbackViewModel.setTripDropOffLatLong(latLng)
     }
 
     private fun sendPIMStatus() = launch{
