@@ -98,7 +98,8 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
         checkCurrentTrip()
         updatePIMStatus()
         updateMeterFromTripReview()
-        meterValue = "2.85"
+        getMeterOwedQuery(tripId)
+        meterValue = callbackViewModel.getMeterOwed().value.toString()
         meterState = callbackViewModel.getMeterState().value.toString()
         if(meterState == "off"){
             callbackViewModel.addMeterState("ON")
@@ -206,7 +207,7 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
     }
     private fun checkCurrentTrip(){
         if (resources.getBoolean(R.bool.isSquareBuildOn)){
-            meterValue = "1.00"
+            meterValue = "1.25"
             tickerView.setText("$$meterValue", true)
             if(tickerView.alpha.equals(0.0f)){
                 tickerView.animate().alpha(1.0f).setDuration(2500).start()
@@ -246,13 +247,13 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
                         if (tickerView != null) {
                             LoggerHelper.writeToLog(context!!, "$logFragment: Meter UI is displaying $meterValue from trip Query")
                             tickerView.setText(meterValue, true)
-                            if(!live_meter_dollar_sign.isVisible){
+                            if(!live_meter_dollar_sign.isVisible && live_meter_dollar_sign != null){
                                 live_meter_dollar_sign.visibility = visible
                                  }
-                            if (!tickerView.isVisible) {
+                            if (!tickerView.isVisible && tickerView != null) {
                                 tickerView.visibility = visible
-                                 }
                             }
+                        }
                         if (refresh_progress_bar != null){
                             refresh_progress_bar.isVisible = false
                             refresh_button.setImageDrawable(activity?.resources?.getDrawable(R.drawable.ic_refresh_arrows))

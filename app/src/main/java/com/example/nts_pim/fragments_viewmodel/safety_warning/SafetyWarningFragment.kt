@@ -25,10 +25,9 @@ class SafetyWarningFragment : Fragment() {
         }
 
         override fun onFinish() {
-            if(view != null &&
-                !this@SafetyWarningFragment.isVisible){
+            if(view != null){
                 LoggerHelper.writeToLog(context!!, "$logFragment: Did not play safety message")
-                toNextScreen(view!!)
+                navigate()
             }
         }
     }
@@ -42,24 +41,24 @@ class SafetyWarningFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         //checks for animation and Navigates to the next view
-         checkAnimation(view)
+         checkAnimation()
     }
 
-    private fun toNextScreen(view: View){
+    private fun toNextScreen(){
         LoggerHelper.writeToLog(context!!, "$logFragment: Going to Live Meter Screen")
         Timer().schedule(timerTask {
-            navigate(view)
+            navigate()
         }, 5000)
     }
 
-    private fun navigate(view: View){
+    private fun navigate(){
         val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
         if (navController.currentDestination?.id == currentFragmentId){
             navController.navigate(R.id.toLiveMeter)
         }
     }
 
-    private fun checkAnimation(view: View) {
+    private fun checkAnimation() {
         val animationIsOn = resources.getBoolean(R.bool.animationIsOn)
         if (animationIsOn) {
             playSafetyMessage()
@@ -72,14 +71,14 @@ class SafetyWarningFragment : Fragment() {
                 })
             }
         } else {
-            toNextScreen(view)
+            toNextScreen()
         }
     }
     private fun playSafetyMessage(){
         val mediaPlayer = MediaPlayer.create(context, R.raw.saftey_message_test)
         mediaPlayer.setOnCompletionListener { mediaPlayer ->
             if(view != null){
-                navigate(view!!)
+                navigate()
             }
             LoggerHelper.writeToLog(context!!, "$logFragment: Finished Safety Message")
             mediaPlayer.release()

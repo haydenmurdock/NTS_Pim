@@ -142,7 +142,8 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                 val currentTripId = callbackViewModel.getTripId()
                 val navController = findNavController(this, R.id.nav_host_fragment)
                 callbackViewModel.clearAllTripValues()
-                if (navController.currentDestination?.id != R.id.welcome_fragment && !resync) {
+                if (navController.currentDestination?.id != R.id.welcome_fragment ||
+                    navController.currentDestination?.id == R.id.taxi_number_fragment && !resync) {
                     Log.i(
                         "TripStart",
                         "This needs to work now. Old trip id: $tripId, new trip id: $currentTripId"
