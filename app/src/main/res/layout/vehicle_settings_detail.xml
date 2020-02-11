@@ -47,7 +47,7 @@
             android:id="@+id/settings_detail_textView"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="VehicleID:"
+            android:text="Vehicle id:"
             android:textColor="#FFFFFF"
             android:textSize="30sp"
             android:visibility="visible"
@@ -75,7 +75,7 @@
             android:visibility="visible"
             app:layout_constraintBottom_toTopOf="@+id/exit_app_btn"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="0.94"
+            app:layout_constraintHorizontal_bias="0.98"
             app:layout_constraintStart_toEndOf="@+id/settings_detail_textView"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
@@ -112,7 +112,7 @@
             android:id="@+id/last_trip_id_textView"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="LastTripID"
+            android:text="Last Trip Id:"
             android:textColor="@color/whiteTextColor"
             android:textSize="24sp"
             app:layout_constraintBottom_toBottomOf="parent"
@@ -148,15 +148,17 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/last_trip_id_textView" />
 
-    <Button
+    <ImageButton
             android:id="@+id/vehicle_settings_unpair_button"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_width="81dp"
+            android:layout_height="51dp"
+            android:layout_marginEnd="14dp"
+            android:layout_marginBottom="32dp"
+            android:background="@null"
+            android:src="@drawable/ic_broken_link"
             android:text="Unpair"
-            app:layout_constraintEnd_toStartOf="@+id/battery_btn"
-            app:layout_constraintHorizontal_bias="1.0"
-            app:layout_constraintStart_toEndOf="@+id/settings_detail_textView"
-            app:layout_constraintTop_toTopOf="@+id/battery_btn" />
+            app:layout_constraintBottom_toTopOf="@+id/square_test_image_view"
+            app:layout_constraintEnd_toEndOf="parent" />
 
     <TextView
             android:id="@+id/power_status_textView"
@@ -164,7 +166,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
             android:fontFamily="@font/source_sans_pro"
-            android:text='power_status"'
+            android:text="Power status:"
             android:textColor="@color/whiteTextColor"
             android:textSize="24sp"
             app:layout_constraintEnd_toEndOf="parent"
@@ -192,10 +194,20 @@
             android:layout_marginStart="16dp"
             android:layout_marginTop="12dp"
             android:fontFamily="@font/source_sans_pro"
-            android:text="isLoggingOn:"
+            android:text="Logging:"
             android:textColor="@color/whiteTextColor"
             android:textSize="24sp"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/power_status_textView" />
+
+    <ImageView
+            android:id="@+id/square_test_image_view"
+            android:layout_width="79dp"
+            android:layout_height="57dp"
+            android:layout_marginEnd="16dp"
+            android:layout_marginBottom="16dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:srcCompat="@drawable/ic_square_icon" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -111,6 +111,7 @@ class CallBackViewModel(
         VehicleTripArrayHolder.setAmountForSquareDisplay(double)
     }
 
-    fun getAmountForSquarDisplay()  = VehicleTripArrayHolder.getAmountForSquareDisplay()
+    fun getIsPimOnline() = VehicleTripArrayHolder.isPimOnline()
+
 
 }

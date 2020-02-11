@@ -156,7 +156,7 @@ class TripRepositoryImpl(
 
     override fun isSetupComplete(): Boolean {
        val statusObject = ModelPreferences(appContext).getObject(SharedPrefEnum.SETUP_COMPLETE.key, SetupComplete::class.java)
-        if (statusObject != null){
+        if(statusObject != null){
             isSetupCompleteLiveData.value = statusObject.status
             return statusObject.status
         } else {

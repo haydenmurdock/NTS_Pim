@@ -12,10 +12,10 @@ import com.example.nts_pim.utilities.logging_service.LoggerHelper
 
 object  SubscriptionWatcher {
     // This is where we will update/check/cancel tripSubscriptions
-    var subscriptionWatcherTrip: AppSyncSubscriptionCall<OnTripUpdateSubscription.Data>? =
+    private var subscriptionWatcherTrip: AppSyncSubscriptionCall<OnTripUpdateSubscription.Data>? =
         null
     var mAWSAppSyncClient: AWSAppSyncClient? = null
-    var mTripCallBack:AppSyncSubscriptionCall.Callback<OnTripUpdateSubscription.Data>? = null
+    private var mTripCallBack:AppSyncSubscriptionCall.Callback<OnTripUpdateSubscription.Data>? = null
 
     internal fun updateSubscriptionWatcher(tripId: String, context: Context, tripCallBack: AppSyncSubscriptionCall.Callback<OnTripUpdateSubscription.Data>?): AppSyncSubscriptionCall<OnTripUpdateSubscription.Data>?{
         if (tripCallBack != null){

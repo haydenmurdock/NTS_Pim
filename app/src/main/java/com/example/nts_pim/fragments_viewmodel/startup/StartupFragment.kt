@@ -19,6 +19,7 @@ import com.amazonaws.mobileconnectors.appsync.fetcher.AppSyncResponseFetchers
 import com.apollographql.apollo.GraphQLCall
 import com.apollographql.apollo.api.Response
 import com.apollographql.apollo.exception.ApolloException
+import com.example.nts_pim.PimApplication
 import com.example.nts_pim.R
 import com.example.nts_pim.data.repository.model_objects.DeviceID
 import com.example.nts_pim.data.repository.providers.ModelPreferences
@@ -29,6 +30,7 @@ import com.example.nts_pim.fragments_viewmodel.vehicle_setup.VehicleSetupViewMod
 import com.example.nts_pim.utilities.enums.SharedPrefEnum
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import com.example.nts_pim.utilities.power_cycle.PowerAccessibilityService
+import com.squareup.sdk.reader.ReaderSdk
 import org.kodein.di.KodeinAware
 import org.kodein.di.android.x.closestKodein
 import org.kodein.di.generic.instance
@@ -83,21 +85,16 @@ class StartupFragment: ScopedFragment(), KodeinAware {
 
     private var awsLoggingQueryCallBack = object: GraphQLCall.Callback<GetPimSettingsQuery.Data>() {
         override fun onResponse(response: Response<GetPimSettingsQuery.Data>) {
-            val error = response.data()?.pimSettings?.error()
-            val errorCode = response.data()?.pimSettings?.errorCode()
 
             if (response.data() != null &&
                 !response.hasErrors()
             ) {
                 val isLoggingOn = response.data()?.pimSettings?.log()
-                val vehicleID = response.data()?.pimSettings?.vehicleId()
-                val deviceId = response.data()?.pimSettings?.deviceId()
                 if(isLoggingOn != null){
                     Log.i("LOGGER", "AWS Query callback: isLoggingOn = $isLoggingOn")
                     LoggerHelper.logging = isLoggingOn
                 }
             }
-           val response =  Log.i("LOGGER", "Response: ${response.data().toString()}")
         }
         override fun onFailure(e: ApolloException) {
         }

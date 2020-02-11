@@ -51,15 +51,20 @@ class PimApplication : Application(), KodeinAware{
         bind() from provider { ReceiptInformationViewModelFactory(instance()) }
         bind() from provider { InteractionCompleteViewModelFactory(instance()) }
         }
+    companion object {
+        lateinit var instance: PimApplication
+            private set
+    }
 
     val CHANNEL_ID = "powerservicechannel"
-    private var isReaderInit = false
         override fun onCreate() {
             super.onCreate()
-            ReaderSdk.initialize(this)
+            instance = this
             AndroidThreeTen.init(this)
             registerActivityLifecycleCallbacks(LifeCycleCallBacks())
             createNotificationChannel()
+            ReaderSdk.initialize(this)
+            Log.i("LOGGER",   "initialized readerSDK")
         }
         private fun createNotificationChannel(){
            val notificationChannel = NotificationChannel(
@@ -70,4 +75,4 @@ class PimApplication : Application(), KodeinAware{
             val manager: NotificationManager = getSystemService(NotificationManager::class.java)
             manager.createNotificationChannel(notificationChannel)
         }
-    }
+}

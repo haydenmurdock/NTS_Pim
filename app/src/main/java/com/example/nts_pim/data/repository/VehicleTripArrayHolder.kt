@@ -46,6 +46,9 @@ object VehicleTripArrayHolder {
     private var squareHasTimedOut = false
     private var squareHasTimedOutMutableLiveData = MutableLiveData<Boolean>()
 
+    private var isOnline = false
+    private var isOnlineMutableLiveData = MutableLiveData<Boolean>()
+
     private var transactionID = ""
 
     private var tripTipAmount:Double = 0.0
@@ -285,6 +288,18 @@ object VehicleTripArrayHolder {
     }
 
     fun getAmountForSquareDisplay()  = amountForSquareDisplay
+
+    fun pimIsOnline(){
+        isOnline = true
+        isOnlineMutableLiveData.value = isOnline
+    }
+
+    fun pimIsOffline(){
+        isOnline = false
+        isOnlineMutableLiveData.value = isOnline
+    }
+
+    fun isPimOnline() = isOnlineMutableLiveData as LiveData<Boolean>
 
 }
 

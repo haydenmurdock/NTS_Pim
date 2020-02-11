@@ -69,9 +69,11 @@ class PowerAccessibilityService: AccessibilityService() {
         try {
             if(ContextCompat.checkSelfPermission(this, Manifest.permission.FOREGROUND_SERVICE) == PackageManager.PERMISSION_GRANTED){
                 startForeground(1, notification)
+                Log.i("LOGGER", "FOREGROUND SERVICE STARTED")
+                LoggerHelper.writeToLog(applicationContext, "FOREGROUND SERVICE STARED")
             }
         } catch (e: Exception){
-            Log.i("LOGGER", "FORGROUND SERVICE NOT STARTED. EXCEPTION:$e")
+            Log.i("LOGGER", "FOREGROUND SERVICE NOT STARTED. EXCEPTION:$e")
         }
     }
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {

@@ -50,6 +50,7 @@ import org.kodein.di.android.closestKodein
 import org.kodein.di.generic.instance
 import kotlin.coroutines.CoroutineContext
 import androidx.navigation.Navigation.findNavController
+import com.example.nts_pim.NetworkReceiver
 import com.example.nts_pim.data.repository.SubscriptionWatcher
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
 
@@ -93,7 +94,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
             .get(CallBackViewModel::class.java)
         viewModel = ViewModelProviders.of(this, viewModelFactory)
             .get(VehicleSetupViewModel::class.java)
-        val intentFilter = IntentFilter()
+
         viewModel.watchSetUpComplete().observe(this, Observer { successfulSetup ->
             if (successfulSetup) {
                 mSuccessfulSetup = successfulSetup
@@ -115,6 +116,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
         forceSpeaker()
         setUpBluetooth()
         checkNavBar()
+        registerNetworkReceiver()
         callbackViewModel.getReSyncStatus().observe(this, Observer { reSync ->
             if (reSync) {
                 resync = reSync
@@ -127,11 +129,11 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                     .getObject(SharedPrefEnum.CURRENT_TRIP.key, CurrentTrip::class.java)
                 lastTrip = currentTrip
                 if (!vehicleSubscriptionComplete) {
-                    Log.i("Results", "Vehicle subscription was started from resync")
+                    Log.i("Results", "Vehicle subscription was started from re-sync")
                     startOnStatusUpdateSubscription(vehicleId)
                 }
                 if (currentTrip != null && currentTrip.tripID != "" && internetConnection) {
-                    Log.i("Results", "Trip Id was updated on Main Activity from REsync")
+                    Log.i("Results", "Trip Id was updated on Main Activity from re-sync")
                     tripId = currentTrip.tripID
                 }
             }
@@ -161,6 +163,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
         if (loggingTimer == null) {
             startTimerToSendLogsToAWS(vehicleId, this@MainActivity)
         }
+
     }
 
     //App Sync subscription to vehicleTable
@@ -178,7 +181,6 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                 this@MainActivity,
                 "${logFragment}, Subscription watcher started for $vehicleID"
             )
-
         }
     }
 
@@ -263,7 +265,6 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                     insertTransactionID(transactionId)
                 }
             }
-
             if (meterState != null) {
                insertMeterState(meterState)
             }
@@ -285,7 +286,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
             Log.i("Error", "Error in callback for tripUpdate: $e.")
         }
         override fun onCompleted() {
-            Log.i("Results", "Subscription completed")
+            Log.i("LOGGER", "Subscription completed on $tripId")
         }
     }
 
@@ -297,7 +298,6 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
             ?.responseFetcher(AppSyncResponseFetchers.NETWORK_FIRST)
             ?.enqueue(getTripQueryCallBack)
     }
-
     private var getTripQueryCallBack = object: GraphQLCall.Callback<GetTripQuery.Data>() {
         override fun onResponse(response: Response<GetTripQuery.Data>) {
             if (response.data() != null &&
@@ -357,7 +357,6 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
             PIMMutationHelper.updatePIMStatus(vehicleId, PIMStatusEnum.ERROR_UPDATING.status, mAWSAppSyncClient!!)
         }
     }
-
     override fun onWindowFocusChanged(hasFocus:Boolean) {
         super.onWindowFocusChanged(hasFocus)
         if (hasFocus && mSuccessfulSetup) {
@@ -366,7 +365,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
         }
     private fun forceSpeaker() {
         try {
-        playTestSound()
+            playTestSound()
         } catch (e: Exception) {
             Log.e(ContentValues.TAG, e.toString())
         }
@@ -387,7 +386,6 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
             }
         }.start()
     }
-
     private fun stopLogTimer(){
         if(loggingTimer != null){
             Log.i("LOGGER", "Log Timer Stopped")
@@ -420,6 +418,10 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
         val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
         val networkInfo = connectivityManager.activeNetworkInfo
         return networkInfo != null && networkInfo.isConnected
+    }
+    private fun registerNetworkReceiver(){
+        val mNetworkReceiver = NetworkReceiver()
+        registerReceiver(mNetworkReceiver, IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION))
     }
     private fun recheckInternetConnection(context: Context){
         object: CountDownTimer(5000, 1000){
@@ -481,6 +483,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
         LoggerHelper.writeToLog(this@MainActivity, "${logFragment}, Subscription watcher canceled for $vehicleId, onDestroy hit")
         viewModel.isSquareAuthorized().removeObservers(this)
         callbackViewModel.getTripHasEnded().removeObservers(this)
+        callbackViewModel.getIsPimOnline().removeObservers(this)
         LoggerHelper.writeToLog(this, "$logFragment, MainActivity onDestroy hit")
         stopLogTimer()
         super.onDestroy()

@@ -4,9 +4,7 @@ import android.Manifest
 import android.app.AlertDialog
 import android.app.usage.UsageStatsManager
 import android.bluetooth.BluetoothAdapter
-import android.bluetooth.BluetoothAssignedNumbers
 import android.content.*
-import android.media.AudioManager
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -19,7 +17,6 @@ import com.example.nts_pim.fragments_viewmodel.InjectorUtiles
 import com.example.nts_pim.fragments_viewmodel.base.ScopedFragment
 import com.example.nts_pim.fragments_viewmodel.callback.CallBackViewModel
 import com.example.nts_pim.utilities.dialog_composer.PIMDialogComposer
-import com.example.nts_pim.utilities.power_cycle.PowerAccessibilityService
 import com.example.nts_pim.utilities.sound_helper.SoundHelper
 import com.squareup.sdk.reader.ReaderSdk
 import com.squareup.sdk.reader.core.CallbackReference
@@ -32,16 +29,17 @@ import org.kodein.di.android.x.closestKodein
 import org.kodein.di.generic.instance
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.os.Build
 import android.telephony.TelephonyManager
 import android.util.Log
 import com.example.nts_pim.BuildConfig
 import com.example.nts_pim.data.repository.model_objects.*
 import com.example.nts_pim.data.repository.providers.ModelPreferences
 import com.example.nts_pim.fragments_viewmodel.vehicle_settings.setting_keyboard_viewModels.SettingsKeyboardViewModel
-import com.example.nts_pim.fragments_viewmodel.vehicle_setup.VehicleSetupViewModel
 import com.example.nts_pim.utilities.enums.SharedPrefEnum
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
+import com.squareup.sdk.reader.checkout.CheckoutParameters
+import com.squareup.sdk.reader.checkout.CurrencyCode
+import com.squareup.sdk.reader.checkout.Money
 
 
 class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
@@ -54,7 +52,7 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
     private lateinit var keyboardViewModel: SettingsKeyboardViewModel
     private var readerSettingsCallbackRef: CallbackReference? = null
     private val currentFragmentId = R.id.vehicle_settings_detail_fragment
-    private var vehicleID = ""
+    private var vehicleId = ""
     private var tripID = ""
     private var imei = ""
     private val bluetoothDeviceAdapter = BluetoothAdapter.getDefaultAdapter()
@@ -82,7 +80,7 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
 
         keyboardViewModel = ViewModelProviders.of(this, keyboardFactory)
             .get(SettingsKeyboardViewModel::class.java)
-        vehicleID = viewModel.getVehicleID()
+        vehicleId = viewModel.getVehicleID()
 
         tripID = ModelPreferences(context!!)
             .getObject(
@@ -126,6 +124,10 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
             showUnPairDialog()
         }
 
+        square_test_image_view.setOnClickListener {
+            startSquareFlow()
+        }
+
         battery_btn.setOnClickListener {
             callBackViewModel.enableOrDisableBatteryPower()
             val batteryPermission = callBackViewModel.batteryPowerStatePermission()
@@ -136,10 +138,23 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
             updatePowerButtonUI(batteryPermission)
         }
     }
+
+    private fun startSquareFlow(){
+        callBackViewModel.setAmountForSquareDisplay(1.00)
+        val p = 100.00
+        val checkOutTotal = p.toLong()
+        val amountMoney = Money(checkOutTotal, CurrencyCode.current())
+        val parametersBuilder = CheckoutParameters.newBuilder(amountMoney)
+        parametersBuilder.skipReceipt(false)
+        parametersBuilder.note("[$vehicleId][square test]")
+        val checkoutManager = ReaderSdk.checkoutManager()
+        checkoutManager.startCheckoutActivity(context!!, parametersBuilder.build())
+    }
+
     private fun showUnPairDialog(){
         val powerOffApplicationAlert = AlertDialog.Builder(this.activity)
         powerOffApplicationAlert.setTitle("Unpair PIM")
-        powerOffApplicationAlert.setMessage("Would you like to unpair from $vehicleID?")
+        powerOffApplicationAlert.setMessage("Would you like to unpair from $vehicleId?")
             .setPositiveButton("Yes"){ _, _->
                 unPair()
             }
@@ -218,7 +233,7 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
         val duration = 500.toLong()
         val buildName = BuildConfig.VERSION_NAME
         val isLoggingOn = LoggerHelper.logging
-        settings_detail_textView.text = "Vehicle ID: $vehicleID"
+        settings_detail_textView.text = "Vehicle ID: $vehicleId"
         build_version_textView.text = "Build Version: $buildName"
         imei_textView.text = "IMEI: $imei"
         logging_textView.text = "Logging: $isLoggingOn"
@@ -343,7 +358,4 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
             navController.navigate(R.id.action_vehicle_settings_detail_fragment_to_startupFragment)
         }
     }
-
-
-
 }

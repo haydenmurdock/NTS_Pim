@@ -149,7 +149,6 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
             .get(SettingsKeyboardViewModel::class.java)
         // checks for animation and navigates to next Screen
         setUpKeyboard()
-
         ViewHelper.checkForNotifications(activity!!)
         lastTrip = checkToSeeIfOnTrip()
         if (lastTrip.first != null) {
@@ -230,8 +229,8 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
         })
 
         welcome_screen_next_screen_button.setOnClickListener {
-            callBackViewModel.setPimPayAmount(1.25)
-            toCashOrCard()
+//            callBackViewModel.setPimPayAmount(1.25)
+//            toCashOrCard()
         }
     }
     private fun checkAnimation() {
@@ -406,9 +405,8 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
             Log.e("Error", "There was an issue updating the pimStatus: $e")
         }
     }
-
     private fun startSquareFlow(){
-            LoggerHelper.writeToLog(context!!, "$logFragment: Started Square Checkout flow")
+            LoggerHelper.writeToLog(context!!, "$logFragment, Started Square Checkout flow")
             SoundHelper.turnOffSound(context!!)
             val p = 100.00
             val checkOutTotal = p.toLong()
@@ -418,7 +416,6 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
             val checkoutManager = ReaderSdk.checkoutManager()
             checkoutManager.startCheckoutActivity(context!!, parametersBuilder.build())
     }
-
     private fun updateVehicleInfoUI(){
         val vehicleSettings = viewModel.getvehicleSettings()
         if (vehicleSettings != null) {
