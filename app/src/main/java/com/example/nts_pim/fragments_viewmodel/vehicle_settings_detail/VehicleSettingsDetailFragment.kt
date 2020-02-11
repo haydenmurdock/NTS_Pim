@@ -1,6 +1,7 @@
 package com.example.nts_pim.fragments_viewmodel.vehicle_settings_detail
 
 import android.Manifest
+import android.app.Activity
 import android.app.AlertDialog
 import android.app.usage.UsageStatsManager
 import android.bluetooth.BluetoothAdapter
@@ -31,15 +32,27 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.telephony.TelephonyManager
 import android.util.Log
+import com.amazonaws.mobile.auth.core.internal.util.ViewHelper
 import com.example.nts_pim.BuildConfig
 import com.example.nts_pim.data.repository.model_objects.*
 import com.example.nts_pim.data.repository.providers.ModelPreferences
 import com.example.nts_pim.fragments_viewmodel.vehicle_settings.setting_keyboard_viewModels.SettingsKeyboardViewModel
 import com.example.nts_pim.utilities.enums.SharedPrefEnum
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
+import com.google.android.material.snackbar.Snackbar
+import com.google.gson.Gson
 import com.squareup.sdk.reader.checkout.CheckoutParameters
 import com.squareup.sdk.reader.checkout.CurrencyCode
 import com.squareup.sdk.reader.checkout.Money
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import okhttp3.Call
+import okhttp3.Callback
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import java.io.IOException
+import java.lang.Error
+import kotlin.system.exitProcess
 
 
 class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
@@ -127,6 +140,9 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
         square_test_image_view.setOnClickListener {
             startSquareFlow()
         }
+        reauthorize_button.setOnClickListener {
+            showReauthorizeDialog(activity!!, vehicleId)
+        }
 
         battery_btn.setOnClickListener {
             callBackViewModel.enableOrDisableBatteryPower()
@@ -139,16 +155,69 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
         }
     }
 
+    private fun getAuthorizationCode(vehicleId: String) {
+        val url =
+            "https://i8xgdzdwk5.execute-api.us-east-2.amazonaws.com/prod/CheckOAuthToken?vehicleId=$vehicleId"
+        val client = OkHttpClient()
+        val request = Request.Builder()
+            .url(url)
+            .build()
+        try {
+            client.newCall(request).enqueue(object : Callback {
+                override fun onResponse(call: Call, response: okhttp3.Response) {
+                    if (response.code == 200) {
+                        val gson = Gson()
+                        val convertedObject =
+                            gson.fromJson(response.body?.string(), JsonAuthCode::class.java)
+                        val authCode = convertedObject.authCode
+                        onAuthorizationCodeRetrieved(authCode)
+                        com.example.nts_pim.utilities.view_helper.ViewHelper.makeSnackbar(this@VehicleSettingsDetailFragment.view!!, "Re-authorized successful")
+                    }
+                    if (response.code == 404) {
+                        launch(Dispatchers.Main.immediate) {
+                            Toast.makeText(
+                                context!!,
+                                "Vehicle not found in fleet, check fleet management portal",
+                                Toast.LENGTH_LONG
+                            ).show()
+                        }
+                    }
+                    if (response.code == 401) {
+                        launch(Dispatchers.Main.immediate){
+                            Toast.makeText(
+                                context!!,
+                                "Need to authorize fleet with log In",
+                                Toast.LENGTH_LONG
+                            ).show()
+                        }
+                    }
+                }
+                override fun onFailure(call: Call, e: IOException) {
+                    println("failure")
+                }
+            })
+        } catch (e: Error) {
+            println(e)
+        }
+    }
+    private fun onAuthorizationCodeRetrieved(authorizationCode: String)
+            = launch {
+        ReaderSdk.authorizationManager().authorize(authorizationCode)
+    }
     private fun startSquareFlow(){
-        callBackViewModel.setAmountForSquareDisplay(1.00)
-        val p = 100.00
-        val checkOutTotal = p.toLong()
-        val amountMoney = Money(checkOutTotal, CurrencyCode.current())
-        val parametersBuilder = CheckoutParameters.newBuilder(amountMoney)
-        parametersBuilder.skipReceipt(false)
-        parametersBuilder.note("[$vehicleId][square test]")
-        val checkoutManager = ReaderSdk.checkoutManager()
-        checkoutManager.startCheckoutActivity(context!!, parametersBuilder.build())
+        if(ReaderSdk.authorizationManager().authorizationState.isAuthorized){
+            callBackViewModel.setAmountForSquareDisplay(1.00)
+            val p = 100.00
+            val checkOutTotal = p.toLong()
+            val amountMoney = Money(checkOutTotal, CurrencyCode.current())
+            val parametersBuilder = CheckoutParameters.newBuilder(amountMoney)
+            parametersBuilder.skipReceipt(false)
+            parametersBuilder.note("[$vehicleId][square test]")
+            val checkoutManager = ReaderSdk.checkoutManager()
+            checkoutManager.startCheckoutActivity(context!!, parametersBuilder.build())
+        } else {
+            PIMDialogComposer.showSquareNotAuthorized(activity!!)
+        }
     }
 
     private fun showUnPairDialog(){
@@ -298,6 +367,22 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
                 }
                 .setNegativeButton("Cancel",null)
                 .show()
+    }
+
+    private fun showReauthorizeDialog(activity: Activity, vehicleId: String){
+        val exitApplicationAlert = AlertDialog.Builder(activity)
+        exitApplicationAlert.setTitle("Re-Authorize Square Account?")
+        exitApplicationAlert.setMessage("Note: If yes is picked, you will need to re-pair reader")
+            .setPositiveButton("Yes"){ _, _->
+                if(ReaderSdk.authorizationManager().authorizationState.canDeauthorize()){
+                    ReaderSdk.authorizationManager().deauthorize()
+                }
+                if(!ReaderSdk.authorizationManager().authorizationState.isAuthorized){
+                    getAuthorizationCode(vehicleId)
+                }
+            }
+            .setNegativeButton("Cancel",null)
+            .show()
     }
     private fun screenDisabled(){
         val lowerAlpha = 0.5f

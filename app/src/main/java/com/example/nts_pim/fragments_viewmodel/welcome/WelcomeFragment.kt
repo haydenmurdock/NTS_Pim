@@ -379,7 +379,6 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
             if(!lastTrip.isActive!!){
                 return Pair(false, lastTrip.tripID)
             }
-
         }
         return Pair(false, "")
     }
@@ -408,13 +407,15 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
     private fun startSquareFlow(){
             LoggerHelper.writeToLog(context!!, "$logFragment, Started Square Checkout flow")
             SoundHelper.turnOffSound(context!!)
-            val p = 100.00
-            val checkOutTotal = p.toLong()
-            val amountMoney = Money(checkOutTotal, CurrencyCode.current())
-            val parametersBuilder = CheckoutParameters.newBuilder(amountMoney)
-            parametersBuilder.skipReceipt(false)
-            val checkoutManager = ReaderSdk.checkoutManager()
-            checkoutManager.startCheckoutActivity(context!!, parametersBuilder.build())
+            if (ReaderSdk.authorizationManager().authorizationState.isAuthorized){
+                val p = 100.00
+                val checkOutTotal = p.toLong()
+                val amountMoney = Money(checkOutTotal, CurrencyCode.current())
+                val parametersBuilder = CheckoutParameters.newBuilder(amountMoney)
+                parametersBuilder.skipReceipt(false)
+                val checkoutManager = ReaderSdk.checkoutManager()
+                checkoutManager.startCheckoutActivity(context!!, parametersBuilder.build())
+            }
     }
     private fun updateVehicleInfoUI(){
         val vehicleSettings = viewModel.getvehicleSettings()

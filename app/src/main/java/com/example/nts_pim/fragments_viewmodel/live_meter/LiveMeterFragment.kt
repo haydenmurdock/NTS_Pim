@@ -5,10 +5,13 @@ import android.media.AudioManager
 import android.media.MediaPlayer
 import android.os.Bundle
 import android.os.CountDownTimer
+import android.speech.tts.TextToSpeech
 import android.util.Log
 import android.view.LayoutInflater
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProviders
@@ -34,6 +37,7 @@ import com.robinhood.ticker.TickerUtils
 import java.text.DecimalFormat
 import com.amazonaws.mobile.auth.core.internal.util.ThreadUtils.runOnUiThread
 import com.example.nts_pim.data.repository.SubscriptionWatcher
+import com.example.nts_pim.data.repository.TripDetails
 import com.example.nts_pim.data.repository.model_objects.CurrentTrip
 import com.example.nts_pim.data.repository.model_objects.VehicleID
 import com.example.nts_pim.data.repository.providers.ModelPreferences
@@ -43,6 +47,7 @@ import com.example.nts_pim.utilities.mutation_helper.PIMMutationHelper
 import com.example.nts_pim.utilities.sound_helper.SoundHelper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import java.util.*
 
 
 class LiveMeterFragment: ScopedFragment(), KodeinAware {
@@ -52,20 +57,26 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
     private lateinit var viewModel: LiveMeterViewModel
     private lateinit var callbackViewModel: CallBackViewModel
     private var mAWSAppSyncClient: AWSAppSyncClient? = null
+
     // Local Variables
     private var vehicleId = ""
     private var tripId = ""
     var meterState = ""
     private var meterValue = ""
+    private var screenTaps = 0
+
     private val decimalFormatter = DecimalFormat("####00.00")
     private var initialMeterValueSet = false
     private var currentFragment:Fragment? = null
     private var audioManager: AudioManager? = null
     private var requestMeterStateValueTimer:CountDownTimer? = null
+    private var textToSpeech: TextToSpeech? = null
     private val visible = View.VISIBLE
     private var currentTrip:CurrentTrip? = null
     private val logFragment = "Live Meter"
     private var timeOffSoundPlayed = false
+    private var textToSpeechMode = false
+    private val adaMessage = "To start Text to speech, touch the middle of the screen three times."
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -84,16 +95,36 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
         callbackViewModel =
             ViewModelProviders.of(this, callbackFactory).get(CallBackViewModel::class.java)
         vehicleId = viewModel.getVehicleID()
-         audioManager = context?.getSystemService(Context.AUDIO_SERVICE) as AudioManager
-         currentTrip = ModelPreferences(context!!)
+        audioManager = context?.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+        currentTrip = ModelPreferences(context!!)
             .getObject(SharedPrefEnum.CURRENT_TRIP.key, CurrentTrip::class.java)
         tripId = callbackViewModel.getTripId()
+        textToSpeechMode = TripDetails.textToSpeechActivated
+        val settings = viewModel.getVehicleSettings()
+        textToSpeech = TextToSpeech(context, TextToSpeech.OnInitListener {
+            if (it == TextToSpeech.SUCCESS) {
+                val language = textToSpeech?.setLanguage(Locale.US)
+                if (language == TextToSpeech.LANG_MISSING_DATA
+                    || language == TextToSpeech.LANG_NOT_SUPPORTED
+                ) {
+                    Log.e("TTS", "The Language is not supported!")
+                } else {
+                    Log.i("TTS", "Language Supported.")
+                   if (!textToSpeechMode){
+                       playAccessibilityMessage(adaMessage)
+                   }
+                }
+                Log.i("TTS", "Initialization success.")
+            }
+        })
+
         if(tripId == "" &&
                 currentTrip != null){
             tripId = currentTrip!!.tripID
             getMeterOwedQuery(tripId)
             LoggerHelper.writeToLog(context!!, "$logFragment: had to query Meter Owed for $tripId")
         }
+
         updateTickerUI()
         checkCurrentTrip()
         updatePIMStatus()
@@ -104,19 +135,88 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
         if(meterState == "off"){
             callbackViewModel.addMeterState("ON")
         }
-
+        view.setOnTouchListener(object : View.OnTouchListener {
+            override fun onTouch(v: View?, event: MotionEvent?): Boolean {
+                when (event?.action) {
+                    MotionEvent.ACTION_DOWN -> {
+                        screenTaps += 1
+                        startTouchTimer()
+                        if (!textToSpeechMode) {
+                            when (screenTaps) {
+                                1 -> {
+                                    Toast.makeText(
+                                        context,
+                                        "Touch Screen 2 more times for Text to speech mode",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }
+                                2 -> {
+                                    Toast.makeText(
+                                        context,
+                                        "Touch Screen 1 more times for Text to speech mode",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }
+                                3 -> {
+                                    Toast.makeText(
+                                        context,
+                                        "Activated - Text to speech mode",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                    playAccessibilityMessage("Text to speech activated for cab number {${settings?.cabNumber}}")
+                                    LoggerHelper.writeToLog(context!!, "$logFragment, Text to speech activated")
+                                    TripDetails.textToSpeechActivated = true
+                                    textToSpeechMode = true
+                                }
+                            }
+                        } else {
+                            when (screenTaps) {
+                                1 -> {
+                                    Toast.makeText(
+                                        context,
+                                        "Touch Screen 2 more times to disable text to speech mode",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }
+                                2 -> {
+                                    Toast.makeText(
+                                        context,
+                                        "Touch Screen 1 more times to disable Text to speech mode",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }
+                                3 -> {
+                                    Toast.makeText(
+                                        context,
+                                        "Disable - Text to speech mode",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                    playAccessibilityMessage("Text to speech deactivated")
+                                    LoggerHelper.writeToLog(context!!, "$logFragment, Text to speech deactivated")
+                                    TripDetails.textToSpeechActivated = false
+                                    textToSpeechMode = false
+                                }
+                            }
+                        }
+                    }
+                }
+                return v?.onTouchEvent(event) ?: true
+            }
+        })
         if(meterState == MeterEnum.METER_TIME_OFF.state){
             if(audioManager!!.isMicrophoneMute && !timeOffSoundPlayed){
                 playTimeOffSound()
             }
             toTripReview()
         }
-
         callbackViewModel.getMeterOwed().observe(this@LiveMeterFragment, Observer {meterOwedValue ->
             if (meterOwedValue > 0) {
                 val df = decimalFormatter.format(meterOwedValue)
                 meterValue = df.toString()
                 tickerView.setText(meterValue, true)
+                if(textToSpeechMode){
+                    playAccessibilityMessage("Meter Value $meterValue")
+                }
                 LoggerHelper.writeToLog(context!!, "$logFragment: Meter UI is displaying $meterValue")
                 if (!live_meter_dollar_sign.isVisible &&
                     live_meter_dollar_sign != null
@@ -156,7 +256,6 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
             }
         }
     }
-
     private fun updateTickerUI() {
         if(tickerView != null){
             tickerView.setCharacterLists(TickerUtils.provideNumberList())
@@ -174,6 +273,27 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
                 navController.navigate(action)
             }
         }
+    }
+    private fun playAccessibilityMessage(messageToSpeak: String) {
+        Log.i("TTS", "playing meter amount")
+        textToSpeech?.setSpeechRate(0.8.toFloat())
+        textToSpeech!!.speak(
+            messageToSpeak,
+            TextToSpeech.QUEUE_FLUSH,
+            null
+        )
+        LoggerHelper.writeToLog(context!!, "$logFragment,  Pim Read $messageToSpeak to customer")
+    }
+    private fun startTouchTimer(){
+        object: CountDownTimer(10000, 1000){
+            override fun onTick(millisUntilFinished: Long) {
+
+            }
+
+            override fun onFinish() {
+                screenTaps = 0
+            }
+        }.start()
     }
 
     private fun toEmailText(){
@@ -336,6 +456,10 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
         requestMeterStateValueTimer?.cancel()
     }
 
+    override fun onStop() {
+        textToSpeech?.stop()
+        super.onStop()
+    }
     override fun onDestroy() {
         callbackViewModel.getMeterOwed().removeObservers(this)
         callbackViewModel.getMeterState().removeObservers(this)

@@ -163,7 +163,6 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
         if (loggingTimer == null) {
             startTimerToSendLogsToAWS(vehicleId, this@MainActivity)
         }
-
     }
 
     //App Sync subscription to vehicleTable

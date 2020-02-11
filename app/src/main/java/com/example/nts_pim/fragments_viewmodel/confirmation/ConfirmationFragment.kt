@@ -224,6 +224,7 @@ class ConfirmationFragment: ScopedFragment(), KodeinAware {
         currentTrip?.isActive = false
         ModelPreferences(context!!).putObject(SharedPrefEnum.CURRENT_TRIP.key, currentTrip)
         LoggerHelper.writeToLog(context!!, "$logFragment, internal trip status changed. Trip Active ${currentTrip?.isActive}")
+        TripDetails.textToSpeechActivated = false
 
     }
 

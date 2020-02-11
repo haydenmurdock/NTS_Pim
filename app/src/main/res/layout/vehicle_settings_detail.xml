@@ -210,4 +210,14 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:srcCompat="@drawable/ic_square_icon" />
 
+    <Button
+            android:id="@+id/reauthorize_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:layout_marginEnd="16dp"
+            android:text="Re-Authorize "
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/battery_btn" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -8,6 +8,6 @@ class LiveMeterViewModel(
 ) : TripViewModel(tripRepository) {
 
     internal fun getVehicleID() = tripRepository.getVehicleID()
-
+    internal fun getVehicleSettings() = tripRepository.getVehicleSettings()
 
 }

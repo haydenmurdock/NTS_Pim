@@ -6,6 +6,7 @@ import java.time.format.DateTimeFormatter
 
 object TripDetails {
     // This is for debugging information.
+    var textToSpeechActivated = false
     var tripStartTime: LocalDateTime = LocalDateTime.now()
     var tripEndTime: LocalDateTime = LocalDateTime.now()
     var isReceiptSent:Boolean = false
@@ -14,6 +15,7 @@ object TripDetails {
     var receiptSentTo = ""
 
     init {
+        textToSpeechActivated = false
         tripStartTime = LocalDateTime.now()
         tripEndTime = LocalDateTime.now()
         isReceiptSent = false
@@ -23,6 +25,7 @@ object TripDetails {
     }
 
     private fun resetAdvancedTripDetails(){
+        textToSpeechActivated = false
         tripStartTime = LocalDateTime.now()
         tripEndTime = LocalDateTime.now()
         isReceiptSent = false

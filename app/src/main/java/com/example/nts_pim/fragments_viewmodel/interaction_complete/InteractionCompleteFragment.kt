@@ -130,6 +130,7 @@ class InteractionCompleteFragment : ScopedFragment(), KodeinAware {
             CurrentTrip::class.java)
         currentTrip?.isActive = false
         ModelPreferences(context!!).putObject(SharedPrefEnum.CURRENT_TRIP.key, currentTrip)
+        TripDetails.textToSpeechActivated = false
         LoggerHelper.writeToLog(context!!, "$logFragment, internal trip status changed. Trip Active ${currentTrip?.isActive}")
     }
 

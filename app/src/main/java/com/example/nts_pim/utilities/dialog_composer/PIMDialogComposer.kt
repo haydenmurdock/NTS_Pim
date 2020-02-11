@@ -2,11 +2,9 @@ package com.example.nts_pim.utilities.dialog_composer
 
 import android.app.Activity
 import android.app.AlertDialog
-import android.content.Context
-import android.content.Intent
-import android.media.AudioManager
-import androidx.fragment.app.FragmentActivity
+import com.example.nts_pim.data.repository.model_objects.VehicleID
 import com.example.nts_pim.fragments_viewmodel.base.ScopedFragment
+import com.squareup.sdk.reader.ReaderSdk
 import kotlin.system.exitProcess
 
 
@@ -32,6 +30,14 @@ object PIMDialogComposer: ScopedFragment() {
             .setNegativeButton("Cancel",null)
             .show()
     }
+    internal fun showSquareNotAuthorized(activity: Activity){
+        val squareNotAuthorizedAlert = AlertDialog.Builder(activity)
+        squareNotAuthorizedAlert.setTitle("Square needs Authorization")
+        squareNotAuthorizedAlert.setMessage("Please hit the re-authorize button before calling square checkout flow")
+            .setPositiveButton("okay", null)
+            .show()
+    }
+
 
 
 }
