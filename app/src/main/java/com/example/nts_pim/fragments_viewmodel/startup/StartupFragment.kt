@@ -13,13 +13,11 @@ import androidx.lifecycle.ViewModelProviders
 import androidx.navigation.NavController
 import androidx.navigation.Navigation
 import com.amazonaws.amplify.generated.graphql.GetPimSettingsQuery
-import com.amazonaws.amplify.generated.graphql.GetTripQuery
 import com.amazonaws.mobileconnectors.appsync.AWSAppSyncClient
 import com.amazonaws.mobileconnectors.appsync.fetcher.AppSyncResponseFetchers
 import com.apollographql.apollo.GraphQLCall
 import com.apollographql.apollo.api.Response
 import com.apollographql.apollo.exception.ApolloException
-import com.example.nts_pim.PimApplication
 import com.example.nts_pim.R
 import com.example.nts_pim.data.repository.model_objects.DeviceID
 import com.example.nts_pim.data.repository.providers.ModelPreferences
@@ -30,7 +28,6 @@ import com.example.nts_pim.fragments_viewmodel.vehicle_setup.VehicleSetupViewMod
 import com.example.nts_pim.utilities.enums.SharedPrefEnum
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import com.example.nts_pim.utilities.power_cycle.PowerAccessibilityService
-import com.squareup.sdk.reader.ReaderSdk
 import org.kodein.di.KodeinAware
 import org.kodein.di.android.x.closestKodein
 import org.kodein.di.generic.instance

@@ -24,7 +24,6 @@ import com.example.nts_pim.utilities.view_walker.ViewWalker
 import com.example.nts_pim.utilities.enums.MeterEnum
 import com.example.nts_pim.utilities.enums.SharedPrefEnum
 import com.example.nts_pim.utilities.sound_helper.SoundHelper
-import org.w3c.dom.Text
 import java.text.DecimalFormat
 
 

@@ -1,8 +1,6 @@
 package com.example.nts_pim.utilities.keyboards
 
 import android.content.Context
-import android.media.MediaPlayer
-import android.os.Vibrator
 import android.text.TextUtils
 import android.util.AttributeSet
 import android.util.SparseArray

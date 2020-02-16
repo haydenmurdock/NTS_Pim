@@ -14,7 +14,6 @@ import android.text.Editable
 import android.text.TextWatcher
 import android.util.Log
 import android.view.MotionEvent
-import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModelProviders
 import androidx.navigation.Navigation
@@ -29,7 +28,6 @@ import com.example.nts_pim.fragments_viewmodel.InjectorUtiles
 import com.example.nts_pim.fragments_viewmodel.base.ClientFactory
 import com.example.nts_pim.fragments_viewmodel.callback.CallBackViewModel
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
-import com.example.nts_pim.utilities.mutation_helper.PIMMutationHelper
 import com.example.nts_pim.utilities.simple_email_helper.EmailHelper
 import com.example.nts_pim.utilities.view_helper.ViewHelper
 import kotlinx.android.synthetic.main.receipt_information_email.*

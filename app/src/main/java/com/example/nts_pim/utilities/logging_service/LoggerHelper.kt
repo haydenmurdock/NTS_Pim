@@ -2,7 +2,6 @@ package com.example.nts_pim.utilities.logging_service
 
 import android.Manifest
 import android.content.Context
-import android.os.Environment
 import android.util.Log
 import androidx.core.content.ContextCompat
 import com.example.nts_pim.data.repository.model_objects.VehicleID

@@ -2,12 +2,12 @@ package com.example.nts_pim.utilities.sms_helper
 
 import android.util.Log
 import com.example.nts_pim.data.repository.TripDetails
+import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import okhttp3.*
 import java.util.concurrent.TimeUnit
 import org.json.JSONException
 import org.json.JSONObject
 import okhttp3.MediaType.Companion.toMediaType
-import java.io.IOException
 import java.net.URL
 
 object SmsHelper {
@@ -57,6 +57,7 @@ object SmsHelper {
                   }
               }
           } catch (e: Error){
+              Log.i("Text Receipt", "Send Text receipt unsuccessful. Step 3: Fail. Error")
               TripDetails.isReceiptSent = false
               TripDetails.receiptCode = e.hashCode()
               TripDetails.receiptMessage = e.localizedMessage

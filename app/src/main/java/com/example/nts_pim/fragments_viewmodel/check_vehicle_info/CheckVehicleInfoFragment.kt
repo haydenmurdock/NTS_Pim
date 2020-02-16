@@ -19,7 +19,6 @@ import com.example.nts_pim.data.repository.model_objects.VehicleSettings
 import com.example.nts_pim.data.repository.providers.ModelPreferences
 import com.example.nts_pim.fragments_viewmodel.base.ClientFactory
 import com.example.nts_pim.fragments_viewmodel.base.ScopedFragment
-import com.example.nts_pim.utilities.enums.LogEnums
 import com.example.nts_pim.utilities.enums.SharedPrefEnum
 import com.github.ybq.android.spinkit.style.ThreeBounce
 import kotlinx.android.synthetic.main.check_vehicle_info.*

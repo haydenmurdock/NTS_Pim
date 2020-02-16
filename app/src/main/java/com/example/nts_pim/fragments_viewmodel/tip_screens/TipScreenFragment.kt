@@ -26,7 +26,6 @@ import com.example.nts_pim.fragments_viewmodel.live_meter.LiveMeterViewModel
 import com.example.nts_pim.fragments_viewmodel.live_meter.LiveMeterViewModelFactory
 import com.example.nts_pim.utilities.enums.MeterEnum
 import com.example.nts_pim.utilities.enums.PIMStatusEnum
-import com.example.nts_pim.utilities.enums.PaymentTypeEnum
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import com.example.nts_pim.utilities.mutation_helper.PIMMutationHelper
 import com.example.nts_pim.utilities.sound_helper.SoundHelper

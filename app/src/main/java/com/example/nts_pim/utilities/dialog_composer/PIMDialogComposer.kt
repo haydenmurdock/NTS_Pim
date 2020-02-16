@@ -2,9 +2,7 @@ package com.example.nts_pim.utilities.dialog_composer
 
 import android.app.Activity
 import android.app.AlertDialog
-import com.example.nts_pim.data.repository.model_objects.VehicleID
 import com.example.nts_pim.fragments_viewmodel.base.ScopedFragment
-import com.squareup.sdk.reader.ReaderSdk
 import kotlin.system.exitProcess
 
 

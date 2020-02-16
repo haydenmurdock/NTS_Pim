@@ -3,12 +3,10 @@ package com.example.nts_pim.utilities.power_cycle
 import android.Manifest
 import android.accessibilityservice.AccessibilityService
 import android.app.PendingIntent
-import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.provider.Settings
-import android.text.TextUtils
 import android.util.Log
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo

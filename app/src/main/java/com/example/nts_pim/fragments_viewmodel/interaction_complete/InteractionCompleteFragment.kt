@@ -1,5 +1,7 @@
 package com.example.nts_pim.fragments_viewmodel.interaction_complete
 
+import android.content.Context
+import android.net.ConnectivityManager
 import android.os.Bundle
 import android.os.CountDownTimer
 import android.util.Log
@@ -119,10 +121,25 @@ class InteractionCompleteFragment : ScopedFragment(), KodeinAware {
 
     }
     private fun runEndTripMutation() = launch {
-        if (tripStatus != null && tripStatus == VehicleStatusEnum.TRIP_PICKED_UP.status){
+        if (tripStatus != null &&
+            tripStatus == VehicleStatusEnum.TRIP_PICKED_UP.status &&
+            isOnline(context!!)){
             Log.i("LOGGER", "trip status was still picked up. Sent end trip status")
             PIMMutationHelper.updateTripStatus(vehicleId, VehicleStatusEnum.TRIP_END.status, mAWSAppSyncClient!!, tripId)
         }
+        if(tripStatus != null && tripStatus
+            == VehicleStatusEnum.TRIP_PICKED_UP.status &&
+            !isOnline(context!!)){
+            //Internet is not connected so we will change the internal trip status
+            callbackViewModel.addTripStatus("End")
+            Log.i("LOGGER", "trip status was still picked up. Internet was not connected so changed internal value to End")
+        }
+    }
+
+    private fun isOnline(context: Context): Boolean {
+        val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val networkInfo = connectivityManager.activeNetworkInfo
+        return networkInfo != null && networkInfo.isConnected
     }
     private fun setInternalCurrentTripStatus(){
         val currentTrip = ModelPreferences(context!!).getObject(

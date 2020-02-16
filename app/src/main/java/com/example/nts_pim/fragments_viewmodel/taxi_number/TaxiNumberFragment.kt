@@ -9,10 +9,7 @@ import android.view.ViewGroup
 import androidx.lifecycle.ViewModelProviders
 import androidx.navigation.Navigation
 import com.example.nts_pim.R
-import com.example.nts_pim.data.repository.model_objects.CurrentTrip
-import com.example.nts_pim.data.repository.providers.ModelPreferences
 import com.example.nts_pim.fragments_viewmodel.base.ScopedFragment
-import com.example.nts_pim.utilities.enums.SharedPrefEnum
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import kotlinx.android.synthetic.main.taxi_number_screen.*
 import org.kodein.di.KodeinAware

@@ -84,7 +84,6 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
             .get(VehicleSettingsDetailViewModel::class.java)
         callBackViewModel = ViewModelProviders.of(this, factory)
             .get(CallBackViewModel::class.java)
-
         val readerManager = ReaderSdk.readerManager()
         readerSettingsCallbackRef =
             readerManager.addReaderSettingsActivityCallback(this::onReaderSettingsResult)
@@ -442,5 +441,10 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
         if (navController.currentDestination?.id == currentFragmentId){
             navController.navigate(R.id.action_vehicle_settings_detail_fragment_to_startupFragment)
         }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        readerSettingsCallbackRef?.clear()
     }
 }

@@ -1,9 +1,7 @@
 package com.example.nts_pim.fragments_viewmodel.welcome
 
-import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import android.media.AudioManager
 import android.os.BatteryManager
 import android.os.Bundle
 import android.os.CountDownTimer
@@ -37,13 +35,11 @@ import com.example.nts_pim.fragments_viewmodel.base.ClientFactory
 import com.example.nts_pim.fragments_viewmodel.base.ScopedFragment
 import com.example.nts_pim.fragments_viewmodel.callback.CallBackViewModel
 import com.example.nts_pim.fragments_viewmodel.vehicle_settings.setting_keyboard_viewModels.SettingsKeyboardViewModel
-import com.example.nts_pim.utilities.enums.MeterEnum
 import com.example.nts_pim.utilities.enums.PIMStatusEnum
 import com.example.nts_pim.utilities.enums.SharedPrefEnum
 import com.example.nts_pim.utilities.enums.VehicleStatusEnum
 import com.example.nts_pim.utilities.keyboards.PhoneKeyboard
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
-import com.example.nts_pim.utilities.power_cycle.PowerAccessibilityService
 import com.example.nts_pim.utilities.sound_helper.SoundHelper
 import com.example.nts_pim.utilities.view_helper.ViewHelper
 import com.squareup.sdk.reader.ReaderSdk
@@ -67,7 +63,6 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
 
     // Kodein and ViewModel/Factory
     override val kodein by closestKodein()
-
     private val viewModelFactory: WelcomeViewModelFactory by instance()
     private lateinit var keyboardViewModel: SettingsKeyboardViewModel
     private lateinit var viewModel: WelcomeViewModel
@@ -264,7 +259,6 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
         Log.i("Welcome Screen", "Trip Active: $isActive Trip Id: $tripId")
         LoggerHelper.writeToLog(context!!, "$logFragment Trip Check: Last saved trip is active. To Meter Screen")
         toLiveMeterScreen()
-
     }
     private fun updateUI(companyName: String) {
         thank_you_text_view.text = "Thank you for choosing $companyName"

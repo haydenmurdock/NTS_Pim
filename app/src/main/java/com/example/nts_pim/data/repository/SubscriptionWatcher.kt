@@ -24,7 +24,7 @@ object  SubscriptionWatcher {
         }
        val subscriptionBuilder = OnTripUpdateSubscription.builder().tripId(tripId).build()
         if(mAWSAppSyncClient == null){
-            mAWSAppSyncClient = ClientFactory.getInstance(context)
+            mAWSAppSyncClient = ClientFactory.getInstance(context.applicationContext)
         }
         if(subscriptionWatcherTrip == null){
             Log.i("LOGGER", "watcher was null, Updated to subscription builder")
@@ -35,10 +35,12 @@ object  SubscriptionWatcher {
 
         } else {
             Log.i("LOGGER", "watcher cancelled, and updated")
-            subscriptionWatcherTrip!!.cancel()
-            subscriptionWatcherTrip = mAWSAppSyncClient?.subscribe(subscriptionBuilder)
-            if (mTripCallBack != null){
-                subscriptionWatcherTrip?.execute(mTripCallBack!!)
+            if (subscriptionWatcherTrip != null){
+                subscriptionWatcherTrip!!.cancel()
+                subscriptionWatcherTrip = mAWSAppSyncClient?.subscribe(subscriptionBuilder)
+                if (mTripCallBack != null){
+                    subscriptionWatcherTrip?.execute(mTripCallBack!!)
+                }
             }
         }
         return subscriptionWatcherTrip

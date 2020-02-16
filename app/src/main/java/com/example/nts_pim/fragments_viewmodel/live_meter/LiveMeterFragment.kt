@@ -39,7 +39,6 @@ import com.amazonaws.mobile.auth.core.internal.util.ThreadUtils.runOnUiThread
 import com.example.nts_pim.data.repository.SubscriptionWatcher
 import com.example.nts_pim.data.repository.TripDetails
 import com.example.nts_pim.data.repository.model_objects.CurrentTrip
-import com.example.nts_pim.data.repository.model_objects.VehicleID
 import com.example.nts_pim.data.repository.providers.ModelPreferences
 import com.example.nts_pim.utilities.enums.*
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
@@ -88,7 +87,7 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         currentFragment = this
-        mAWSAppSyncClient = ClientFactory.getInstance(context)
+        mAWSAppSyncClient = ClientFactory.getInstance(activity?.applicationContext)
         val callbackFactory = InjectorUtiles.provideCallBackModelFactory()
         viewModel = ViewModelProviders.of(this, viewModelFactory)
             .get(LiveMeterViewModel::class.java)
@@ -101,22 +100,22 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
         tripId = callbackViewModel.getTripId()
         textToSpeechMode = TripDetails.textToSpeechActivated
         val settings = viewModel.getVehicleSettings()
-        textToSpeech = TextToSpeech(context, TextToSpeech.OnInitListener {
-            if (it == TextToSpeech.SUCCESS) {
-                val language = textToSpeech?.setLanguage(Locale.US)
-                if (language == TextToSpeech.LANG_MISSING_DATA
-                    || language == TextToSpeech.LANG_NOT_SUPPORTED
-                ) {
-                    Log.e("TTS", "The Language is not supported!")
-                } else {
-                    Log.i("TTS", "Language Supported.")
-                   if (!textToSpeechMode){
-                       playAccessibilityMessage(adaMessage)
-                   }
-                }
-                Log.i("TTS", "Initialization success.")
-            }
-        })
+//        textToSpeech = TextToSpeech(context, TextToSpeech.OnInitListener {
+//            if (it == TextToSpeech.SUCCESS) {
+//                val language = textToSpeech?.setLanguage(Locale.US)
+//                if (language == TextToSpeech.LANG_MISSING_DATA
+//                    || language == TextToSpeech.LANG_NOT_SUPPORTED
+//                ) {
+//                    Log.e("TTS", "The Language is not supported!")
+//                } else {
+//                    Log.i("TTS", "Language Supported.")
+//                   if (!textToSpeechMode){
+//                       playAccessibilityMessage(adaMessage)
+//                   }
+//                }
+//                Log.i("TTS", "Initialization success.")
+//            }
+//        })
 
         if(tripId == "" &&
                 currentTrip != null){
@@ -135,74 +134,74 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
         if(meterState == "off"){
             callbackViewModel.addMeterState("ON")
         }
-        view.setOnTouchListener(object : View.OnTouchListener {
-            override fun onTouch(v: View?, event: MotionEvent?): Boolean {
-                when (event?.action) {
-                    MotionEvent.ACTION_DOWN -> {
-                        screenTaps += 1
-                        startTouchTimer()
-                        if (!textToSpeechMode) {
-                            when (screenTaps) {
-                                1 -> {
-                                    Toast.makeText(
-                                        context,
-                                        "Touch Screen 2 more times for Text to speech mode",
-                                        Toast.LENGTH_SHORT
-                                    ).show()
-                                }
-                                2 -> {
-                                    Toast.makeText(
-                                        context,
-                                        "Touch Screen 1 more times for Text to speech mode",
-                                        Toast.LENGTH_SHORT
-                                    ).show()
-                                }
-                                3 -> {
-                                    Toast.makeText(
-                                        context,
-                                        "Activated - Text to speech mode",
-                                        Toast.LENGTH_SHORT
-                                    ).show()
-                                    playAccessibilityMessage("Text to speech activated for cab number {${settings?.cabNumber}}")
-                                    LoggerHelper.writeToLog(context!!, "$logFragment, Text to speech activated")
-                                    TripDetails.textToSpeechActivated = true
-                                    textToSpeechMode = true
-                                }
-                            }
-                        } else {
-                            when (screenTaps) {
-                                1 -> {
-                                    Toast.makeText(
-                                        context,
-                                        "Touch Screen 2 more times to disable text to speech mode",
-                                        Toast.LENGTH_SHORT
-                                    ).show()
-                                }
-                                2 -> {
-                                    Toast.makeText(
-                                        context,
-                                        "Touch Screen 1 more times to disable Text to speech mode",
-                                        Toast.LENGTH_SHORT
-                                    ).show()
-                                }
-                                3 -> {
-                                    Toast.makeText(
-                                        context,
-                                        "Disable - Text to speech mode",
-                                        Toast.LENGTH_SHORT
-                                    ).show()
-                                    playAccessibilityMessage("Text to speech deactivated")
-                                    LoggerHelper.writeToLog(context!!, "$logFragment, Text to speech deactivated")
-                                    TripDetails.textToSpeechActivated = false
-                                    textToSpeechMode = false
-                                }
-                            }
-                        }
-                    }
-                }
-                return v?.onTouchEvent(event) ?: true
-            }
-        })
+//        view.setOnTouchListener(object : View.OnTouchListener {
+//            override fun onTouch(v: View?, event: MotionEvent?): Boolean {
+//                when (event?.action) {
+//                    MotionEvent.ACTION_DOWN -> {
+//                        screenTaps += 1
+//                        startTouchTimer()
+//                        if (!textToSpeechMode) {
+//                            when (screenTaps) {
+//                                1 -> {
+//                                    Toast.makeText(
+//                                        context,
+//                                        "Touch Screen 2 more times for Text to speech mode",
+//                                        Toast.LENGTH_SHORT
+//                                    ).show()
+//                                }
+//                                2 -> {
+//                                    Toast.makeText(
+//                                        context,
+//                                        "Touch Screen 1 more times for Text to speech mode",
+//                                        Toast.LENGTH_SHORT
+//                                    ).show()
+//                                }
+//                                3 -> {
+//                                    Toast.makeText(
+//                                        context,
+//                                        "Activated - Text to speech mode",
+//                                        Toast.LENGTH_SHORT
+//                                    ).show()
+//                                    playAccessibilityMessage("Text to speech activated for cab number {${settings?.cabNumber}}")
+//                                    LoggerHelper.writeToLog(context!!, "$logFragment, Text to speech activated")
+//                                    TripDetails.textToSpeechActivated = true
+//                                    textToSpeechMode = true
+//                                }
+//                            }
+//                        } else {
+//                            when (screenTaps) {
+//                                1 -> {
+//                                    Toast.makeText(
+//                                        context,
+//                                        "Touch Screen 2 more times to disable text to speech mode",
+//                                        Toast.LENGTH_SHORT
+//                                    ).show()
+//                                }
+//                                2 -> {
+//                                    Toast.makeText(
+//                                        context,
+//                                        "Touch Screen 1 more times to disable Text to speech mode",
+//                                        Toast.LENGTH_SHORT
+//                                    ).show()
+//                                }
+//                                3 -> {
+//                                    Toast.makeText(
+//                                        context,
+//                                        "Disable - Text to speech mode",
+//                                        Toast.LENGTH_SHORT
+//                                    ).show()
+//                                    playAccessibilityMessage("Text to speech deactivated")
+//                                    LoggerHelper.writeToLog(context!!, "$logFragment, Text to speech deactivated")
+//                                    TripDetails.textToSpeechActivated = false
+//                                    textToSpeechMode = false
+//                                }
+//                            }
+//                        }
+//                    }
+//                }
+//                return v?.onTouchEvent(event) ?: true
+//            }
+//        })
         if(meterState == MeterEnum.METER_TIME_OFF.state){
             if(audioManager!!.isMicrophoneMute && !timeOffSoundPlayed){
                 playTimeOffSound()
@@ -248,11 +247,11 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
         })
         refresh_button.setOnClickListener {
             if(refresh_progress_bar != null){
-                refresh_button.setImageDrawable(null)
-                refresh_button.isEnabled = false
-                refresh_progress_bar.isVisible = true
-                refresh_progress_bar.animate()
-                getTripIdQuery(vehicleId)
+//                refresh_button.setImageDrawable(null)
+//                refresh_button.isEnabled = false
+//                refresh_progress_bar.isVisible = true
+//                refresh_progress_bar.animate()
+//                getTripIdQuery(vehicleId)
             }
         }
     }
@@ -276,12 +275,12 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
     }
     private fun playAccessibilityMessage(messageToSpeak: String) {
         Log.i("TTS", "playing meter amount")
-        textToSpeech?.setSpeechRate(0.8.toFloat())
-        textToSpeech!!.speak(
-            messageToSpeak,
-            TextToSpeech.QUEUE_FLUSH,
-            null
-        )
+//        textToSpeech?.setSpeechRate(0.8.toFloat())
+//        textToSpeech!!.speak(
+//            messageToSpeak,
+//            TextToSpeech.QUEUE_FLUSH,
+//            null
+//        )
         LoggerHelper.writeToLog(context!!, "$logFragment,  Pim Read $messageToSpeak to customer")
     }
     private fun startTouchTimer(){
@@ -297,7 +296,7 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
     }
 
     private fun toEmailText(){
-        if(meterValue != ""){
+        if(!meterValue.isNullOrBlank()){
             val priceAsFloat = meterValue.toFloat()
             val paymentType = PaymentTypeEnum.CARD.paymentType
             val action = LiveMeterFragmentDirections.toEmailorTextFromLiveMeter(priceAsFloat, paymentType).setPaymentType(paymentType).setTripTotal(priceAsFloat)
@@ -425,15 +424,6 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
         callbackViewModel.reSyncComplete()
         LoggerHelper.writeToLog(context!!, "$logFragment: Resync Complete")
     }
-    private fun requestMeterStateValue(){
-          requestMeterStateValueTimer = object:CountDownTimer(10000,1000){
-            override fun onTick(millisUntilFinished: Long) {
-            }
-            override fun onFinish() {
-
-            }
-        }.start()
-    }
 
     private fun playTimeOffSound(){
         SoundHelper.turnOnSound(context!!)
@@ -448,19 +438,15 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
 
     override fun onResume() {
         super.onResume()
-        requestMeterStateValue()
+        LoggerHelper.writeToLog(context!!, "Live Meter onResume hit")
     }
 
     override fun onPause() {
         super.onPause()
         requestMeterStateValueTimer?.cancel()
     }
-
-    override fun onStop() {
-        textToSpeech?.stop()
-        super.onStop()
-    }
     override fun onDestroy() {
+        textToSpeech?.stop()
         callbackViewModel.getMeterOwed().removeObservers(this)
         callbackViewModel.getMeterState().removeObservers(this)
         callbackViewModel.getTripStatus().removeObservers(this)

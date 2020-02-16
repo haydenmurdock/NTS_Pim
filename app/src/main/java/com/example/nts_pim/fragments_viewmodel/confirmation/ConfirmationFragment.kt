@@ -1,8 +1,9 @@
 package com.example.nts_pim.fragments_viewmodel.confirmation
 
+import android.content.Context
+import android.net.ConnectivityManager
 import android.os.Bundle
 import android.os.CountDownTimer
-import android.text.method.PasswordTransformationMethod
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -11,8 +12,8 @@ import androidx.lifecycle.ViewModelProviders
 import androidx.navigation.Navigation
 import com.amazonaws.mobileconnectors.appsync.AWSAppSyncClient
 import com.example.nts_pim.R
-import com.example.nts_pim.activity.MainActivity
 import com.example.nts_pim.data.repository.TripDetails
+import com.example.nts_pim.data.repository.VehicleTripArrayHolder
 import com.example.nts_pim.data.repository.model_objects.CurrentTrip
 import com.example.nts_pim.data.repository.providers.ModelPreferences
 import com.example.nts_pim.fragments_viewmodel.InjectorUtiles
@@ -26,7 +27,6 @@ import com.example.nts_pim.utilities.enums.VehicleStatusEnum
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import com.example.nts_pim.utilities.mutation_helper.PIMMutationHelper
 import kotlinx.android.synthetic.main.confirmation_screen.*
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.kodein.di.KodeinAware
 import org.kodein.di.android.x.closestKodein
@@ -211,10 +211,26 @@ class ConfirmationFragment: ScopedFragment(), KodeinAware {
         }
     }
     private fun runEndTripMutation() = launch {
-            if (tripStatus != null && tripStatus == VehicleStatusEnum.TRIP_PICKED_UP.status){
+            if (tripStatus != null &&
+                tripStatus == VehicleStatusEnum.TRIP_PICKED_UP.status &&
+                isOnline(context!!)){
+                //Internet is connected
                 Log.i("LOGGER", "trip status was still picked up. Sent end trip status")
                 PIMMutationHelper.updateTripStatus(vehicleId, VehicleStatusEnum.TRIP_END.status, mAWSAppSyncClient!!, tripId)
-       }
+             }
+            if(tripStatus != null && tripStatus
+                == VehicleStatusEnum.TRIP_PICKED_UP.status &&
+                !isOnline(context!!)){
+                //Internet is connected not connected so we will change the internal trip status
+                callbackViewModel.addTripStatus("End")
+                Log.i("LOGGER", "trip status was still picked up. Internet was not connected so changed internal value to End")
+            }
+    }
+
+    private fun isOnline(context: Context): Boolean {
+        val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val networkInfo = connectivityManager.activeNetworkInfo
+        return networkInfo != null && networkInfo.isConnected
     }
     
     private fun setInternalCurrentTripStatus(){
