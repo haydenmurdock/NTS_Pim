@@ -679,7 +679,7 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
             Manifest.permission.RECEIVE_BOOT_COMPLETED,
             Manifest.permission.BLUETOOTH_ADMIN,
             Manifest.permission.BLUETOOTH
-        )//,Manifest.permission.BIND_ACCESSIBILITY_SERVICE
+        )
 
         val missingPermissions = ArrayList<String>()
         // check all required dynamic permissions
@@ -689,7 +689,7 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
                 missingPermissions.add(permission)
             }
         }
-        if (!missingPermissions.isEmpty()) {
+        if (missingPermissions.isNotEmpty()) {
             // request all missing permissions
             val permissions = missingPermissions
                 .toTypedArray()
@@ -754,7 +754,6 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
     }
     override fun onResume() {
         super.onResume()
-
         requestMic()
         requestStorage()
         requestLocation()

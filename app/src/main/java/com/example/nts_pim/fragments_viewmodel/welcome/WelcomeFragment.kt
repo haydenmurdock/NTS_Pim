@@ -158,7 +158,7 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
         dimScreenTimer.start()
         checkAppBuildVersion()
         //This is encase you have to restart the app during a trip or a trip
-        keyboardViewModel.isPhoneKeyboardUp().observe(this, androidx.lifecycle.Observer {
+        keyboardViewModel.isPhoneKeyboardUp().observe(this.viewLifecycleOwner, androidx.lifecycle.Observer {
             if (it) {
                 isPasswordEntered = true
             }
@@ -188,25 +188,25 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
                 showToastMessage("$buttonCount", 1000)
             }
             if (buttonCount == 5) {
-                open_vehicle_settings_button.animate().alpha(1.00f).setDuration(500)
+                open_vehicle_settings_button.animate().alpha(1.00f).duration = 500
                 keyboardViewModel.phoneKeyboardIsUp()
                 ViewHelper.viewSlideUp(password_scroll_view, 500)
             }
             if (buttonCount >= 6) {
                 if (buttonCount % 2 == 0) {
-                    open_vehicle_settings_button.animate().alpha(0.0f).setDuration(500)
+                    open_vehicle_settings_button.animate().alpha(0.0f).duration = 500
                     ViewHelper.viewSlideDown(password_scroll_view, 500)
                     password_editText.setText("")
                     keyboardViewModel.bothKeyboardsDown()
                 } else {
-                    open_vehicle_settings_button.animate().alpha(1.00f).setDuration(500)
+                    open_vehicle_settings_button.animate().alpha(1.00f).duration = 500
                     keyboardViewModel.phoneKeyboardIsUp()
                     ViewHelper.viewSlideUp(password_scroll_view, 500)
                 }
             }
         }
         tripIsCurrentlyRunning(isOnActiveTrip)
-        callBackViewModel.hasNewTripStarted().observe(this, androidx.lifecycle.Observer { tripStarted ->
+        callBackViewModel.hasNewTripStarted().observe(this.viewLifecycleOwner, androidx.lifecycle.Observer { tripStarted ->
             if(tripStarted){
                 val newTripId = callBackViewModel.getTripId()
                 if(newTripId != lastTrip.second &&
@@ -215,7 +215,7 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
                         }
                 }
             })
-        callBackViewModel.getTripStatus().observe(this, androidx.lifecycle.Observer {
+        callBackViewModel.getTripStatus().observe(this.viewLifecycleOwner, androidx.lifecycle.Observer {
             if (it == VehicleStatusEnum.TRIP_PICKED_UP.status){
                 changeScreenBrightness(fullBrightness)
                 LoggerHelper.writeToLog(context!!, "$logFragment received Trip_Pick_Up_Status. Starting Animation")
@@ -314,7 +314,7 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
             val action =  "com.claren.tablet_control.shutdown"
             val p = "com.claren.tablet_control"
             val intent = Intent()
-            intent.setAction(action)
+            intent.action = action
             intent.`package` = p
             intent.addFlags(Intent.FLAG_INCLUDE_STOPPED_PACKAGES)
             activity?.sendBroadcast(intent)

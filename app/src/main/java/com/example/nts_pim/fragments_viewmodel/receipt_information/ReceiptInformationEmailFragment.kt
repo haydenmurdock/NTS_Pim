@@ -296,8 +296,6 @@ class ReceiptInformationEmailFragment: ScopedFragment(), KodeinAware {
                     "update payment Api Unsuccessfully. Step 1: Incomplete")
                 LoggerHelper.writeToLog(context!!, "$logFragment, update payment unsuccessfully. Step 1: Incomplete")
             }
-
-
         }
 
         override fun onFailure(e: ApolloException) {

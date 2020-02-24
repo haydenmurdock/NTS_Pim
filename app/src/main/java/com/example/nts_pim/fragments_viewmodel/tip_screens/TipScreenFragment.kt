@@ -77,6 +77,7 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
     private var transactionId = ""
     private var paymentSentForSquare = false
     private val logFragment = "Tip Screen"
+    private var driverId: Int? = null
 
 
     val screenTimeOutTimer = object: CountDownTimer(30000, 1000) {
@@ -111,6 +112,7 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
         vehicleId = viewModel.getVehicleID()
         tripId = callbackViewModel.getTripId()
         tripNumber = callbackViewModel.getTripNumber()
+        driverId = callbackViewModel.getDriverId()
         val checkoutManager = ReaderSdk.checkoutManager()
         checkoutCallbackRef = checkoutManager.addCheckoutActivityCallback(this::onCheckoutResult)
         getArgsFromCustomTipScreen()
@@ -487,6 +489,12 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
         val amountMoney = Money(checkOutTotal, CurrencyCode.current())
         val parametersBuilder = CheckoutParameters.newBuilder(amountMoney)
         parametersBuilder.skipReceipt(false)
+        // if trip number is 0 we use the last 8 of trip id
+        if (tripNumber != 0){
+            parametersBuilder.note("[$tripNumber] [$vehicleId] [$driverId]")
+        } else {
+            parametersBuilder.note("[${tripId.substring(8..tripId.length)}] [$vehicleId] [$driverId]")
+        }
         val checkoutManager = ReaderSdk.checkoutManager()
         checkoutManager.startCheckoutActivity(context!!, parametersBuilder.build())
         PIMMutationHelper.updatePIMStatus(vehicleId, PIMStatusEnum.STARTED_SQUARE_PAYMENT.status, mAWSAppSyncClient!!)
@@ -633,7 +641,6 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
             val cardName = i.cardDetails.card.brand.name
             cardInfo = cardName + " " + i.cardDetails.card.lastFourDigits
             tripTotalBackFromSquare = i.totalMoney.amount.toDouble()
-            val tipBackFromSquare = i.tipMoney.amount.toDouble()
         }
         LoggerHelper.writeToLog(context!!, "$logFragment,  transaction id: $transactionId, cardInfo: $cardInfo, trip total back from Square, $tripTotalBackFromSquare")
 
@@ -665,9 +672,7 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
         LoggerHelper.writeToLog(context!!, "$logFragment,  Updated Payment Detail Api. transaction id: $transactionId, trip number: $tripNumber, payment type, $paymentType, trip id: $tripId")
         PIMMutationHelper.updatePaymentDetails(transactionId, tripNumber, vehicleId, awsAppSyncClient, paymentType, tripId)
     }
-    private fun updateLocalTripDetails(){
-        callbackViewModel.setTipAmount(tipAmountPassedToSquare)
-    }
+
     private fun resetScreen() = launch(Dispatchers.Main.immediate){
         tripTotal = tripTotalReset
         updateTripTotalTextField(tripTotal)
@@ -720,9 +725,9 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
         mAWSAppSyncClient?.mutate(UpdateTripMutation.builder().parameters(updateTripInput).build())
             ?.enqueue(transactionInfoCallback)
 
+        }
     }
 
-    }
     private val transactionInfoCallback = object : GraphQLCall.Callback<UpdateTripMutation.Data>() {
         override fun onResponse(response: Response<UpdateTripMutation.Data>) {
             Log.i("Results", "Trip Transaction was set for card and tip amount in AppSync")

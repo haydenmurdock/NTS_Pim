@@ -51,7 +51,6 @@ import org.kodein.di.generic.instance
 import kotlin.coroutines.CoroutineContext
 import androidx.navigation.Navigation.findNavController
 import com.example.nts_pim.NetworkReceiver
-import com.example.nts_pim.data.repository.SubscriptionWatcher
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
 
 
@@ -284,6 +283,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
             val pimPaymentAmount = response.data()?.onTripUpdate()?.pimPayAmt()
             val pimPaidAmount = response.data()?.onTripUpdate()?.pimPaidAmt()
             val pimNoReceipt = response.data()?.onTripUpdate()?.pimNoReceipt()
+            val driverId = response.data()?.onTripUpdate()?.driverId()
 
             if (tripNumber != null){
                 insertTripNumber(tripNumber)
@@ -307,6 +307,9 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
             if(pimNoReceipt != null
                 && pimNoReceipt.trim() == "Y"){
                 insertPimNoReceipt(true)
+            }
+            if(driverId != null){
+                insertDriverId(driverId)
             }
         }
         override fun onFailure(e: ApolloException) {
@@ -371,6 +374,10 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
     }
     private fun insertPimNoReceipt(boolean: Boolean) = launch{
         callbackViewModel.pimDoesNotNeedToDoReceipt(boolean)
+    }
+
+    private fun insertDriverId(driverId: Int)= launch{
+        callbackViewModel.setDriverId(driverId)
     }
 
     private fun sendPIMStatus() = launch{
@@ -445,7 +452,8 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
         return networkInfo != null && networkInfo.isConnected
     }
     private fun registerNetworkReceiver(){
-         mNetworkReceiver = NetworkReceiver()
+        //This is for the Internet Receiver.
+        mNetworkReceiver = NetworkReceiver()
         registerReceiver(mNetworkReceiver, IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION))
     }
     private fun recheckInternetConnection(context: Context){

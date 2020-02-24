@@ -112,6 +112,9 @@ class CallBackViewModel(
     }
 
     fun getIsPimOnline() = VehicleTripArrayHolder.isPimOnline()
-
+    internal fun setDriverId(driverId: Int){
+        VehicleTripArrayHolder.setDriverId(driverId)
+    }
+    internal fun getDriverId() = VehicleTripArrayHolder.getDriverId()
 
 }

@@ -31,6 +31,9 @@ import com.example.nts_pim.utilities.power_cycle.PowerAccessibilityService
 import org.kodein.di.KodeinAware
 import org.kodein.di.android.x.closestKodein
 import org.kodein.di.generic.instance
+import java.net.NetworkInterface
+import java.util.*
+
 
 class StartupFragment: ScopedFragment(), KodeinAware {
     override val kodein by closestKodein()
@@ -69,6 +72,7 @@ class StartupFragment: ScopedFragment(), KodeinAware {
                 checkAWSForLogging(deviceId.number)
             }
         }
+       val address = getBluetoothAddress()
     }
 
     private fun checkAWSForLogging(deviceId: String){
@@ -115,6 +119,28 @@ class StartupFragment: ScopedFragment(), KodeinAware {
         val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + context!!.getPackageName()))
         startActivity(intent)
     }
+    private fun getBluetoothAddress(): String?{
+      // We will use this for BlueTooth setup with the driver tablet
+        try {
+            val all: List<NetworkInterface> =
+                Collections.list(NetworkInterface.getNetworkInterfaces())
+            for (nif in all) {
+                if (!nif.name.equals("wlan0", true)) continue
+                val macBytes: ByteArray = nif.hardwareAddress ?: return ""
+                val res1 = StringBuilder()
+                for (b in macBytes) {
+                    res1.append(String.format("%02X:", b))
+                }
+                if (res1.isNotEmpty()) {
+                    res1.deleteCharAt(res1.length - 1)
+                }
+                return res1.toString()
+            }
+        } catch (ex: Exception) {
+        }
+        return "02:00:00:00:00:00"
+    }
+
     private fun checkSystemWritePermission(): Boolean {
         var retVal = true
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -175,7 +201,6 @@ class StartupFragment: ScopedFragment(), KodeinAware {
                 navController.navigate(R.id.toVehicleSetupFragment)
             }
         }
-
     }
 
     override fun onResume() {

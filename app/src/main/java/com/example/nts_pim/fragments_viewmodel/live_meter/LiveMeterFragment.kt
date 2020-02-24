@@ -8,10 +8,8 @@ import android.os.CountDownTimer
 import android.speech.tts.TextToSpeech
 import android.util.Log
 import android.view.LayoutInflater
-import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Toast
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProviders
@@ -25,7 +23,6 @@ import org.kodein.di.KodeinAware
 import org.kodein.di.android.x.closestKodein
 import org.kodein.di.generic.instance
 import androidx.lifecycle.Observer
-import com.amazonaws.amplify.generated.graphql.GetStatusQuery
 import com.amazonaws.amplify.generated.graphql.GetTripQuery
 import com.amazonaws.mobileconnectors.appsync.fetcher.AppSyncResponseFetchers
 import com.apollographql.apollo.GraphQLCall
@@ -33,10 +30,8 @@ import com.apollographql.apollo.api.Response
 import com.apollographql.apollo.exception.ApolloException
 import com.example.nts_pim.fragments_viewmodel.callback.CallBackViewModel
 import com.example.nts_pim.fragments_viewmodel.InjectorUtiles
-import com.robinhood.ticker.TickerUtils
 import java.text.DecimalFormat
 import com.amazonaws.mobile.auth.core.internal.util.ThreadUtils.runOnUiThread
-import com.example.nts_pim.data.repository.SubscriptionWatcher
 import com.example.nts_pim.data.repository.TripDetails
 import com.example.nts_pim.data.repository.model_objects.CurrentTrip
 import com.example.nts_pim.data.repository.providers.ModelPreferences
@@ -46,7 +41,6 @@ import com.example.nts_pim.utilities.mutation_helper.PIMMutationHelper
 import com.example.nts_pim.utilities.sound_helper.SoundHelper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import java.util.*
 
 
 class LiveMeterFragment: ScopedFragment(), KodeinAware {
@@ -62,7 +56,6 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
     private var tripId = ""
     var meterState = ""
     private var meterValue = ""
-    private var screenTaps = 0
 
     private val decimalFormatter = DecimalFormat("####00.00")
     private var initialMeterValueSet = false
@@ -70,12 +63,10 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
     private var audioManager: AudioManager? = null
     private var requestMeterStateValueTimer:CountDownTimer? = null
     private var textToSpeech: TextToSpeech? = null
-    private val visible = View.VISIBLE
     private var currentTrip:CurrentTrip? = null
     private val logFragment = "Live Meter"
     private var timeOffSoundPlayed = false
     private var textToSpeechMode = false
-    private val adaMessage = "To start Text to speech, touch the middle of the screen three times."
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -100,22 +91,6 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
         tripId = callbackViewModel.getTripId()
         textToSpeechMode = TripDetails.textToSpeechActivated
         val settings = viewModel.getVehicleSettings()
-//        textToSpeech = TextToSpeech(context, TextToSpeech.OnInitListener {
-//            if (it == TextToSpeech.SUCCESS) {
-//                val language = textToSpeech?.setLanguage(Locale.US)
-//                if (language == TextToSpeech.LANG_MISSING_DATA
-//                    || language == TextToSpeech.LANG_NOT_SUPPORTED
-//                ) {
-//                    Log.e("TTS", "The Language is not supported!")
-//                } else {
-//                    Log.i("TTS", "Language Supported.")
-//                   if (!textToSpeechMode){
-//                       playAccessibilityMessage(adaMessage)
-//                   }
-//                }
-//                Log.i("TTS", "Initialization success.")
-//            }
-//        })
 
         if(tripId == "" &&
                 currentTrip != null){
@@ -124,7 +99,6 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
             LoggerHelper.writeToLog(context!!, "$logFragment: had to query Meter Owed for $tripId")
         }
 
-        updateTickerUI()
         checkCurrentTrip()
         updatePIMStatus()
         updateMeterFromTripReview()
@@ -134,100 +108,24 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
         if(meterState == "off"){
             callbackViewModel.addMeterState("ON")
         }
-//        view.setOnTouchListener(object : View.OnTouchListener {
-//            override fun onTouch(v: View?, event: MotionEvent?): Boolean {
-//                when (event?.action) {
-//                    MotionEvent.ACTION_DOWN -> {
-//                        screenTaps += 1
-//                        startTouchTimer()
-//                        if (!textToSpeechMode) {
-//                            when (screenTaps) {
-//                                1 -> {
-//                                    Toast.makeText(
-//                                        context,
-//                                        "Touch Screen 2 more times for Text to speech mode",
-//                                        Toast.LENGTH_SHORT
-//                                    ).show()
-//                                }
-//                                2 -> {
-//                                    Toast.makeText(
-//                                        context,
-//                                        "Touch Screen 1 more times for Text to speech mode",
-//                                        Toast.LENGTH_SHORT
-//                                    ).show()
-//                                }
-//                                3 -> {
-//                                    Toast.makeText(
-//                                        context,
-//                                        "Activated - Text to speech mode",
-//                                        Toast.LENGTH_SHORT
-//                                    ).show()
-//                                    playAccessibilityMessage("Text to speech activated for cab number {${settings?.cabNumber}}")
-//                                    LoggerHelper.writeToLog(context!!, "$logFragment, Text to speech activated")
-//                                    TripDetails.textToSpeechActivated = true
-//                                    textToSpeechMode = true
-//                                }
-//                            }
-//                        } else {
-//                            when (screenTaps) {
-//                                1 -> {
-//                                    Toast.makeText(
-//                                        context,
-//                                        "Touch Screen 2 more times to disable text to speech mode",
-//                                        Toast.LENGTH_SHORT
-//                                    ).show()
-//                                }
-//                                2 -> {
-//                                    Toast.makeText(
-//                                        context,
-//                                        "Touch Screen 1 more times to disable Text to speech mode",
-//                                        Toast.LENGTH_SHORT
-//                                    ).show()
-//                                }
-//                                3 -> {
-//                                    Toast.makeText(
-//                                        context,
-//                                        "Disable - Text to speech mode",
-//                                        Toast.LENGTH_SHORT
-//                                    ).show()
-//                                    playAccessibilityMessage("Text to speech deactivated")
-//                                    LoggerHelper.writeToLog(context!!, "$logFragment, Text to speech deactivated")
-//                                    TripDetails.textToSpeechActivated = false
-//                                    textToSpeechMode = false
-//                                }
-//                            }
-//                        }
-//                    }
-//                }
-//                return v?.onTouchEvent(event) ?: true
-//            }
-//        })
+
         if(meterState == MeterEnum.METER_TIME_OFF.state){
             if(audioManager!!.isMicrophoneMute && !timeOffSoundPlayed){
                 playTimeOffSound()
             }
             toTripReview()
         }
-        callbackViewModel.getMeterOwed().observe(this@LiveMeterFragment, Observer {meterOwedValue ->
+        callbackViewModel.getMeterOwed().observe(this.viewLifecycleOwner, Observer {meterOwedValue ->
             if (meterOwedValue > 0) {
                 val df = decimalFormatter.format(meterOwedValue)
                 meterValue = df.toString()
-                tickerView.setText(meterValue, true)
                 if(textToSpeechMode){
                     playAccessibilityMessage("Meter Value $meterValue")
                 }
                 LoggerHelper.writeToLog(context!!, "$logFragment: Meter UI is displaying $meterValue")
-                if (!live_meter_dollar_sign.isVisible &&
-                    live_meter_dollar_sign != null
-                ) {
-                    live_meter_dollar_sign.visibility = visible
-                }
-                if (!tickerView.isVisible && tickerView != null) {
-                    tickerView.visibility = visible
-                }
             }
         })
-        callbackViewModel.getMeterState().observe(this@LiveMeterFragment, Observer {AWSMeterState ->
+        callbackViewModel.getMeterState().observe(this.viewLifecycleOwner, Observer {AWSMeterState ->
             meterState = AWSMeterState
             if (meterState == MeterEnum.METER_TIME_OFF.state){
                 Log.i("Live Meter", "Aws Meter state is Time_Off")
@@ -237,7 +135,7 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
                 toTripReview()
             }
         })
-        callbackViewModel.getTripStatus().observe(this@LiveMeterFragment, Observer {tripStatus ->
+        callbackViewModel.getTripStatus().observe(this.viewLifecycleOwner, Observer {tripStatus ->
             //This is for account trips that have already been paid.
             if(tripStatus == VehicleStatusEnum.Trip_Closed.status
                 || tripStatus == VehicleStatusEnum.TRIP_END.status){
@@ -245,21 +143,8 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
                 toEmailText()
             }
         })
-        refresh_button.setOnClickListener {
-            if(refresh_progress_bar != null){
-//                refresh_button.setImageDrawable(null)
-//                refresh_button.isEnabled = false
-//                refresh_progress_bar.isVisible = true
-//                refresh_progress_bar.animate()
-//                getTripIdQuery(vehicleId)
-            }
-        }
     }
-    private fun updateTickerUI() {
-        if(tickerView != null){
-            tickerView.setCharacterLists(TickerUtils.provideNumberList())
-        }
-    }
+
     private fun toTripReview()=launch(Dispatchers.Main.immediate) {
         if(meterValue != ""){
             val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
@@ -275,24 +160,8 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
     }
     private fun playAccessibilityMessage(messageToSpeak: String) {
         Log.i("TTS", "playing meter amount")
-//        textToSpeech?.setSpeechRate(0.8.toFloat())
-//        textToSpeech!!.speak(
-//            messageToSpeak,
-//            TextToSpeech.QUEUE_FLUSH,
-//            null
-//        )
+
         LoggerHelper.writeToLog(context!!, "$logFragment,  Pim Read $messageToSpeak to customer")
-    }
-    private fun startTouchTimer(){
-        object: CountDownTimer(10000, 1000){
-            override fun onTick(millisUntilFinished: Long) {
-
-            }
-
-            override fun onFinish() {
-                screenTaps = 0
-            }
-        }.start()
     }
 
     private fun toEmailText(){
@@ -313,24 +182,13 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
         if(args != null && args != checkAgainst){
             Log.i("Live Meter", "The Data is coming from Trip Review")
             val formattedArgs = decimalFormatter.format(args)
-            val tripTotalToString = formattedArgs.toString()
-            if(live_meter_dollar_sign != null){
-                live_meter_dollar_sign.visibility = View.VISIBLE
-            }
+
             initialMeterValueSet = true
-            if (tickerView != null){
-                tickerView.setText(tripTotalToString, true)
-                LoggerHelper.writeToLog(context!!, "$logFragment: Meter UI is displaying $tripTotalToString")
-            }
         }
     }
     private fun checkCurrentTrip(){
         if (resources.getBoolean(R.bool.isSquareBuildOn)){
             meterValue = "1.25"
-            tickerView.setText("$$meterValue", true)
-            if(tickerView.alpha.equals(0.0f)){
-                tickerView.animate().alpha(1.0f).setDuration(2500).start()
-            }
         }
     }
 
@@ -358,27 +216,9 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
                         Log.i("Live Meter", "Meter is $meterState and is now $startingMeterState from meter query")
                     meterState = startingMeterState
                 }
-                if(startingMeterValue != null){
+                if(startingMeterValue != null) {
                     val df = decimalFormatter.format(startingMeterValue)
                     meterValue = df.toString()
-
-                    runOnUiThread {
-                        if (tickerView != null) {
-                            LoggerHelper.writeToLog(context!!, "$logFragment: Meter UI is displaying $meterValue from trip Query")
-                            tickerView.setText(meterValue, true)
-                            if(!live_meter_dollar_sign.isVisible && live_meter_dollar_sign != null){
-                                live_meter_dollar_sign.visibility = visible
-                                 }
-                            if (!tickerView.isVisible && tickerView != null) {
-                                tickerView.visibility = visible
-                            }
-                        }
-                        if (refresh_progress_bar != null){
-                            refresh_progress_bar.isVisible = false
-                            refresh_button.setImageDrawable(activity?.resources?.getDrawable(R.drawable.ic_refresh_arrows))
-                            refresh_button.isEnabled = true
-                        }
-                    }
                 }
                 if (startingMeterState == MeterEnum.METER_TIME_OFF.state &&
                     startingMeterValue!! != 0.toDouble()){
@@ -393,31 +233,6 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
                 Log.e("ERROR", e.toString())
             }
         }
-    private fun getTripIdQuery(vehicleId: String) = launch(Dispatchers.IO){
-        if (mAWSAppSyncClient == null) {
-            mAWSAppSyncClient = ClientFactory.getInstance(context!!)
-        }
-        mAWSAppSyncClient?.query(GetStatusQuery.builder().vehicleId(vehicleId).build())
-            ?.responseFetcher(AppSyncResponseFetchers.CACHE_AND_NETWORK)
-            ?.enqueue(getTripIdCallBack)
-    }
-
-    private var getTripIdCallBack = object: GraphQLCall.Callback<GetStatusQuery.Data>(){
-        override fun onResponse(response: Response<GetStatusQuery.Data>) {
-            if (response.data()?.status?.tripId() != null && this@LiveMeterFragment.isAdded) {
-                val awsTripId = response.data()?.status?.tripId() ?: ""
-                if(!awsTripId.isNullOrBlank()) {
-                    tripId = awsTripId
-                    Log.i("LOGGER", "TRIP ID CALLBACK, TRIP ID $tripId. getting meter query. restarting subscription watcher")
-                    SubscriptionWatcher.updateSubscriptionWatcher(tripId, activity!!, null)
-                    getMeterOwedQuery(tripId)
-                    }
-                }
-            }
-        override fun onFailure(e: ApolloException) {
-            Log.e("ERROR", e.toString())
-        }
-    }
 
     private fun reSyncComplete() = launch(Dispatchers.Main.immediate) {
         callbackViewModel.updateCurrentTrip(true, tripId, meterState, context!!)

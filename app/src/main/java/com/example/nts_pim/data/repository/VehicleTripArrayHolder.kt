@@ -65,7 +65,9 @@ object VehicleTripArrayHolder {
 
     private var amountForSquareDisplay = "0"
 
-   var paymentTypeSelected = "none"
+    var paymentTypeSelected = "none"
+
+    private var driverId = 0
 
 
 // Adds the status from the main activity app sync subscription. It goes to a live data array to be watched for changes. There is only 1 status in the array at all times.
@@ -181,6 +183,7 @@ object VehicleTripArrayHolder {
         meterStatePIM = "off"
         meterStatePIMMutableLiveData.value = meterStatePIM
         paymentTypeSelected = "none"
+        driverId = 0
         Log.i("Results", "All Trip Information has been cleared")
     }
 
@@ -301,5 +304,12 @@ object VehicleTripArrayHolder {
 
     fun isPimOnline() = isOnlineMutableLiveData as LiveData<Boolean>
 
+    fun setDriverId(enteredDriverId: Int){
+        if(enteredDriverId != driverId){
+            driverId = enteredDriverId
+        }
+    }
+
+    fun getDriverId() = driverId
 }
 

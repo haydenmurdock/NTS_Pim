@@ -278,10 +278,7 @@
                 android:id="@+id/action_tripReviewFragment_to_recentTripAWSFragment"
                 app:destination="@id/recentTripAWSFragment" />
     </fragment><action android:id="@+id/action_global_taxi_number_fragment" app:destination="@id/taxi_number_fragment"/>
-    <fragment
-            android:id="@+id/pleaseWaitFragment"
-            android:name="com.example.nts_pim.fragments_viewmodel.please_wait.PleaseWaitFragment"
-            android:label="PleaseWaitFragment" /><action android:id="@+id/action_global_pleaseWaitFragment" app:destination="@id/pleaseWaitFragment"/><action android:id="@+id/action_global_welcome_fragment" app:destination="@id/welcome_fragment"/>
+    <action android:id="@+id/action_global_welcome_fragment" app:destination="@id/welcome_fragment"/>
 
 
 </navigation>
