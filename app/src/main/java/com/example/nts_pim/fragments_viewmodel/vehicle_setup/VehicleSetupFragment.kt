@@ -33,6 +33,7 @@ import com.amazonaws.mobileconnectors.appsync.fetcher.AppSyncResponseFetchers
 import com.apollographql.apollo.GraphQLCall
 import com.apollographql.apollo.api.Response
 import com.apollographql.apollo.exception.ApolloException
+import com.example.nts_pim.BuildConfig
 import com.example.nts_pim.R
 import com.example.nts_pim.data.repository.model_objects.*
 import com.example.nts_pim.data.repository.providers.ModelPreferences
@@ -70,6 +71,7 @@ import org.kodein.di.generic.instance
 import type.UpdateDeviceIdToIMEIInput
 import java.io.IOException
 import java.lang.Error
+import java.net.NetworkInterface
 import java.util.*
 
 
@@ -137,7 +139,7 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
         auth_progressBar.setIndeterminateDrawable(doubleBounce)
         val threeBounce = ThreeBounce()
         vehicle_id_progressBar.setIndeterminateDrawable(threeBounce)
-        keyboardViewModel.isQwertyKeyboardUp().observe(this, Observer {
+        keyboardViewModel.isQwertyKeyboardUp().observe(this.viewLifecycleOwner, Observer {
             //Once a pin has been created we will try to pull the vehicle_Id from AWS
             if (it)
                 pinEntered = true
@@ -156,7 +158,7 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
                 checkAuthorization(vehicleID, authManager)
             }
 
-        viewModel.isThereAuthCode().observe(this, Observer {
+        viewModel.isThereAuthCode().observe(this.viewLifecycleOwner, Observer {
             if (it) {
                 //Mark 1
                 auth_progressBar.isVisible = true
@@ -165,7 +167,7 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
             }
         })
 
-        viewModel.isSquareAuthorized().observe(this, Observer {
+        viewModel.isSquareAuthorized().observe(this.viewLifecycleOwner, Observer {
             isSquareAuthorized = it
             if (it) {
                 //** Scott **
@@ -175,7 +177,7 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
             }
         })
 
-        viewModel.isPinEnteredWrong().observe(this, Observer {
+        viewModel.isPinEnteredWrong().observe(this.viewLifecycleOwner, Observer {
             val isPinWrong = it
             if (isPinWrong) {
                 showUIForWrongPin()
@@ -308,7 +310,9 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
     private fun checkForPairedVehicleID(deviceID: String){
         if (deviceID == imei){
             checkedIMEI = true
-            mAWSAppSyncClient?.query(GetPimSettingsQuery.builder().deviceId(deviceID).build())
+            val appVersion = BuildConfig.VERSION_NAME
+            val blueToothAddress = getBluetoothAddress()
+            mAWSAppSyncClient?.query(GetPimSettingsQuery.builder().deviceId(deviceID).appVersion(appVersion).btAddress(blueToothAddress).build())
                 ?.responseFetcher(AppSyncResponseFetchers.CACHE_AND_NETWORK)
                 ?.enqueue(vehicleIdQueryCallBack)
         } else {
@@ -368,6 +372,28 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
         override fun onFailure(e: ApolloException) {
             Log.i("VehicleSetup", "Response for updating for device ID has Apollo Exception. Error: ${e.message}")
         }
+    }
+    private fun getBluetoothAddress(): String?{
+        // We will use this for BlueTooth setup with the driver tablet
+        try {
+            val all: List<NetworkInterface> =
+                Collections.list(NetworkInterface.getNetworkInterfaces())
+            for (nif in all) {
+                if (!nif.name.equals("wlan0", true)) continue
+                val macBytes: ByteArray = nif.hardwareAddress ?: return ""
+                val res1 = StringBuilder()
+                for (b in macBytes) {
+                    res1.append(String.format("%02X:", b))
+                }
+                if (res1.isNotEmpty()) {
+                    res1.deleteCharAt(res1.length - 1)
+                }
+                return res1.toString()
+            }
+        } catch (ex: Exception) {
+            com.example.nts_pim.utilities.view_helper.ViewHelper.makeSnackbar(this.view!!, "Error getting bluetooth address: ex: $ex")
+        }
+        return "02:00:00:00:00:00"
     }
 
     private fun saveVehicleID(vehicleId: String) {
@@ -731,6 +757,9 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
                     startReaderSettings(adapter as MyCustomAdapter)
                 }
              }
+        } else{ launch(Dispatchers.Main) {
+                startReaderSettings(adapter as MyCustomAdapter)
+            }
         }
     }
 

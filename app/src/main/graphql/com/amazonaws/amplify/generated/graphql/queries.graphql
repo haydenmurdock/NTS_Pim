@@ -77,18 +77,31 @@ query GetMeterRates($rateId: String!, $rateNbr: Int) {
     timeRate
   }
 }
-query GetPimSettings($deviceId: String!, $pin: String) {
-  getPIMSettings(deviceId: $deviceId, pin: $pin) {
+query GetPimSettings(
+  $deviceId: String!
+  $pin: String
+  $btAddress: String
+  $appVersion: String
+) {
+  getPIMSettings(
+    deviceId: $deviceId
+    pin: $pin
+    btAddress: $btAddress
+    appVersion: $appVersion
+  ) {
     deviceId
     error
     errorCode
     vehicleId
     log
+    btAddress
+    appVersion
   }
 }
-query GetSettings($deviceId: String!, $pin: String) {
-  getSettings(deviceId: $deviceId, pin: $pin) {
+query GetSettings($deviceId: String!, $pin: String, $appVersion: String) {
+  getSettings(deviceId: $deviceId, pin: $pin, appVersion: $appVersion) {
     airportControl
+    appVersion
     autoPrint
     autoPrintPremium
     autoStart
@@ -410,5 +423,7 @@ query GetLoggingSettings($deviceId: String!) {
     errorCode
     vehicleId
     log
+    btAddress
+    appVersion
   }
 }

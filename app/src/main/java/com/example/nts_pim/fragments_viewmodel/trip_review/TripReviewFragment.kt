@@ -204,20 +204,20 @@ class TripReviewFragment : ScopedFragment(), KodeinAware {
         }
 
         callbackViewModel.getIsTransactionComplete()
-            .observe(this, Observer { transactionIsComplete ->
+            .observe(this.viewLifecycleOwner, Observer { transactionIsComplete ->
                 if (transactionIsComplete) {
                     LoggerHelper.writeToLog(context!!, "$logFragment: Square Transaction Complete: Going to Email Or Text")
                     toEmailOrTextForSquareTransactionComplete()
                 }
             })
 
-        callbackViewModel.getMeterState().observe(this, Observer { meterState ->
+        callbackViewModel.getMeterState().observe(this.viewLifecycleOwner, Observer { meterState ->
             if (meterState == MeterEnum.METER_ON.state) {
                 LoggerHelper.writeToLog(context!!, "$logFragment: Meter State Change: $meterState. Going Back to Live Meter")
                 backToLiveMeter()
             }
         })
-        callbackViewModel.getPimPaySubscriptionAmount().observe(this@TripReviewFragment, Observer {
+        callbackViewModel.getPimPaySubscriptionAmount().observe(this.viewLifecycleOwner, Observer {
             if(pimPayAmount != it){
                 pimPayAmount = it
                 updateTripInfo()

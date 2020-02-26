@@ -2,6 +2,7 @@
 subscription OnSettingsUpdate($deviceId: String) {
   onSettingsUpdate(deviceId: $deviceId) {
     airportControl
+    appVersion
     autoPrint
     autoPrintPremium
     autoStart
@@ -77,6 +78,194 @@ subscription OnStatusUpdate($vehicleId: String) {
 }
 subscription OnTripUpdate($tripId: String) {
   onTripUpdate(tripId: $tripId) {
+    airportFee
+    appliedFareMin
+    appliedFareRate
+    cardInfo
+    custPhoneNbr
+    custEmail
+    discountAmt
+    discountPercent
+    driverId
+    dropoffAddress {
+      apt
+      city
+      state
+      street
+      zip
+    }
+    dropoffLocation {
+      lat
+      lng
+    }
+    error
+    errorCode
+    meterDistFare
+    meterDistance
+    meterError
+    meterFare
+    meterRate
+    meterState
+    meterTimeFare
+    meterWaitTime
+    owedPrice
+    owedPriceSource
+    paidAmt
+    paymentType
+    pimNoReceipt
+    pimPayAmt
+    pimPaidAmt
+    pimTransId
+    pimTransDate
+    pickupAddress {
+      apt
+      city
+      state
+      street
+      zip
+    }
+    pickupLocation {
+      lat
+      lng
+    }
+    tipAmt
+    tipPercent
+    toll
+    tripEndTime
+    tripId
+    tripNbr
+    tripStartTime
+    tripStatus
+    tripTime
+    upfrontPriceAdj
+    upfrontPriceDist
+    upfrontPriceOrig
+    upfrontPriceTime
+    upfrontPriceWaitAmt
+    vehicleId
+    voucherAcctNbr
+    voucherEnteredAmt
+    voucherNbr
+  }
+}
+subscription OnUpdatePimStatus($vehicleId: String) {
+  onUpdatePimStatus(vehicleId: $vehicleId) {
+    driverId
+    error
+    errorCode
+    gpsDirection
+    lat
+    lng
+    locationTimeStamp
+    meterPaidDist
+    meterRate1Set
+    meterRate2Set
+    meterStatus
+    meterTotalDist
+    meterTotalTrips
+    pimStatus
+    postedStatus
+    tripId
+    tripStatus
+    vehicleId
+  }
+}
+subscription OnUpdateVehTripStatus($vehicleId: String) {
+  onUpdateVehTripStatus(vehicleId: $vehicleId) {
+    driverId
+    error
+    errorCode
+    gpsDirection
+    lat
+    lng
+    locationTimeStamp
+    meterPaidDist
+    meterRate1Set
+    meterRate2Set
+    meterStatus
+    meterTotalDist
+    meterTotalTrips
+    pimStatus
+    postedStatus
+    tripId
+    tripStatus
+    vehicleId
+  }
+}
+subscription OnDoPimPayment($tripId: String) {
+  onDoPimPayment(tripId: $tripId) {
+    airportFee
+    appliedFareMin
+    appliedFareRate
+    cardInfo
+    custPhoneNbr
+    custEmail
+    discountAmt
+    discountPercent
+    driverId
+    dropoffAddress {
+      apt
+      city
+      state
+      street
+      zip
+    }
+    dropoffLocation {
+      lat
+      lng
+    }
+    error
+    errorCode
+    meterDistFare
+    meterDistance
+    meterError
+    meterFare
+    meterRate
+    meterState
+    meterTimeFare
+    meterWaitTime
+    owedPrice
+    owedPriceSource
+    paidAmt
+    paymentType
+    pimNoReceipt
+    pimPayAmt
+    pimPaidAmt
+    pimTransId
+    pimTransDate
+    pickupAddress {
+      apt
+      city
+      state
+      street
+      zip
+    }
+    pickupLocation {
+      lat
+      lng
+    }
+    tipAmt
+    tipPercent
+    toll
+    tripEndTime
+    tripId
+    tripNbr
+    tripStartTime
+    tripStatus
+    tripTime
+    upfrontPriceAdj
+    upfrontPriceDist
+    upfrontPriceOrig
+    upfrontPriceTime
+    upfrontPriceWaitAmt
+    vehicleId
+    voucherAcctNbr
+    voucherEnteredAmt
+    voucherNbr
+  }
+}
+subscription OnPimPaymentMade($tripId: String) {
+  onPimPaymentMade(tripId: $tripId) {
     airportFee
     appliedFareMin
     appliedFareRate

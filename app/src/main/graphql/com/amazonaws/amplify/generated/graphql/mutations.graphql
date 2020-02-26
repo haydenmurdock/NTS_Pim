@@ -60,6 +60,7 @@ mutation SetMeterRateEncryptData($parameters: setEncryptDataInput) {
 mutation UpdateBluetooth($parameters: updateBluetoothInput) {
   updateBluetooth(parameters: $parameters) {
     airportControl
+    appVersion
     autoPrint
     autoPrintPremium
     autoStart
@@ -133,31 +134,10 @@ mutation UpdatePimStatus($parameters: updatePimStatusInput) {
     vehicleId
   }
 }
-mutation UpdateRateSet($parameters: updateRateSetInput) {
-  updateRateSet(parameters: $parameters) {
-    driverId
-    error
-    errorCode
-    gpsDirection
-    lat
-    lng
-    locationTimeStamp
-    meterPaidDist
-    meterRate1Set
-    meterRate2Set
-    meterStatus
-    meterTotalDist
-    meterTotalTrips
-    pimStatus
-    postedStatus
-    tripId
-    tripStatus
-    vehicleId
-  }
-}
 mutation UpdateSettings($parameters: updateSettingsInput) {
   updateSettings(parameters: $parameters) {
     airportControl
+    appVersion
     autoPrint
     autoPrintPremium
     autoStart
@@ -328,6 +308,7 @@ mutation UpdateTripStatus($parameters: updateTripStatusInput) {
 mutation UploadSettings($parameters: updateSettingsInput) {
   uploadSettings(parameters: $parameters) {
     airportControl
+    appVersion
     autoPrint
     autoPrintPremium
     autoStart
@@ -399,5 +380,317 @@ mutation UpdateDeviceIdToImei($parameters: updateDeviceIdToIMEIInput) {
     errorCode
     vehicleId
     log
+    btAddress
+    appVersion
+  }
+}
+mutation UpdateTripFare($parameters: updateTripFareInput) {
+  updateTripFare(parameters: $parameters) {
+    airportFee
+    appliedFareMin
+    appliedFareRate
+    cardInfo
+    custPhoneNbr
+    custEmail
+    discountAmt
+    discountPercent
+    driverId
+    dropoffAddress {
+      apt
+      city
+      state
+      street
+      zip
+    }
+    dropoffLocation {
+      lat
+      lng
+    }
+    error
+    errorCode
+    meterDistFare
+    meterDistance
+    meterError
+    meterFare
+    meterRate
+    meterState
+    meterTimeFare
+    meterWaitTime
+    owedPrice
+    owedPriceSource
+    paidAmt
+    paymentType
+    pimNoReceipt
+    pimPayAmt
+    pimPaidAmt
+    pimTransId
+    pimTransDate
+    pickupAddress {
+      apt
+      city
+      state
+      street
+      zip
+    }
+    pickupLocation {
+      lat
+      lng
+    }
+    tipAmt
+    tipPercent
+    toll
+    tripEndTime
+    tripId
+    tripNbr
+    tripStartTime
+    tripStatus
+    tripTime
+    upfrontPriceAdj
+    upfrontPriceDist
+    upfrontPriceOrig
+    upfrontPriceTime
+    upfrontPriceWaitAmt
+    vehicleId
+    voucherAcctNbr
+    voucherEnteredAmt
+    voucherNbr
+  }
+}
+mutation UpdateTripMeterState($parameters: updateTripMeterStateInput) {
+  updateTripMeterState(parameters: $parameters) {
+    airportFee
+    appliedFareMin
+    appliedFareRate
+    cardInfo
+    custPhoneNbr
+    custEmail
+    discountAmt
+    discountPercent
+    driverId
+    dropoffAddress {
+      apt
+      city
+      state
+      street
+      zip
+    }
+    dropoffLocation {
+      lat
+      lng
+    }
+    error
+    errorCode
+    meterDistFare
+    meterDistance
+    meterError
+    meterFare
+    meterRate
+    meterState
+    meterTimeFare
+    meterWaitTime
+    owedPrice
+    owedPriceSource
+    paidAmt
+    paymentType
+    pimNoReceipt
+    pimPayAmt
+    pimPaidAmt
+    pimTransId
+    pimTransDate
+    pickupAddress {
+      apt
+      city
+      state
+      street
+      zip
+    }
+    pickupLocation {
+      lat
+      lng
+    }
+    tipAmt
+    tipPercent
+    toll
+    tripEndTime
+    tripId
+    tripNbr
+    tripStartTime
+    tripStatus
+    tripTime
+    upfrontPriceAdj
+    upfrontPriceDist
+    upfrontPriceOrig
+    upfrontPriceTime
+    upfrontPriceWaitAmt
+    vehicleId
+    voucherAcctNbr
+    voucherEnteredAmt
+    voucherNbr
+  }
+}
+mutation UpdateVehTripStatus($parameters: updateVehTripStatusInput) {
+  updateVehTripStatus(parameters: $parameters) {
+    driverId
+    error
+    errorCode
+    gpsDirection
+    lat
+    lng
+    locationTimeStamp
+    meterPaidDist
+    meterRate1Set
+    meterRate2Set
+    meterStatus
+    meterTotalDist
+    meterTotalTrips
+    pimStatus
+    postedStatus
+    tripId
+    tripStatus
+    vehicleId
+  }
+}
+mutation DoPimPayment($parameters: doPimPaymentInput) {
+  doPimPayment(parameters: $parameters) {
+    airportFee
+    appliedFareMin
+    appliedFareRate
+    cardInfo
+    custPhoneNbr
+    custEmail
+    discountAmt
+    discountPercent
+    driverId
+    dropoffAddress {
+      apt
+      city
+      state
+      street
+      zip
+    }
+    dropoffLocation {
+      lat
+      lng
+    }
+    error
+    errorCode
+    meterDistFare
+    meterDistance
+    meterError
+    meterFare
+    meterRate
+    meterState
+    meterTimeFare
+    meterWaitTime
+    owedPrice
+    owedPriceSource
+    paidAmt
+    paymentType
+    pimNoReceipt
+    pimPayAmt
+    pimPaidAmt
+    pimTransId
+    pimTransDate
+    pickupAddress {
+      apt
+      city
+      state
+      street
+      zip
+    }
+    pickupLocation {
+      lat
+      lng
+    }
+    tipAmt
+    tipPercent
+    toll
+    tripEndTime
+    tripId
+    tripNbr
+    tripStartTime
+    tripStatus
+    tripTime
+    upfrontPriceAdj
+    upfrontPriceDist
+    upfrontPriceOrig
+    upfrontPriceTime
+    upfrontPriceWaitAmt
+    vehicleId
+    voucherAcctNbr
+    voucherEnteredAmt
+    voucherNbr
+  }
+}
+mutation PimPaymentMade($parameters: pimPaymentMadeInput) {
+  pimPaymentMade(parameters: $parameters) {
+    airportFee
+    appliedFareMin
+    appliedFareRate
+    cardInfo
+    custPhoneNbr
+    custEmail
+    discountAmt
+    discountPercent
+    driverId
+    dropoffAddress {
+      apt
+      city
+      state
+      street
+      zip
+    }
+    dropoffLocation {
+      lat
+      lng
+    }
+    error
+    errorCode
+    meterDistFare
+    meterDistance
+    meterError
+    meterFare
+    meterRate
+    meterState
+    meterTimeFare
+    meterWaitTime
+    owedPrice
+    owedPriceSource
+    paidAmt
+    paymentType
+    pimNoReceipt
+    pimPayAmt
+    pimPaidAmt
+    pimTransId
+    pimTransDate
+    pickupAddress {
+      apt
+      city
+      state
+      street
+      zip
+    }
+    pickupLocation {
+      lat
+      lng
+    }
+    tipAmt
+    tipPercent
+    toll
+    tripEndTime
+    tripId
+    tripNbr
+    tripStartTime
+    tripStatus
+    tripTime
+    upfrontPriceAdj
+    upfrontPriceDist
+    upfrontPriceOrig
+    upfrontPriceTime
+    upfrontPriceWaitAmt
+    vehicleId
+    voucherAcctNbr
+    voucherEnteredAmt
+    voucherNbr
   }
 }

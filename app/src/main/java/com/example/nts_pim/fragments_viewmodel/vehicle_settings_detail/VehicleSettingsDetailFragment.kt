@@ -32,14 +32,12 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.telephony.TelephonyManager
 import android.util.Log
-import com.amazonaws.mobile.auth.core.internal.util.ViewHelper
 import com.example.nts_pim.BuildConfig
 import com.example.nts_pim.data.repository.model_objects.*
 import com.example.nts_pim.data.repository.providers.ModelPreferences
 import com.example.nts_pim.fragments_viewmodel.vehicle_settings.setting_keyboard_viewModels.SettingsKeyboardViewModel
 import com.example.nts_pim.utilities.enums.SharedPrefEnum
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
-import com.google.android.material.snackbar.Snackbar
 import com.google.gson.Gson
 import com.squareup.sdk.reader.checkout.CheckoutParameters
 import com.squareup.sdk.reader.checkout.CurrencyCode
@@ -52,7 +50,6 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.IOException
 import java.lang.Error
-import kotlin.system.exitProcess
 
 
 class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {

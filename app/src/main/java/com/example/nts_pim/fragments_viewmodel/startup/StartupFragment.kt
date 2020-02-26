@@ -18,6 +18,7 @@ import com.amazonaws.mobileconnectors.appsync.fetcher.AppSyncResponseFetchers
 import com.apollographql.apollo.GraphQLCall
 import com.apollographql.apollo.api.Response
 import com.apollographql.apollo.exception.ApolloException
+import com.example.nts_pim.BuildConfig
 import com.example.nts_pim.R
 import com.example.nts_pim.data.repository.model_objects.DeviceID
 import com.example.nts_pim.data.repository.providers.ModelPreferences
@@ -27,6 +28,7 @@ import com.example.nts_pim.fragments_viewmodel.vehicle_setup.VehicleSetupModelFa
 import com.example.nts_pim.fragments_viewmodel.vehicle_setup.VehicleSetupViewModel
 import com.example.nts_pim.utilities.enums.SharedPrefEnum
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
+import com.example.nts_pim.utilities.mutation_helper.PIMMutationHelper
 import com.example.nts_pim.utilities.power_cycle.PowerAccessibilityService
 import org.kodein.di.KodeinAware
 import org.kodein.di.android.x.closestKodein
@@ -46,6 +48,9 @@ class StartupFragment: ScopedFragment(), KodeinAware {
     private var permissionAccessibility = false
     private var setupStatus = false
     private var navController: NavController? = null
+    private var appVersionNumber: String? = null
+    private var blueToothAddress: String? = null
+    private var deviceId: String? = null
     private val currentFragmentId = R.id.startupFragment
 
 
@@ -68,11 +73,13 @@ class StartupFragment: ScopedFragment(), KodeinAware {
         if(isSetupComplete){
             val deviceId = ModelPreferences(context!!).getObject(SharedPrefEnum.DEVICE_ID.key, DeviceID::class.java)
             if(deviceId != null && deviceId.number.isNotBlank()){
-                Log.i("LOGGER", "Vehicle Setup complete and checking AWS For Logging. DeviceId: ${deviceId.number}")
+                Log.i("LOGGER", "Vehicle Setup complete and checking AWS For Logging. device Id: ${deviceId.number}")
                 checkAWSForLogging(deviceId.number)
             }
         }
-       val address = getBluetoothAddress()
+        blueToothAddress = getBluetoothAddress()
+        appVersionNumber = BuildConfig.VERSION_NAME
+        deviceId = ModelPreferences(this.requireContext()).getObject(SharedPrefEnum.DEVICE_ID.key, DeviceID::class.java)?.number
     }
 
     private fun checkAWSForLogging(deviceId: String){
@@ -91,9 +98,19 @@ class StartupFragment: ScopedFragment(), KodeinAware {
                 !response.hasErrors()
             ) {
                 val isLoggingOn = response.data()?.pimSettings?.log()
+                val awsBluetoothAddress = response.data()?.pimSettings?.btAddress()
+                val appVersion = response.data()?.pimSettings?.appVersion()
+
                 if(isLoggingOn != null){
                     Log.i("LOGGER", "AWS Query callback: isLoggingOn = $isLoggingOn")
                     LoggerHelper.logging = isLoggingOn
+                }
+                if (awsBluetoothAddress.isNullOrBlank() || awsBluetoothAddress != blueToothAddress){
+                PIMMutationHelper.updatePimSettings(blueToothAddress, null, mAWSAppSyncClient!!,deviceId!!)
+                }
+
+                if(appVersion.isNullOrBlank() || appVersion.isNullOrEmpty()){
+                    PIMMutationHelper.updatePimSettings(null, appVersionNumber, mAWSAppSyncClient!!, deviceId!!)
                 }
             }
         }
@@ -137,6 +154,7 @@ class StartupFragment: ScopedFragment(), KodeinAware {
                 return res1.toString()
             }
         } catch (ex: Exception) {
+            com.example.nts_pim.utilities.view_helper.ViewHelper.makeSnackbar(this.view!!, "Error getting bluetooth address: ex: $ex")
         }
         return "02:00:00:00:00:00"
     }

@@ -337,8 +337,8 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
             context?.contentResolver,
             Settings.System.SCREEN_BRIGHTNESS,
             screenBrightness
-        )  //this will set the brightness to maximum (255)
-
+        )
+        //this will set the brightness to maximum (255)
         //refreshes the screen
         val br =
             Settings.System.getInt(context?.contentResolver, Settings.System.SCREEN_BRIGHTNESS)

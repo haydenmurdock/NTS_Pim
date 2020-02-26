@@ -17,9 +17,6 @@ import android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProviders
-import com.amazonaws.amplify.generated.graphql.GetTripQuery
-import com.amazonaws.amplify.generated.graphql.OnStatusUpdateSubscription
-import com.amazonaws.amplify.generated.graphql.OnTripUpdateSubscription
 import com.amazonaws.mobileconnectors.appsync.AWSAppSyncClient
 import com.amazonaws.mobileconnectors.appsync.AppSyncSubscriptionCall
 import com.amazonaws.mobileconnectors.appsync.fetcher.AppSyncResponseFetchers
@@ -50,8 +47,10 @@ import org.kodein.di.android.closestKodein
 import org.kodein.di.generic.instance
 import kotlin.coroutines.CoroutineContext
 import androidx.navigation.Navigation.findNavController
+import com.amazonaws.amplify.generated.graphql.*
 import com.example.nts_pim.NetworkReceiver
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
+
 
 
 open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
@@ -71,9 +70,9 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
     private var mSuccessfulSetup = false
     private var tripId = ""
     private var lastTrip: CurrentTrip? = null
-    private var subscriptionWatcherVehicle: AppSyncSubscriptionCall<OnStatusUpdateSubscription.Data>? =
+    private var subscriptionWatcherDoPimPayment: AppSyncSubscriptionCall<OnDoPimPaymentSubscription.Data>? =
         null
-    var subscriptionWatcherTrip: AppSyncSubscriptionCall<OnTripUpdateSubscription.Data>? =
+    private var subscriptionWatcherUpdateVehTripStatus: AppSyncSubscriptionCall<OnUpdateVehTripStatusSubscription.Data>? =
         null
     private var loggingTimer: CountDownTimer? = null
     private var vehicleSubscriptionTimer: CountDownTimer? = null
@@ -101,7 +100,9 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                 vehicleId = viewModel.getVehicleID()
                 internetConnection = isOnline(this)
                 if (internetConnection && vehicleSubscriptionComplete) {
-                    startOnStatusUpdateSubscription(vehicleId)
+//                    startOnStatusUpdateSubscription(vehicleId)
+                    subscribeToUpdateVehTripStatus(vehicleId)
+                    LoggerHelper.writeToLog(this.applicationContext, "$logFragment, vehicle setup complete, started subscription to vehicle")
                     Log.i("Results", "Tried to subscribe to $vehicleId because setup is complete")
                 } else {
                     recheckInternetConnection(this)
@@ -111,6 +112,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
         callbackViewModel.getTripHasEnded().observe(this, Observer { tripEnded ->
             if (tripEnded) {
                 meterStateQueryComplete = false
+                LoggerHelper.writeToLog(this.applicationContext, "$logFragment, Trip ended and meterStateQueryComplete is set to false")
             }
         })
         forceSpeaker()
@@ -130,7 +132,9 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                 lastTrip = currentTrip
                 if (!vehicleSubscriptionComplete) {
                     Log.i("Results", "Vehicle subscription was started from re-sync")
-                    startOnStatusUpdateSubscription(vehicleId)
+//                    startOnStatusUpdateSubscription(vehicleId)
+                    subscribeToUpdateVehTripStatus(vehicleId)
+
                 }
                 if (currentTrip != null && currentTrip.tripID != "" && internetConnection) {
                     Log.i("Results", "Trip Id was updated on Main Activity from re-sync")
@@ -150,6 +154,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                         "TripStart",
                         "This needs to work now. Old trip id: $tripId, new trip id: $currentTripId"
                     )
+                    LoggerHelper.writeToLog(this.applicationContext, "${logFragment}, New trip was started by the driver while the pim trip was not finished")
                     getMeterOwedQuery(currentTripId)
                     navController.navigate(R.id.action_global_taxi_number_fragment)
                 } else {
@@ -157,6 +162,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                         "TripStart",
                         "current Nav destination is ${navController.currentDestination.toString()}"
                     )
+                    LoggerHelper.writeToLog(this.applicationContext, "${logFragment}, Driver tried to start new trip, but the Pim was on Welcome/taxi number screen")
                 }
             }
         })
@@ -172,70 +178,12 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                 callbackViewModel.reSyncTrip()
                 watchingTripId = ""
                 getMeterOwedQuery(tripId)
-                startSubscriptionTripUpdate(tripId)
+  //              startSubscriptionTripUpdate(tripId)
+                subscribeToUpdateVehTripStatus(vehicleId)
                 watchingTripId = ""
             }
         })
     }
-    //App Sync subscription to vehicleTable
-    private fun startOnStatusUpdateSubscription(vehicleID: String) = launch(Dispatchers.IO) {
-        if (!vehicleSubscriptionComplete && isOnline(applicationContext)) {
-            vehicleSubscriptionComplete = true
-            val subscription = OnStatusUpdateSubscription.builder().vehicleId(vehicleID).build()
-            if(subscriptionWatcherVehicle == null){
-                Log.i("Results",
-                        "Watching $vehicleID as SubscriptionWaterVehicle was null")
-                subscriptionWatcherVehicle = mAWSAppSyncClient?.subscribe(subscription)
-                subscriptionWatcherVehicle?.execute(vehicleStatusCallback)
-            }else {
-                Log.i("Results",
-                    "Watching $vehicleID as SubscriptionWaterVehicle was not null")
-                subscriptionWatcherVehicle = mAWSAppSyncClient?.subscribe(subscription)
-                subscriptionWatcherVehicle?.execute(vehicleStatusCallback)
-            }
-            LoggerHelper.writeToLog(
-                this@MainActivity,
-                "${logFragment}, Subscription watcher started for $vehicleID"
-            )
-        }
-    }
-
-    //App Sync Callback for vehicle subscription
-    private var vehicleStatusCallback =
-        object : AppSyncSubscriptionCall.Callback<OnStatusUpdateSubscription.Data> {
-            override fun onResponse(response: Response<OnStatusUpdateSubscription.Data>) {
-                Log.i(
-                    "Results",
-                    "Successful subscription callback for vehicle status - ${response.data()}"
-                )
-                val tripStatus = response.data()?.onStatusUpdate()?.tripStatus() as String
-                val awsTripId = response.data()?.onStatusUpdate()?.tripId()
-                val pimStatus = response.data()?.onStatusUpdate()?.pimStatus() as String
-                if (pimStatus == "_") {
-                    // sends back requested current pim status
-                    sendPIMStatus()
-                }
-                if (!tripStatus.isNullOrBlank()) {
-                    insertTripStatus(tripStatus)
-                }
-                if (!awsTripId.isNullOrBlank()) {
-                    insertTripId(awsTripId)
-                    startSubscriptionTripUpdate(awsTripId)
-                    tripId = awsTripId
-                }
-            }
-
-            override fun onFailure(e: ApolloException) {
-                Log.i("BLAH", "Error in callback for tripStatusUpdate: $e.")
-                vehicleSubscriptionComplete = false
-                subscriptionWatcherVehicle?.cancel()
-                subscriptionWatcherVehicle = null
-            }
-
-            override fun onCompleted() {
-                Log.i("Results", "Subscription completed")
-            }
-        }
 
     //Coroutine to insert Trip Status
     private fun insertTripStatus(string: String) = launch {
@@ -246,44 +194,80 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
     private fun insertMeterState(string: String) = launch {
         callbackViewModel.addMeterState(string)
     }
-
-    // App Sync subscription for update On Trip
-    private fun startSubscriptionTripUpdate(enteredTripId: String) {
-        if (enteredTripId != watchingTripId && enteredTripId != "") {
-            Log.i("LOGGER", "Watching ENTERED ID $enteredTripId != $watchingTripId")
-            watchingTripId = enteredTripId
-            val tripSubscription = OnTripUpdateSubscription.builder().tripId(enteredTripId).build()
-            if(subscriptionWatcherTrip == null){
-                subscriptionWatcherTrip = mAWSAppSyncClient?.subscribe(tripSubscription)
-                subscriptionWatcherTrip?.execute(tripUpdateCallback)
-            }else{
-                subscriptionWatcherTrip?.cancel()
-                subscriptionWatcherTrip = mAWSAppSyncClient?.subscribe(tripSubscription)
-                subscriptionWatcherTrip?.execute(tripUpdateCallback)
+    private fun subscribeToUpdateVehTripStatus(vehicleId: String){
+       if(!vehicleSubscriptionComplete && isOnline(applicationContext)) {
+            vehicleSubscriptionComplete = true
+            val subscription =
+                OnUpdateVehTripStatusSubscription.builder().vehicleId(vehicleId).build()
+            if (subscriptionWatcherUpdateVehTripStatus == null) {
+                subscriptionWatcherUpdateVehTripStatus = mAWSAppSyncClient?.subscribe(subscription)
+                subscriptionWatcherUpdateVehTripStatus?.execute(subscribeToUpdateVehCallback)
+            } else {
+                subscriptionWatcherUpdateVehTripStatus?.cancel()
+                subscriptionWatcherUpdateVehTripStatus = mAWSAppSyncClient?.subscribe(subscription)
+                subscriptionWatcherUpdateVehTripStatus?.execute(subscribeToUpdateVehCallback)
             }
-            Log.i("Results", "Watching $tripId for information")
-            LoggerHelper.writeToLog(
-                this@MainActivity,
-                "${logFragment}, Subscription watcher started for $tripId"
-            )
-        }  else {
-            Log.i("LOGGER", "ENTERED ID $enteredTripId == $watchingTripId")
+        }
+    }
+    private var subscribeToUpdateVehCallback = object: AppSyncSubscriptionCall.Callback<OnUpdateVehTripStatusSubscription.Data>{
+        override fun onResponse(response: Response<OnUpdateVehTripStatusSubscription.Data>) {
+            val pimStatus = response.data()?.onUpdateVehTripStatus()?.pimStatus()
+            val tripStatus = response.data()?.onUpdateVehTripStatus()?.tripStatus()
+            val awsTripId = response.data()?.onUpdateVehTripStatus()?.tripId()
+
+
+            if (pimStatus == "_") {
+                // sends back requested current pim status
+                sendPIMStatus()
+            }
+            if (!tripStatus.isNullOrBlank()) {
+                insertTripStatus(tripStatus)
+            }
+            if (!awsTripId.isNullOrBlank()) {
+                insertTripId(awsTripId)
+               subscribeToDoPIMPayment(awsTripId)
+                tripId = awsTripId
+            }
+
+        }
+
+        override fun onFailure(e: ApolloException) {
+            vehicleSubscriptionComplete = false
+            subscriptionWatcherUpdateVehTripStatus?.cancel()
+            subscriptionWatcherUpdateVehTripStatus = null
+
+        }
+
+        override fun onCompleted() {
+
         }
     }
 
-    // App Sync CallBack for trip Update
-    private var tripUpdateCallback = object : AppSyncSubscriptionCall.Callback<OnTripUpdateSubscription.Data> {
-        override fun onResponse(response: Response<OnTripUpdateSubscription.Data>) {
-            Log.i("Results", "Successful subscription callback for Trip Update - ${response.data()}")
-            Log.i("LOGGER", "Watching $watchingTripId")
-            val tripNumber = response.data()?.onTripUpdate()?.tripNbr()
-            val meterState = response.data()?.onTripUpdate()?.meterState()
-            val owedPriceForMeter = response.data()?.onTripUpdate()?.owedPrice()
-            val transactionId = response.data()?.onTripUpdate()?.pimTransId()
-            val pimPaymentAmount = response.data()?.onTripUpdate()?.pimPayAmt()
-            val pimPaidAmount = response.data()?.onTripUpdate()?.pimPaidAmt()
-            val pimNoReceipt = response.data()?.onTripUpdate()?.pimNoReceipt()
-            val driverId = response.data()?.onTripUpdate()?.driverId()
+    private fun subscribeToDoPIMPayment(tripId: String){
+        if (tripId != watchingTripId && tripId != ""){
+            val subscription = OnDoPimPaymentSubscription.builder().tripId(tripId).build()
+            if(subscriptionWatcherDoPimPayment == null) {
+                subscriptionWatcherDoPimPayment = mAWSAppSyncClient?.subscribe(subscription)
+                subscriptionWatcherDoPimPayment?.execute(doPimPaymentCallback)
+            } else {
+                subscriptionWatcherDoPimPayment?.cancel()
+                subscriptionWatcherDoPimPayment = mAWSAppSyncClient?.subscribe(subscription)
+                subscriptionWatcherDoPimPayment?.execute(doPimPaymentCallback)
+            }
+        }
+    }
+    private var doPimPaymentCallback = object: AppSyncSubscriptionCall.Callback<OnDoPimPaymentSubscription.Data>{
+        override fun onResponse(response: Response<OnDoPimPaymentSubscription.Data>) {
+            val meterState = response.data()?.onDoPimPayment()?.meterState()
+            val pimNoReceipt = response.data()?.onDoPimPayment()?.pimNoReceipt()
+            val pimPaymentAmount = response.data()?.onDoPimPayment()?.pimPayAmt()
+            val dropoffLocation = response.data()?.onDoPimPayment()?.dropoffLocation()
+            val tripEndTime = response.data()?.onDoPimPayment()?.tripEndTime()
+            val owedPriceForMeter = response.data()?.onDoPimPayment()?.owedPrice()
+            val tripNumber = response.data()?.onDoPimPayment()?.tripNbr()
+            val transactionId = response.data()?.onDoPimPayment()?.pimTransId()
+            val pimPaidAmount = response.data()?.onDoPimPayment()?.pimPaidAmt()
+            val driverId = response.data()?.onDoPimPayment()?.driverId()
 
             if (tripNumber != null){
                 insertTripNumber(tripNumber)
@@ -293,7 +277,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                 }
             }
             if (meterState != null) {
-               insertMeterState(meterState)
+                insertMeterState(meterState)
             }
             if (owedPriceForMeter != null && owedPriceForMeter != 0.0){
                 insertMeterValue(owedPriceForMeter)
@@ -312,13 +296,13 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                 insertDriverId(driverId)
             }
         }
+
         override fun onFailure(e: ApolloException) {
-            Log.i("Error", "Error in callback for tripUpdate: $e.")
-            subscriptionWatcherTrip?.cancel()
-            subscriptionWatcherTrip = null
+            subscriptionWatcherDoPimPayment?.cancel()
+            subscriptionWatcherDoPimPayment = null
         }
         override fun onCompleted() {
-            Log.i("LOGGER", "Subscription completed on $tripId")
+
         }
     }
 
@@ -470,7 +454,8 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                 val currentTrip = ModelPreferences(applicationContext)
                     .getObject(SharedPrefEnum.CURRENT_TRIP.key, CurrentTrip::class.java)
                 LoggerHelper.writeToLog(applicationContext, "$logFragment, recheck internet connection timer finished. Internet is connected. Trying to start subscription on ${vehicleId} due to resync.")
-                startOnStatusUpdateSubscription(vehicleId)
+  //              startOnStatusUpdateSubscription(vehicleId)
+                subscribeToUpdateVehTripStatus(vehicleId)
                 if (currentTrip != null && currentTrip.tripID != "" && internetConnection){
                     LoggerHelper.writeToLog(applicationContext, "$logFragment, recheck internet connection timer finished.Internet is connected. Trying to start subscription on ${currentTrip.tripID} due to resync.")
                     //
@@ -480,7 +465,8 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
             } else {
                 // start subscription since the internet is connected.
                 LoggerHelper.writeToLog(applicationContext, "$logFragment, recheck internet connection timer finished. Internet is connected. Trying to start subscription on ${vehicleId}.")
-                startOnStatusUpdateSubscription(vehicleId)
+  //              startOnStatusUpdateSubscription(vehicleId)
+                subscribeToUpdateVehTripStatus(vehicleId)
             }
          }
         }.start()
@@ -512,7 +498,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
 
     override fun onDestroy() {
         Log.i("SubscriptionWatcher", "Subscription watcher canceled for $vehicleId")
-        subscriptionWatcherVehicle?.cancel()
+        subscriptionWatcherUpdateVehTripStatus?.cancel()
         LoggerHelper.writeToLog(this@MainActivity, "${logFragment}, Subscription watcher canceled for $vehicleId, onDestroy hit")
         viewModel.isSquareAuthorized().removeObservers(this)
         callbackViewModel.getTripHasEnded().removeObservers(this)

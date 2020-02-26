@@ -7,6 +7,7 @@ import com.apollographql.apollo.GraphQLCall
 import com.apollographql.apollo.api.Response
 import com.apollographql.apollo.exception.ApolloException
 import com.example.nts_pim.data.repository.VehicleTripArrayHolder
+import com.example.nts_pim.data.repository.model_objects.DeviceID
 import type.*
 
 object PIMMutationHelper {
@@ -84,5 +85,28 @@ object PIMMutationHelper {
         }
     }
 
+    fun updatePimSettings(blueToothAddress: String?, appVersion: String?, appSyncClient: AWSAppSyncClient, deviceId: String){
+        val updatePimSettings = GetPimSettingsQuery
+            .builder()
+            .deviceId(deviceId)
+            .appVersion(appVersion)
+            .btAddress(blueToothAddress)
+            .build()
+        appSyncClient.query(updatePimSettings).enqueue(pimSettingsCallback)
+    }
+    private val pimSettingsCallback = object : GraphQLCall.Callback<GetPimSettingsQuery.Data>() {
+        override fun onResponse(response: Response<GetPimSettingsQuery.Data>) {
+            if (response.hasErrors()){
+                Log.e("PIM Settings", "There was an issue updating payment settings: ${response.errors()[0]}")
+            }
+
+            Log.i("Response", "response: ${response.data()?.pimSettings.toString()}")
+
+        }
+
+        override fun onFailure(e: ApolloException) {
+
+        }
+    }
 
 }
