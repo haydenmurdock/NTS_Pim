@@ -7,22 +7,21 @@ import com.apollographql.apollo.GraphQLCall
 import com.apollographql.apollo.api.Response
 import com.apollographql.apollo.exception.ApolloException
 import com.example.nts_pim.data.repository.VehicleTripArrayHolder
-import com.example.nts_pim.data.repository.model_objects.DeviceID
 import type.*
 
 object PIMMutationHelper {
 
     fun updatePIMStatus(vehicleId: String, pimStatusUpdate: String, appSyncClient: AWSAppSyncClient){
-        val updatePimStatusInput = UpdatePimStatusInput.builder()?.vehicleId(vehicleId)?.pimStatus(pimStatusUpdate)?.build()
+        val updatePimStatusInput = UpdateVehTripStatusInput.builder()?.vehicleId(vehicleId)?.pimStatus(pimStatusUpdate)?.build()
 
-        appSyncClient.mutate(UpdatePimStatusMutation.builder().parameters(updatePimStatusInput).build())
+        appSyncClient.mutate(UpdateVehTripStatusMutation.builder().parameters(updatePimStatusInput).build())
             ?.enqueue(mutationCallbackOnPIM)
        // We are setting the internal PIM Status
         VehicleTripArrayHolder.updateInternalPIMStatus(pimStatusUpdate)
     }
 
-    private val mutationCallbackOnPIM = object : GraphQLCall.Callback<UpdatePimStatusMutation.Data>() {
-        override fun onResponse(response: Response<UpdatePimStatusMutation.Data>) {
+    private val mutationCallbackOnPIM = object : GraphQLCall.Callback<UpdateVehTripStatusMutation.Data>() {
+        override fun onResponse(response: Response<UpdateVehTripStatusMutation.Data>) {
             Log.i("Results", "PIM Status Updated ${response.data()}")
         }
 
@@ -32,15 +31,15 @@ object PIMMutationHelper {
     }
 
     fun updatePaymentType(vehicleId: String, paymentType: String, appSyncClient: AWSAppSyncClient, tripId: String){
-        val updatePaymentTypeInput = UpdateTripInput.builder().vehicleId(vehicleId).tripId(tripId).paymentType(paymentType).build()
+        val updatePaymentTypeInput = PimPaymentMadeInput.builder().vehicleId(vehicleId).tripId(tripId).paymentType(paymentType).build()
 
-        appSyncClient.mutate(UpdateTripMutation.builder().parameters(updatePaymentTypeInput).build())
+        appSyncClient.mutate(PimPaymentMadeMutation.builder().parameters(updatePaymentTypeInput).build())
             ?.enqueue(mutationCallbackPaymentType)
 
     }
 
-    private val mutationCallbackPaymentType = object : GraphQLCall.Callback<UpdateTripMutation.Data>() {
-        override fun onResponse(response: Response<UpdateTripMutation.Data>) {
+    private val mutationCallbackPaymentType = object : GraphQLCall.Callback<PimPaymentMadeMutation.Data>() {
+        override fun onResponse(response: Response<PimPaymentMadeMutation.Data>) {
             Log.i("Results", "Meter Table Updated ${response.data()}")
         }
 
@@ -50,14 +49,14 @@ object PIMMutationHelper {
     }
 
     fun updateTripStatus(vehicleId: String, tripUpdate: String, appSyncClient: AWSAppSyncClient, tripId: String){
-        val updateStatusInput = UpdateTripStatusInput.builder()?.vehicleId(vehicleId)?.tripStatus(tripUpdate)?.tripId(tripId)?.build()
+        val updateStatusInput = UpdateVehTripStatusInput.builder()?.vehicleId(vehicleId)?.tripStatus(tripUpdate)?.tripId(tripId)?.build()
 
-        appSyncClient.mutate(UpdateTripStatusMutation.builder().parameters(updateStatusInput).build())
+        appSyncClient.mutate(UpdateVehTripStatusMutation.builder().parameters(updateStatusInput).build())
             ?.enqueue(mutationCallbackOnTripStatus)
     }
 
-    private val mutationCallbackOnTripStatus = object : GraphQLCall.Callback<UpdateTripStatusMutation.Data>() {
-        override fun onResponse(response: Response<UpdateTripStatusMutation.Data>) {
+    private val mutationCallbackOnTripStatus = object : GraphQLCall.Callback<UpdateVehTripStatusMutation.Data>() {
+        override fun onResponse(response: Response<UpdateVehTripStatusMutation.Data>) {
             Log.i("Results", "vehicle Status Updated to ${response.data()}")
 
         }

@@ -32,8 +32,12 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.telephony.TelephonyManager
 import android.util.Log
+import com.amazonaws.amplify.generated.graphql.SavePaymentDetailsMutation
 import com.amazonaws.amplify.generated.graphql.UpdateVehTripStatusMutation
 import com.amazonaws.mobileconnectors.appsync.AWSAppSyncClient
+import com.apollographql.apollo.GraphQLCall
+import com.apollographql.apollo.api.Response
+import com.apollographql.apollo.exception.ApolloException
 import com.example.nts_pim.BuildConfig
 import com.example.nts_pim.data.repository.model_objects.*
 import com.example.nts_pim.data.repository.providers.ModelPreferences
@@ -147,12 +151,7 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
             showReauthorizeDialog(activity!!, vehicleId)
         }
 
-        meter_on_button.setOnClickListener {
-            val tripId = UUID.randomUUID().toString()
-            val input = UpdateVehTripStatusInput.builder().tripStatus(VehicleStatusEnum.TRIP_PICKED_UP.status).tripId(tripId).vehicleId("ccsi_U_1496").build()
-            val mutation = UpdateVehTripStatusMutation.builder().parameters(input).build()
-            mAWSAppSyncClient!!.mutate(mutation)
-        }
+
 
         battery_btn.setOnClickListener {
             callBackViewModel.enableOrDisableBatteryPower()
@@ -164,6 +163,7 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
             updatePowerButtonUI(batteryPermission)
         }
     }
+
     private fun getAuthorizationCode(vehicleId: String) {
         val url =
             "https://i8xgdzdwk5.execute-api.us-east-2.amazonaws.com/prod/CheckOAuthToken?vehicleId=$vehicleId"

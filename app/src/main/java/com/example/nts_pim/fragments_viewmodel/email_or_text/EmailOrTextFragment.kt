@@ -265,8 +265,8 @@ class EmailOrTextFragment : ScopedFragment(), KodeinAware {
     }
     private var emailOrPhoneNumberQueryCallBack = object: GraphQLCall.Callback<GetTripQuery.Data>() {
         override fun onResponse(response: Response<GetTripQuery.Data>) {
-            if (!response.data()!!.trip.custEmail().isNullOrEmpty() ||
-                !response.data()!!.trip.custEmail().isNullOrBlank()) {
+            if (!response.data()?.trip?.custEmail().isNullOrEmpty() ||
+                !response.data()?.trip?.custEmail().isNullOrBlank()) {
                 val previousEmailAWS = response.data()?.trip?.custEmail() as String
                 previousEmail = previousEmailAWS
                 LoggerHelper.writeToLog(context!!, "$logFragment, checked AWS for custEmail. $previousEmail")

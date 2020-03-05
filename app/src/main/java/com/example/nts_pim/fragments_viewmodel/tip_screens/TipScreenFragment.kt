@@ -12,6 +12,7 @@ import androidx.core.view.isVisible
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProviders
 import androidx.navigation.Navigation
+import com.amazonaws.amplify.generated.graphql.PimPaymentMadeMutation
 import com.amazonaws.amplify.generated.graphql.UpdateTripMutation
 import com.amazonaws.mobileconnectors.appsync.AWSAppSyncClient
 import com.apollographql.apollo.GraphQLCall
@@ -41,6 +42,7 @@ import kotlinx.coroutines.launch
 import org.kodein.di.KodeinAware
 import org.kodein.di.android.x.closestKodein
 import org.kodein.di.generic.instance
+import type.PimPaymentMadeInput
 import type.UpdateTripInput
 import java.text.DecimalFormat
 import java.util.*
@@ -493,7 +495,7 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
         if (tripNumber != 0){
             parametersBuilder.note("[$tripNumber] [$vehicleId] [$driverId]")
         } else {
-            parametersBuilder.note("[${tripId.substring(8..tripId.length)}] [$vehicleId] [$driverId]")
+            parametersBuilder.note("[${tripId.substring(8, tripId.lastIndex)}] [$vehicleId] [$driverId]")
         }
         val checkoutManager = ReaderSdk.checkoutManager()
         checkoutManager.startCheckoutActivity(context!!, parametersBuilder.build())
@@ -644,7 +646,7 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
         }
         LoggerHelper.writeToLog(context!!, "$logFragment,  transaction id: $transactionId, cardInfo: $cardInfo, trip total back from Square, $tripTotalBackFromSquare")
 
-        if (cardInfo != "") {
+        if(cardInfo != "") {
            // updateLocalTripDetails()
         }
         if(cardInfo != "" ) {
@@ -668,6 +670,7 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
                 tripId)
         }
     }
+
     private fun updatePaymentDetail(transactionId: String, tripNumber: Int, vehicleId: String, awsAppSyncClient: AWSAppSyncClient, paymentType: String, tripId: String) = launch(Dispatchers.IO){
         LoggerHelper.writeToLog(context!!, "$logFragment,  Updated Payment Detail Api. transaction id: $transactionId, trip number: $tripNumber, payment type, $paymentType, trip id: $tripId")
         PIMMutationHelper.updatePaymentDetails(transactionId, tripNumber, vehicleId, awsAppSyncClient, paymentType, tripId)
@@ -725,8 +728,23 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
         mAWSAppSyncClient?.mutate(UpdateTripMutation.builder().parameters(updateTripInput).build())
             ?.enqueue(transactionInfoCallback)
 
+        val pimPaymentInput = PimPaymentMadeInput.builder()
+            .vehicleId(vehicleId)
+            .tripId(tripId)
+            .tipAmt(tipAmount)
+            .cardInfo(cardInfo)
+            .tipPercent(tipPercent)
+            .pimPaidAmt(paidAmount)
+            .pimTransDate(transactionDate)
+            .pimTransId(transactionId)
+            .paymentType("card")
+            .build()
+
+        mAWSAppSyncClient?.mutate(PimPaymentMadeMutation.builder().parameters(pimPaymentInput).build())
+            ?.enqueue(pimPaymentMadeCallback)
         }
     }
+
 
     private val transactionInfoCallback = object : GraphQLCall.Callback<UpdateTripMutation.Data>() {
         override fun onResponse(response: Response<UpdateTripMutation.Data>) {
@@ -736,6 +754,16 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
                     "payment type, ${response.data()?.updateTrip()?.paymentType()}" +
                     ", TransactionDate: ${response.data()?.updateTrip()?.pimTransDate()}" +
                     ", Card Info: ${response.data()?.updateTrip()?.cardInfo()}")
+        }
+
+        override fun onFailure(e: ApolloException) {
+            Log.e("Error", e.toString())
+        }
+    }
+
+    private val pimPaymentMadeCallback = object : GraphQLCall.Callback<PimPaymentMadeMutation.Data>() {
+        override fun onResponse(response: Response<PimPaymentMadeMutation.Data>) {
+
         }
 
         override fun onFailure(e: ApolloException) {
