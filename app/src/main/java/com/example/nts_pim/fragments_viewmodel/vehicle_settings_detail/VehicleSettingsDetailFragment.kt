@@ -32,11 +32,15 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.telephony.TelephonyManager
 import android.util.Log
+import com.amazonaws.amplify.generated.graphql.UpdateVehTripStatusMutation
+import com.amazonaws.mobileconnectors.appsync.AWSAppSyncClient
 import com.example.nts_pim.BuildConfig
 import com.example.nts_pim.data.repository.model_objects.*
 import com.example.nts_pim.data.repository.providers.ModelPreferences
+import com.example.nts_pim.fragments_viewmodel.base.ClientFactory
 import com.example.nts_pim.fragments_viewmodel.vehicle_settings.setting_keyboard_viewModels.SettingsKeyboardViewModel
 import com.example.nts_pim.utilities.enums.SharedPrefEnum
+import com.example.nts_pim.utilities.enums.VehicleStatusEnum
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import com.google.gson.Gson
 import com.squareup.sdk.reader.checkout.CheckoutParameters
@@ -48,8 +52,10 @@ import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import type.UpdateVehTripStatusInput
 import java.io.IOException
 import java.lang.Error
+import java.util.*
 
 
 class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
@@ -60,6 +66,7 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
     private lateinit var callBackViewModel: CallBackViewModel
     private lateinit var viewModel: VehicleSettingsDetailViewModel
     private lateinit var keyboardViewModel: SettingsKeyboardViewModel
+    private var mAWSAppSyncClient: AWSAppSyncClient? = null
     private var readerSettingsCallbackRef: CallbackReference? = null
     private val currentFragmentId = R.id.vehicle_settings_detail_fragment
     private var vehicleId = ""
@@ -75,7 +82,7 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-
+        mAWSAppSyncClient = ClientFactory.getInstance(context)
         val factory = InjectorUtiles.provideCallBackModelFactory()
         viewModel = ViewModelProviders.of(this, viewModelFactory)
             .get(VehicleSettingsDetailViewModel::class.java)
@@ -102,7 +109,7 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
         if(context?.checkCallingOrSelfPermission(Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED) {
             imei = telephonyManager.imei
         }
-        updateUI(batteryStatus)
+       updateUI(batteryStatus)
         check_bluetooth_btn.setOnClickListener {
             //** Scott **
             screenDisabled()
@@ -140,6 +147,13 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
             showReauthorizeDialog(activity!!, vehicleId)
         }
 
+        meter_on_button.setOnClickListener {
+            val tripId = UUID.randomUUID().toString()
+            val input = UpdateVehTripStatusInput.builder().tripStatus(VehicleStatusEnum.TRIP_PICKED_UP.status).tripId(tripId).vehicleId("ccsi_U_1496").build()
+            val mutation = UpdateVehTripStatusMutation.builder().parameters(input).build()
+            mAWSAppSyncClient!!.mutate(mutation)
+        }
+
         battery_btn.setOnClickListener {
             callBackViewModel.enableOrDisableBatteryPower()
             val batteryPermission = callBackViewModel.batteryPowerStatePermission()
@@ -150,7 +164,6 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
             updatePowerButtonUI(batteryPermission)
         }
     }
-
     private fun getAuthorizationCode(vehicleId: String) {
         val url =
             "https://i8xgdzdwk5.execute-api.us-east-2.amazonaws.com/prod/CheckOAuthToken?vehicleId=$vehicleId"

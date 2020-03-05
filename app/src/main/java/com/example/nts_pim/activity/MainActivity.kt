@@ -381,7 +381,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
         }
     private fun forceSpeaker() {
         try {
-            playTestSound()
+           // playTestSound()
         } catch (e: Exception) {
             Log.e(ContentValues.TAG, e.toString())
         }

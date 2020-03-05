@@ -220,4 +220,14 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/battery_btn" />
 
+    <Button
+            android:id="@+id/meter_on_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="16dp"
+            android:layout_marginBottom="16dp"
+            android:text="meter On"
+            app:layout_constraintBottom_toTopOf="@+id/vehicle_settings_unpair_button"
+            app:layout_constraintEnd_toEndOf="parent" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>
