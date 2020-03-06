@@ -99,18 +99,14 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         getArgsFromTripReview()
-
         updateUI()
         tripTotalReset = tripTotal
         mAWSAppSyncClient = ClientFactory.getInstance(context)
         val factory = InjectorUtiles.provideCallBackModelFactory()
-
         callbackViewModel = ViewModelProviders.of(this, factory)
             .get(CallBackViewModel::class.java)
-
         viewModel = ViewModelProviders.of(this, viewModelFactory)
             .get(LiveMeterViewModel::class.java)
-
         vehicleId = viewModel.getVehicleID()
         tripId = callbackViewModel.getTripId()
         tripNumber = callbackViewModel.getTripNumber()
@@ -303,13 +299,13 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
             lowerAlpha()
         }
 
-        callbackViewModel.getMeterState().observe(this, Observer { meterState ->
+        callbackViewModel.getMeterState().observe(this.viewLifecycleOwner, Observer { meterState ->
             if (meterState == MeterEnum.METER_ON.state){
                 Log.i("Trip Review", "The meter is back on so going to the trip Review screen")
                backToTripReview()
             }
         })
-        callbackViewModel.getIsTransactionComplete().observe(this, Observer {transactionIsComplete ->
+        callbackViewModel.getIsTransactionComplete().observe(this.viewLifecycleOwner, Observer {transactionIsComplete ->
             if(transactionIsComplete){
                 Log.i("Trip Review", "The transaction is complete so going to email or text screen")
                toEmailOrText()
@@ -495,7 +491,7 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
         if (tripNumber != 0){
             parametersBuilder.note("[$tripNumber] [$vehicleId] [$driverId]")
         } else {
-            parametersBuilder.note("[${tripId.substring(8, tripId.lastIndex)}] [$vehicleId] [$driverId]")
+            parametersBuilder.note("[${tripId.substring(tripId.length - 8)}] [$vehicleId] [$driverId]")
         }
         val checkoutManager = ReaderSdk.checkoutManager()
         checkoutManager.startCheckoutActivity(context!!, parametersBuilder.build())
@@ -713,20 +709,7 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
     private fun updateTransactionInfo(tipAmount: Double, cardInfo: String, tipPercent: Double, paidAmount: Double, transactionDate: String, transactionId: String) = launch(Dispatchers.IO) {
     if(!paymentSentForSquare){
         paymentSentForSquare = true
-        val updateTripInput = UpdateTripInput.builder()
-            .vehicleId(vehicleId)
-            .tripId(tripId)
-            .tipAmt(tipAmount)
-            .cardInfo(cardInfo)
-            .tipPercent(tipPercent)
-            .pimPaidAmt(paidAmount)
-            .pimTransDate(transactionDate)
-            .pimTransId(transactionId)
-            .paymentType("card")
-            .build()
 
-        mAWSAppSyncClient?.mutate(UpdateTripMutation.builder().parameters(updateTripInput).build())
-            ?.enqueue(transactionInfoCallback)
 
         val pimPaymentInput = PimPaymentMadeInput.builder()
             .vehicleId(vehicleId)

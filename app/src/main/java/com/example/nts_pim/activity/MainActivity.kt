@@ -51,8 +51,6 @@ import com.amazonaws.amplify.generated.graphql.*
 import com.example.nts_pim.NetworkReceiver
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
 
-
-
 open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
     override val kodein by closestKodein()
     private val viewModelFactory: VehicleSetupModelFactory by instance()
@@ -166,6 +164,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                 }
             }
         })
+
         if (loggingTimer == null) {
             startTimerToSendLogsToAWS(vehicleId, this@MainActivity)
         }
