@@ -28,6 +28,7 @@ import androidx.lifecycle.ViewModelProviders
 import androidx.navigation.Navigation
 import com.amazonaws.amplify.generated.graphql.GetPimSettingsQuery
 import com.amazonaws.amplify.generated.graphql.UpdateDeviceIdToImeiMutation
+import com.amazonaws.amplify.generated.graphql.UpdatePimSettingsMutation
 import com.amazonaws.mobileconnectors.appsync.AWSAppSyncClient
 import com.amazonaws.mobileconnectors.appsync.fetcher.AppSyncResponseFetchers
 import com.apollographql.apollo.GraphQLCall
@@ -44,6 +45,7 @@ import com.example.nts_pim.fragments_viewmodel.vehicle_settings.setting_keyboard
 import com.example.nts_pim.utilities.enums.LogEnums
 import com.example.nts_pim.utilities.enums.SharedPrefEnum
 import com.example.nts_pim.utilities.keyboards.QwertyKeyboard
+import com.example.nts_pim.utilities.mutation_helper.PIMMutationHelper
 import com.example.nts_pim.utilities.sound_helper.SoundHelper
 import com.example.nts_pim.utilities.view_helper.ViewHelper
 import com.github.ybq.android.spinkit.style.DoubleBounce
@@ -69,6 +71,7 @@ import org.kodein.di.KodeinAware
 import org.kodein.di.android.x.closestKodein
 import org.kodein.di.generic.instance
 import type.UpdateDeviceIdToIMEIInput
+import type.UpdatePIMSettingsInput
 import java.io.IOException
 import java.lang.Error
 import java.net.NetworkInterface
@@ -312,9 +315,7 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
             checkedIMEI = true
             val appVersion = BuildConfig.VERSION_NAME
             val blueToothAddress = getBluetoothAddress()
-            mAWSAppSyncClient?.query(GetPimSettingsQuery.builder().deviceId(deviceID).appVersion(appVersion).btAddress(blueToothAddress).build())
-                ?.responseFetcher(AppSyncResponseFetchers.CACHE_AND_NETWORK)
-                ?.enqueue(vehicleIdQueryCallBack)
+            PIMMutationHelper.updatePimSettings(blueToothAddress, appVersion, mAWSAppSyncClient!!, imei)
         } else {
             if (!checkedAndroidId){
                 checkedAndroidId = true
@@ -330,7 +331,7 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
             val callBackVehicleID = response.data()?.pimSettings?.vehicleId()
             val errorCode = response.data()?.pimSettings?.errorCode()
             when(errorCode){
-                    "1007" -> {
+                    "1014" -> {
                             if(checkedIMEI && !checkedAndroidId) {
                                 checkForPairedVehicleID(androidId)
                             }

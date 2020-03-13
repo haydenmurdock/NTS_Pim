@@ -18,6 +18,9 @@ import android.widget.Toast
 import androidx.core.view.isVisible
 import androidx.lifecycle.ViewModelProviders
 import androidx.navigation.Navigation
+import com.amazonaws.amplify.generated.graphql.GetSettingsQuery
+import com.amazonaws.amplify.generated.graphql.GetStatusQuery
+import com.amazonaws.amplify.generated.graphql.GetVehicleEventsQuery
 import com.amazonaws.amplify.generated.graphql.UpdatePimStatusMutation
 import com.amazonaws.mobileconnectors.appsync.AWSAppSyncClient
 import com.apollographql.apollo.GraphQLCall
@@ -82,8 +85,8 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
     private var pimIsReadyToTakeTrip = false
     private val logFragment = "Welcome Screen"
 
-    private val batteryCheckTimer = object : CountDownTimer(1800000, 1000) {
-        //Every 30 minutes  we are doing a battery check.
+    private val batteryCheckTimer = object : CountDownTimer( 3600000, 1000) {
+        //Every 60 minutes  we are doing a battery check.
         override fun onTick(millisUntilFinished: Long) {
         }
 
@@ -184,7 +187,7 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
             changeScreenBrightness(fullBrightness)
             dimScreenTimer.start()
             buttonCount += 1
-            if (buttonCount > 2) {
+            if (buttonCount in 2..5) {
                 showToastMessage("$buttonCount", 1000)
             }
             if (buttonCount == 5) {

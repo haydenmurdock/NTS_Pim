@@ -9,10 +9,12 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.lifecycle.ViewModelProviders
 import androidx.navigation.NavController
 import androidx.navigation.Navigation
 import com.amazonaws.amplify.generated.graphql.GetPimSettingsQuery
+import com.amazonaws.amplify.generated.graphql.ResetReAuthSquareMutation
 import com.amazonaws.mobileconnectors.appsync.AWSAppSyncClient
 import com.amazonaws.mobileconnectors.appsync.fetcher.AppSyncResponseFetchers
 import com.apollographql.apollo.GraphQLCall
@@ -21,6 +23,7 @@ import com.apollographql.apollo.exception.ApolloException
 import com.example.nts_pim.BuildConfig
 import com.example.nts_pim.R
 import com.example.nts_pim.data.repository.model_objects.DeviceID
+import com.example.nts_pim.data.repository.model_objects.JsonAuthCode
 import com.example.nts_pim.data.repository.providers.ModelPreferences
 import com.example.nts_pim.fragments_viewmodel.base.ClientFactory
 import com.example.nts_pim.fragments_viewmodel.base.ScopedFragment
@@ -30,9 +33,20 @@ import com.example.nts_pim.utilities.enums.SharedPrefEnum
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import com.example.nts_pim.utilities.mutation_helper.PIMMutationHelper
 import com.example.nts_pim.utilities.power_cycle.PowerAccessibilityService
+import com.google.gson.Gson
+import com.squareup.sdk.reader.ReaderSdk
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import okhttp3.Call
+import okhttp3.Callback
+import okhttp3.OkHttpClient
+import okhttp3.Request
 import org.kodein.di.KodeinAware
 import org.kodein.di.android.x.closestKodein
 import org.kodein.di.generic.instance
+import type.ResetReAuthSquareInput
+import java.io.IOException
+import java.lang.Error
 import java.net.NetworkInterface
 import java.util.*
 
@@ -51,6 +65,7 @@ class StartupFragment: ScopedFragment(), KodeinAware {
     private var appVersionNumber: String? = null
     private var blueToothAddress: String? = null
     private var deviceId: String? = null
+    private var vehicleId: String? = null
     private val currentFragmentId = R.id.startupFragment
 
 
@@ -75,6 +90,7 @@ class StartupFragment: ScopedFragment(), KodeinAware {
             if(deviceId != null && deviceId.number.isNotBlank()){
                 Log.i("LOGGER", "Vehicle Setup complete and checking AWS For Logging. device Id: ${deviceId.number}")
                 checkAWSForLogging(deviceId.number)
+                vehicleId = viewModel.getVehicleID()
             }
         }
         blueToothAddress = getBluetoothAddress()
@@ -87,7 +103,7 @@ class StartupFragment: ScopedFragment(), KodeinAware {
             mAWSAppSyncClient = ClientFactory.getInstance(activity!!.applicationContext)
         }
         mAWSAppSyncClient?.query(GetPimSettingsQuery.builder().deviceId(deviceId).build())
-            ?.responseFetcher(AppSyncResponseFetchers.NETWORK_FIRST)
+            ?.responseFetcher(AppSyncResponseFetchers.NETWORK_ONLY)
             ?.enqueue(awsLoggingQueryCallBack)
     }
 
@@ -100,23 +116,116 @@ class StartupFragment: ScopedFragment(), KodeinAware {
                 val isLoggingOn = response.data()?.pimSettings?.log()
                 val awsBluetoothAddress = response.data()?.pimSettings?.btAddress()
                 val appVersion = response.data()?.pimSettings?.appVersion()
+                val reAuth = response.data()?.pimSettings?.reAuthSquare()
 
                 if(isLoggingOn != null){
                     Log.i("LOGGER", "AWS Query callback: isLoggingOn = $isLoggingOn")
                     LoggerHelper.logging = isLoggingOn
                 }
-                if (awsBluetoothAddress.isNullOrBlank() || awsBluetoothAddress != blueToothAddress){
-                PIMMutationHelper.updatePimSettings(blueToothAddress, null, mAWSAppSyncClient!!,deviceId!!)
+                if (awsBluetoothAddress.isNullOrEmpty() || awsBluetoothAddress != blueToothAddress){
+                PIMMutationHelper.updatePimSettings(blueToothAddress, appVersionNumber, mAWSAppSyncClient!!,deviceId!!)
                 }
 
-                if(appVersion.isNullOrBlank() || appVersion.isNullOrEmpty()){
-                    PIMMutationHelper.updatePimSettings(null, appVersionNumber, mAWSAppSyncClient!!, deviceId!!)
+                if(appVersion.isNullOrBlank() || appVersion.isNullOrEmpty() || appVersion != appVersionNumber){
+                    PIMMutationHelper.updatePimSettings(blueToothAddress, appVersionNumber, mAWSAppSyncClient!!, deviceId!!)
+                }
+                if(reAuth != null && reAuth){
+                    Log.i("LOGGER", "$vehicleId ReAuth: $reAuth.  Trying to reauthorize")
+                    reauthorizeSquare()
                 }
             }
         }
         override fun onFailure(e: ApolloException) {
         }
     }
+
+    private fun reauthorizeSquare(){
+        if(ReaderSdk.authorizationManager().authorizationState.canDeauthorize()){
+            ReaderSdk.authorizationManager().deauthorize()
+            Log.i("LOGGER", "$vehicleId successfully de-Authroized")
+        }
+        if(!vehicleId.isNullOrEmpty()){
+            Log.i("LOGGER", "$vehicleId: Trying to reauthorize")
+            getAuthorizationCode(vehicleId!!)
+            }
+        }
+
+    private fun getAuthorizationCode(vehicleId: String) {
+        val url =
+            "https://i8xgdzdwk5.execute-api.us-east-2.amazonaws.com/prod/CheckOAuthToken?vehicleId=$vehicleId"
+        val client = OkHttpClient()
+        val request = Request.Builder()
+            .url(url)
+            .build()
+        try {
+            client.newCall(request).enqueue(object : Callback {
+                override fun onResponse(call: Call, response: okhttp3.Response) {
+                    if (response.code == 200) {
+                        val gson = Gson()
+                        val convertedObject =
+                            gson.fromJson(response.body?.string(), JsonAuthCode::class.java)
+                        val authCode = convertedObject.authCode
+                        onAuthorizationCodeRetrieved(authCode, vehicleId)
+                        Log.i("LOGGER", "$vehicleId successfully got AuthCode")
+                    }
+                    if (response.code == 404) {
+                        launch(Dispatchers.Main.immediate) {
+                            Toast.makeText(
+                                context!!,
+                                "Vehicle not found in fleet, check fleet management portal",
+                                Toast.LENGTH_LONG
+                            ).show()
+                        }
+                    }
+                    if (response.code == 401) {
+                        launch(Dispatchers.Main.immediate){
+                            Toast.makeText(
+                                context!!,
+                                "Need to authorize fleet with log In",
+                                Toast.LENGTH_LONG
+                            ).show()
+                        }
+                    }
+                }
+                override fun onFailure(call: Call, e: IOException) {
+                    println("failure")
+                }
+            })
+        } catch (e: Error) {
+            println(e)
+        }
+    }
+    private fun onAuthorizationCodeRetrieved(authorizationCode: String, vehicleId: String)
+            = launch {
+        ReaderSdk.authorizationManager().authorize(authorizationCode)
+        sendBackAuthMutation(vehicleId)
+    }
+
+    private fun sendBackAuthMutation(vehicleId: String) = launch(Dispatchers.IO){
+        if(ReaderSdk.authorizationManager().authorizationState.isAuthorized){
+            val reAuthInput = ResetReAuthSquareInput.builder().vehicleId(vehicleId).build()
+            Log.i("LOGGER", "$vehicleId trying to send back reAuth confirmation")
+          mAWSAppSyncClient?.mutate(ResetReAuthSquareMutation.builder().parameters(reAuthInput).build())?.enqueue(reAuthCallback)
+        }
+    }
+    private var reAuthCallback = object : GraphQLCall.Callback<ResetReAuthSquareMutation.Data>(){
+        override fun onResponse(response: Response<ResetReAuthSquareMutation.Data>) {
+            if(response.hasErrors()){
+                LoggerHelper.writeToLog(activity!!.applicationContext, "There was an error trying to reAuthorize square account for this vehicle. Suggest manuel ReAuth")
+            }
+
+            if(response.data()?.resetReAuthSquare()?.reAuthSquare() != null &&
+                response.data()?.resetReAuthSquare()?.reAuthSquare() == false){
+                Log.i("LOGGER", "$vehicleId was successfully re-authorized")
+                LoggerHelper.writeToLog(activity!!.applicationContext, "$vehicleId was successfully re-authorized")
+            }
+        }
+
+        override fun onFailure(e: ApolloException) {
+            LoggerHelper.writeToLog(activity!!.applicationContext, "There was an error trying to reAuthorize square account for this vehicle. Suggest manual ReAuth")
+        }
+    }
+
     private fun checkAccessibilityPermission():Boolean {
         val retVal = PowerAccessibilityService().isAccessibilitySettingsOn(context!!)
         if(!retVal){
@@ -133,7 +242,7 @@ class StartupFragment: ScopedFragment(), KodeinAware {
     }
 
     private fun openDrawPermissionsMenu(){
-        val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + context!!.getPackageName()))
+        val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + context!!.packageName))
         startActivity(intent)
     }
     private fun getBluetoothAddress(): String?{

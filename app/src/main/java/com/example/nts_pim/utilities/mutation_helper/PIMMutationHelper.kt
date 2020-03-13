@@ -85,26 +85,24 @@ object PIMMutationHelper {
     }
 
     fun updatePimSettings(blueToothAddress: String?, appVersion: String?, appSyncClient: AWSAppSyncClient, deviceId: String){
-        val updatePimSettings = GetPimSettingsQuery
+        val updatePimSettings = UpdatePIMSettingsInput
             .builder()
             .deviceId(deviceId)
             .appVersion(appVersion)
             .btAddress(blueToothAddress)
             .build()
-        appSyncClient.query(updatePimSettings).enqueue(pimSettingsCallback)
+        appSyncClient.mutate(UpdatePimSettingsMutation.builder().parameters(updatePimSettings).build()).enqueue(pimSettingsCallback)
     }
-    private val pimSettingsCallback = object : GraphQLCall.Callback<GetPimSettingsQuery.Data>() {
-        override fun onResponse(response: Response<GetPimSettingsQuery.Data>) {
+    private val pimSettingsCallback = object : GraphQLCall.Callback<UpdatePimSettingsMutation.Data>() {
+        override fun onResponse(response: Response<UpdatePimSettingsMutation.Data>) {
             if (response.hasErrors()){
                 Log.e("PIM Settings", "There was an issue updating payment settings: ${response.errors()[0]}")
             }
 
-            Log.i("Response", "response: ${response.data()?.pimSettings.toString()}")
-
+            Log.i("Response", "response: ${response.data()?.updatePIMSettings().toString()}")
         }
-
         override fun onFailure(e: ApolloException) {
-
+            Log.i("Response", "response: $e")
         }
     }
 

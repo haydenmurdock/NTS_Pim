@@ -382,6 +382,7 @@ mutation UpdateDeviceIdToImei($parameters: updateDeviceIdToIMEIInput) {
     log
     btAddress
     appVersion
+    reAuthSquare
   }
 }
 mutation UpdateTripFare($parameters: updateTripFareInput) {
@@ -692,5 +693,29 @@ mutation PimPaymentMade($parameters: pimPaymentMadeInput) {
     voucherAcctNbr
     voucherEnteredAmt
     voucherNbr
+  }
+}
+mutation ResetReAuthSquare($parameters: resetReAuthSquareInput) {
+  resetReAuthSquare(parameters: $parameters) {
+    deviceId
+    error
+    errorCode
+    vehicleId
+    log
+    btAddress
+    appVersion
+    reAuthSquare
+  }
+}
+mutation UpdatePimSettings($parameters: updatePIMSettingsInput) {
+  updatePIMSettings(parameters: $parameters) {
+    deviceId
+    error
+    errorCode
+    vehicleId
+    log
+    btAddress
+    appVersion
+    reAuthSquare
   }
 }

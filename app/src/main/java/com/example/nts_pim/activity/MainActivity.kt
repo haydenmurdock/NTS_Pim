@@ -3,6 +3,7 @@ package com.example.nts_pim.activity
 import android.bluetooth.BluetoothAdapter
 import android.content.ContentValues
 import android.content.Context
+import android.content.Intent
 import android.content.IntentFilter
 import android.media.AudioAttributes
 import android.media.AudioFocusRequest
@@ -11,18 +12,26 @@ import android.media.MediaPlayer
 import android.net.ConnectivityManager
 import android.os.Bundle
 import android.os.CountDownTimer
+import android.os.PowerManager
+import android.provider.Settings
 import android.util.Log
 import android.view.View
 import android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProviders
+import androidx.navigation.Navigation.findNavController
+import com.amazonaws.amplify.generated.graphql.GetTripQuery
+import com.amazonaws.amplify.generated.graphql.OnDoPimPaymentSubscription
+import com.amazonaws.amplify.generated.graphql.OnUpdateVehTripStatusSubscription
 import com.amazonaws.mobileconnectors.appsync.AWSAppSyncClient
 import com.amazonaws.mobileconnectors.appsync.AppSyncSubscriptionCall
 import com.amazonaws.mobileconnectors.appsync.fetcher.AppSyncResponseFetchers
 import com.apollographql.apollo.GraphQLCall
 import com.apollographql.apollo.api.Response
 import com.apollographql.apollo.exception.ApolloException
+import com.example.nts_pim.NetworkReceiver
 import com.example.nts_pim.R
 import com.example.nts_pim.UnlockScreenLock
 import com.example.nts_pim.data.repository.VehicleTripArrayHolder
@@ -35,7 +44,9 @@ import com.example.nts_pim.fragments_viewmodel.vehicle_setup.VehicleSetupModelFa
 import com.example.nts_pim.fragments_viewmodel.vehicle_setup.VehicleSetupViewModel
 import com.example.nts_pim.utilities.enums.PIMStatusEnum
 import com.example.nts_pim.utilities.enums.SharedPrefEnum
+import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import com.example.nts_pim.utilities.mutation_helper.PIMMutationHelper
+import com.example.nts_pim.utilities.power_cycle.PowerAccessibilityService
 import com.example.nts_pim.utilities.sound_helper.SoundHelper
 import com.example.nts_pim.utilities.view_helper.ViewHelper
 import kotlinx.coroutines.CoroutineScope
@@ -45,11 +56,8 @@ import kotlinx.coroutines.launch
 import org.kodein.di.KodeinAware
 import org.kodein.di.android.closestKodein
 import org.kodein.di.generic.instance
+import java.util.jar.Manifest
 import kotlin.coroutines.CoroutineContext
-import androidx.navigation.Navigation.findNavController
-import com.amazonaws.amplify.generated.graphql.*
-import com.example.nts_pim.NetworkReceiver
-import com.example.nts_pim.utilities.logging_service.LoggerHelper
 
 open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
     override val kodein by closestKodein()
@@ -494,6 +502,20 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
             LoggerHelper.writeToLog(this@MainActivity, "${logFragment}, bluetooth was on during start up")
         }
     }
+    private fun goToPowerCycleApp() {
+        //This function is for futhure use if we decide to use our own kiosk mode
+        val launchIntent =
+            packageManager.getLaunchIntentForPackage("com.claren.tablet_control")
+        if (launchIntent != null) {
+            startActivity(launchIntent) //null pointer check in case package name was not found
+        } else {
+            Toast.makeText(
+                applicationContext,
+                "Auto Load of Pim failed, Please open PIM app",
+                Toast.LENGTH_LONG
+            ).show()
+        }
+    }
 
     override fun onDestroy() {
         Log.i("SubscriptionWatcher", "Subscription watcher canceled for $vehicleId")
@@ -506,8 +528,16 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
         LoggerHelper.writeToLog(this, "$logFragment, MainActivity onDestroy hit")
         stopLogTimer()
         vehicleSubscriptionTimer?.cancel()
+
         super.onDestroy()
     }
+
+    override fun onStop() {
+        Log.i("onStop", "onStop was hit")
+
+        super.onStop()
+    }
+
 
     override fun onPause() {
         super.onPause()
@@ -515,6 +545,12 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
             ViewHelper.hideSystemUI(this)
         }
         LoggerHelper.writeToLog(this, "$logFragment, MainActivity onPause hit")
+    }
+
+    override fun onUserLeaveHint() {
+        Log.i("onStop", "onUserLeaveHint was hit")
+
+        super.onUserLeaveHint()
     }
 
     override fun onResume() {

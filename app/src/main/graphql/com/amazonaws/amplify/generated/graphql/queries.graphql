@@ -96,6 +96,7 @@ query GetPimSettings(
     log
     btAddress
     appVersion
+    reAuthSquare
   }
 }
 query GetSettings($deviceId: String!, $pin: String, $appVersion: String) {
@@ -425,5 +426,6 @@ query GetLoggingSettings($deviceId: String!) {
     log
     btAddress
     appVersion
+    reAuthSquare
   }
 }
