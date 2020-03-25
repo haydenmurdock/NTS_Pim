@@ -2,7 +2,6 @@ package com.example.nts_pim.utilities.sms_helper
 
 import android.util.Log
 import com.example.nts_pim.data.repository.TripDetails
-import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import okhttp3.*
 import java.util.concurrent.TimeUnit
 import org.json.JSONException
@@ -19,7 +18,7 @@ object SmsHelper {
             .readTimeout(60, TimeUnit.SECONDS)
             .retryOnConnectionFailure(false)
             .build()
-        val JSON = "application/json; charset=utf-8".toMediaType()
+        val jSON = "application/json; charset=utf-8".toMediaType()
         val json = JSONObject()
             try{
                 json.put("paymentMethod", "${paymentMethod.toLowerCase()}")
@@ -31,7 +30,7 @@ object SmsHelper {
                 Log.i("ERROR", "JSON error $e")
              }
 
-        val body = RequestBody.create(JSON, json.toString())
+        val body = RequestBody.create(jSON, json.toString())
         Log.i("URL","Json body :  ${json}")
         val url = URL("https://5s27urxc78.execute-api.us-east-2.amazonaws.com/test/sendReceipt")
 

@@ -151,8 +151,8 @@
                 android:id="@+id/toVehicleSetupFragment"
                 app:destination="@id/vehicleSetupFragment" />
         <action
-                android:id="@+id/toWelcomeScreenFromStartUP"
-                app:destination="@id/welcome_fragment" />
+                android:id="@+id/action_startupFragment_to_bluetoothSetupFragment"
+                app:destination="@id/bluetoothSetupFragment" />
     </fragment>
     <fragment
             android:id="@+id/tipScreenFragment"
@@ -279,6 +279,14 @@
                 app:destination="@id/recentTripAWSFragment" />
     </fragment><action android:id="@+id/action_global_taxi_number_fragment" app:destination="@id/taxi_number_fragment"/>
     <action android:id="@+id/action_global_welcome_fragment" app:destination="@id/welcome_fragment"/>
+    <fragment
+            android:id="@+id/bluetoothSetupFragment"
+            android:name="com.example.nts_pim.fragments_viewmodel.bluetooth_setup.BluetoothSetupFragment"
+            android:label="BluetoothSetupFragment" >
+        <action
+                android:id="@+id/action_bluetoothSetupFragment_to_welcome_fragment"
+                app:destination="@id/welcome_fragment" />
+    </fragment>
 
 
 </navigation>

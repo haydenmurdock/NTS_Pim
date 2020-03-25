@@ -35,6 +35,10 @@ import com.example.nts_pim.utilities.mutation_helper.PIMMutationHelper
 import com.example.nts_pim.utilities.power_cycle.PowerAccessibilityService
 import com.google.gson.Gson
 import com.squareup.sdk.reader.ReaderSdk
+import com.squareup.sdk.reader.authorization.DeauthorizeCallback
+import com.squareup.sdk.reader.authorization.DeauthorizeErrorCode
+import com.squareup.sdk.reader.core.Result
+import com.squareup.sdk.reader.core.ResultError
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import okhttp3.Call
@@ -139,8 +143,10 @@ class StartupFragment: ScopedFragment(), KodeinAware {
         }
     }
 
-    private fun reauthorizeSquare(){
+    private fun reauthorizeSquare() = launch(Dispatchers.Main.immediate){
+
         if(ReaderSdk.authorizationManager().authorizationState.canDeauthorize()){
+            ReaderSdk.authorizationManager().addDeauthorizeCallback(deauthorizeCallback)
             ReaderSdk.authorizationManager().deauthorize()
             Log.i("LOGGER", "$vehicleId successfully de-Authroized")
         }
@@ -149,10 +155,12 @@ class StartupFragment: ScopedFragment(), KodeinAware {
             getAuthorizationCode(vehicleId!!)
             }
         }
-
+    private val deauthorizeCallback = DeauthorizeCallback {
+       Log.i("de-authroize Callback", "$it")
+        it.isSuccess
+    }
     private fun getAuthorizationCode(vehicleId: String) {
-        val url =
-            "https://i8xgdzdwk5.execute-api.us-east-2.amazonaws.com/prod/CheckOAuthToken?vehicleId=$vehicleId"
+      val url = "https://i8xgdzdwk5.execute-api.us-east-2.amazonaws.com/prod/CheckOAuthToken?vehicleId=$vehicleId"
         val client = OkHttpClient()
         val request = Request.Builder()
             .url(url)
@@ -196,9 +204,15 @@ class StartupFragment: ScopedFragment(), KodeinAware {
         }
     }
     private fun onAuthorizationCodeRetrieved(authorizationCode: String, vehicleId: String)
-            = launch {
+            = launch(Dispatchers.Main.immediate) {
+        ReaderSdk.authorizationManager().addAuthorizeCallback {
+            Log.i("Deauthorization" ,"$it")
+            if(it.isSuccess){
+                sendBackAuthMutation(vehicleId)
+            }
+        }
+        val isReaderSdkAuthorized = ReaderSdk.authorizationManager().authorizationState.isAuthorized
         ReaderSdk.authorizationManager().authorize(authorizationCode)
-        sendBackAuthMutation(vehicleId)
     }
 
     private fun sendBackAuthMutation(vehicleId: String) = launch(Dispatchers.IO){
@@ -321,7 +335,7 @@ class StartupFragment: ScopedFragment(), KodeinAware {
         if (setupStatus && permissionWrite && permissionDraw && permissionAccessibility){
             viewModel.vehicleIDExists()
             if (navController.currentDestination?.id == currentFragmentId) {
-                navController.navigate(R.id.toWelcomeScreenFromStartUP)
+                navController.navigate(R.id.bluetoothSetupFragment)
             }
         } else if(permissionDraw && permissionWrite && permissionAccessibility) {
             if (navController.currentDestination?.id == currentFragmentId) {

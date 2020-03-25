@@ -470,8 +470,7 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
         }
     }
     private fun getAuthorizationCode(vehicleID: String) {
-        val url =
-            "https://i8xgdzdwk5.execute-api.us-east-2.amazonaws.com/prod/CheckOAuthToken?vehicleId=$vehicleID"
+        val url = "https://i8xgdzdwk5.execute-api.us-east-2.amazonaws.com/prod/CheckOAuthToken?vehicleId=$vehicleID"
         val client = OkHttpClient()
         val request = Request.Builder()
             .url(url)

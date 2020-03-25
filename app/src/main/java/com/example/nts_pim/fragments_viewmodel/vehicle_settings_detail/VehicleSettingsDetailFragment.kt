@@ -32,6 +32,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.telephony.TelephonyManager
 import android.util.Log
+import android.widget.ArrayAdapter
 import com.amazonaws.amplify.generated.graphql.SavePaymentDetailsMutation
 import com.amazonaws.amplify.generated.graphql.UpdateVehTripStatusMutation
 import com.amazonaws.mobileconnectors.appsync.AWSAppSyncClient
@@ -42,6 +43,7 @@ import com.example.nts_pim.BuildConfig
 import com.example.nts_pim.data.repository.model_objects.*
 import com.example.nts_pim.data.repository.providers.ModelPreferences
 import com.example.nts_pim.fragments_viewmodel.base.ClientFactory
+import com.example.nts_pim.fragments_viewmodel.bluetooth_setup.SelectDeviceDialog
 import com.example.nts_pim.fragments_viewmodel.vehicle_settings.setting_keyboard_viewModels.SettingsKeyboardViewModel
 import com.example.nts_pim.utilities.enums.SharedPrefEnum
 import com.example.nts_pim.utilities.enums.VehicleStatusEnum
@@ -59,6 +61,7 @@ import okhttp3.Request
 import type.UpdateVehTripStatusInput
 import java.io.IOException
 import java.lang.Error
+import java.lang.Exception
 import java.util.*
 
 
@@ -72,6 +75,8 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
     private lateinit var keyboardViewModel: SettingsKeyboardViewModel
     private var mAWSAppSyncClient: AWSAppSyncClient? = null
     private var readerSettingsCallbackRef: CallbackReference? = null
+    var mArrayAdapter: ArrayAdapter<String>? = null
+    var devices = ArrayList<String>()
     private val currentFragmentId = R.id.vehicle_settings_detail_fragment
     private var vehicleId = ""
     private var tripID = ""
@@ -86,6 +91,7 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
         mAWSAppSyncClient = ClientFactory.getInstance(context)
         val factory = InjectorUtiles.provideCallBackModelFactory()
         viewModel = ViewModelProviders.of(this, viewModelFactory)
@@ -119,7 +125,7 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
             screenDisabled()
             activity_indicator_vehicle_detail.animate()
             activity_indicator_vehicle_detail.visibility = View.VISIBLE
-           Log.d("VehicleSettingsDetailFragment", "BlueToothDeviceAdapter: State- ${bluetoothDeviceAdapter.state}, " +
+           Log.i("VehicleSettingsDetailFragment", "BlueToothDeviceAdapter: State- ${bluetoothDeviceAdapter.state}, " +
                    "Enabled:  ${bluetoothDeviceAdapter.isEnabled}" +
                    "Address: ${bluetoothDeviceAdapter.address}" +
                    "Bonded Devices: ${bluetoothDeviceAdapter.bondedDevices}" +
@@ -151,8 +157,6 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
             showReauthorizeDialog(activity!!, vehicleId)
         }
 
-
-
         battery_btn.setOnClickListener {
             callBackViewModel.enableOrDisableBatteryPower()
             val batteryPermission = callBackViewModel.batteryPowerStatePermission()
@@ -161,6 +165,17 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
                 "Allow Battery Power: $batteryPermission", Toast.LENGTH_LONG
             ).show()
             updatePowerButtonUI(batteryPermission)
+        }
+
+        show_bt_paired_devices_imageView.setOnClickListener{
+            val pairedDevices = bluetoothDeviceAdapter.bondedDevices
+             mArrayAdapter = ArrayAdapter(activity, R.layout.dialog_select_bluetooth_device)
+            pairedDevices.forEach {device->
+                devices.add(device.name)
+                mArrayAdapter!!.add((if (device.name != null) device.name else "Unknown") + "\n" + device.address+ "\nPaired")
+            }
+            val dialog = SelectDeviceDialog(mArrayAdapter!!, devices)
+            dialog.show(activity!!.supportFragmentManager, "Paired Devices")
         }
     }
 
@@ -205,7 +220,7 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
                     println("failure")
                 }
             })
-        } catch (e: Error) {
+        } catch (e: Exception) {
             println(e)
         }
     }
