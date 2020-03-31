@@ -1,6 +1,7 @@
 package com.example.nts_pim.utilities.view_walker
 
 import android.app.Activity
+import android.transition.Scene
 import android.util.Log
 import android.view.View
 import android.view.ViewGroup
@@ -16,9 +17,9 @@ class ViewWalker {
         level = 0
         try {
             Log.v(TAG, "Activity: " + activity.localClassName)
-            //Scene scene = activity.getContentScene();
-            //Log.v(TAG, "Scene " + scene.toString());
-            //ViewGroup viewGroup = scene.getSceneRoot();
+            val scene = activity.contentScene
+            Log.v(TAG, "Scene " + scene.toString());
+            //val viewGroup = scene.getSceneRoot();
             val viewGroup = activity.findViewById<View>(android.R.id.content) as ViewGroup
             walkViewGroup(viewGroup)
         } catch (e: Exception) {

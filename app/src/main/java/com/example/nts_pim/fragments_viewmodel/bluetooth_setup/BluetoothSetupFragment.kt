@@ -5,11 +5,11 @@ import android.app.AlertDialog
 import android.app.Dialog
 import android.bluetooth.BluetoothAdapter
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
-import androidx.annotation.MainThread
 import androidx.fragment.app.DialogFragment
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProviders
@@ -22,7 +22,6 @@ import com.example.nts_pim.fragments_viewmodel.callback.CallBackViewModel
 import com.example.nts_pim.utilities.bluetooth_helper.BlueToothHelper
 import com.example.nts_pim.utilities.bluetooth_helper.BlueToothServerController
 import com.example.nts_pim.utilities.bluetooth_helper.BluetoothDataCenter
-import com.example.nts_pim.utilities.bluetooth_helper.BluetoothServer
 import kotlinx.android.synthetic.main.bluetooth_setup_screen.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -34,7 +33,6 @@ class BluetoothSetupFragment: ScopedFragment() {
     private var navController: NavController? = null
     private lateinit var callBackViewModel: CallBackViewModel
     private val currentFragmentId = R.id.bluetoothSetupFragment
-
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -49,21 +47,37 @@ class BluetoothSetupFragment: ScopedFragment() {
         callBackViewModel = ViewModelProviders.of(this, callBackFactory)
             .get(CallBackViewModel::class.java)
         val pairedDevices = BlueToothHelper.getPairedDevicesAndRegisterBTReceiver(activity!!)
+        val btAdapter = BluetoothAdapter.getDefaultAdapter()
         devices = ArrayList()
-        mArrayAdapter = ArrayAdapter(activity, R.layout.dialog_select_bluetooth_device)
+        mArrayAdapter = ArrayAdapter(this.context!!, R.layout.dialog_select_bluetooth_device)
         navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
+        //starting server
         launch(Dispatchers.Main.immediate){
             setUpBluetoothServer(activity!!)
         }
+        //adding devices to adapter and device array. If there is not a SAMSUNG device bonded it starts the discovery mode.
         pairedDevices.forEach { device ->
             devices.add(device.first)
             mArrayAdapter!!.add((if (device.first != null) device.first else "Unknown") + "\n" + device.second + "\nPaired")
+
+        }
+
+        pairedDevices.forEach { device ->
+            if(device.first.contains("SAMSUNG")){
+                Log.i("Bluetooth", "Device has been bonded via bluetooth")
+                callBackViewModel.deviceIsBondedViaBT()
+                if(btAdapter.isDiscovering){
+                    Log.i("Bluetooth", "Device has been bonded, canceling discovery")
+                    btAdapter.cancelDiscovery()
+                }
+            }
         }
         blueToothSetup_button.setOnClickListener {
             if (BluetoothAdapter.getDefaultAdapter().startDiscovery()) {
                 val dialog = SelectDeviceDialog(mArrayAdapter!!, devices)
-                if (this.fragmentManager != null) {
-                    dialog.show(this.fragmentManager!!, "select a device")
+                if (activity?.supportFragmentManager != null) {
+                    dialog.show(activity!!.supportFragmentManager,
+                        "select a device")
                     devices.clear()
                 }
             }

@@ -13,7 +13,9 @@ import android.util.Log
 import android.view.View
 import android.view.ViewGroup
 import android.view.View.OnLayoutChangeListener
+import android.widget.Button
 import android.widget.ImageView
+import androidx.core.view.get
 import androidx.core.view.isVisible
 import com.bumptech.glide.Glide
 import com.example.nts_pim.R
@@ -25,6 +27,7 @@ import com.example.nts_pim.utilities.enums.MeterEnum
 import com.example.nts_pim.utilities.enums.SharedPrefEnum
 import com.example.nts_pim.utilities.sound_helper.SoundHelper
 import java.text.DecimalFormat
+import kotlin.math.log
 
 
 class SquareService : OnLayoutChangeListener,
@@ -40,6 +43,7 @@ class SquareService : OnLayoutChangeListener,
     private var timeout: CountDownTimer? = null
     private var removeCardTimer: CountDownTimer? = null
     private var closeSquareForSoundCheckTimer: CountDownTimer? = null
+    private var timerForRemoveCardScreen: CountDownTimer? = null
     private var mSuccessPlayed = false
     private var userHasRemovedCard = false
     private var successfulSoundHasBeenPlayed = false
@@ -174,13 +178,14 @@ class SquareService : OnLayoutChangeListener,
                 }
 
                 SqUIState.RECEIPT_STATE -> {
+                    if (viewGroup.isVisible) {
+                        if (removeCardView != null) {
+                            viewGroup.removeView(removeCardView)
+                            Log.i(tag, "removed removeCardView from viewGroup")
+                        }
+                    }
                 }
-
                 SqUIState.SUCCESSFUL_PAYMENT -> {
-                }
-
-                else ->{
-
                 }
             }
             // Entering newState
@@ -192,11 +197,9 @@ class SquareService : OnLayoutChangeListener,
                     insertCardView = View.inflate(activity, R.layout.insert_card, viewGroup)
                     if (insertCardView != null){
                         val backButton = activity.findViewById<ImageView>(R.id.insert_card_back_btn)
-                        if(backButton != null){
-                            backButton.setOnClickListener{
-                                stopTimeout()
-                                pressCancelButtonForSquareCheck()
-                            }
+                         backButton?.setOnClickListener{
+                            stopTimeout()
+                            pressCancelButtonForSquareCheck()
                         }
                         val imageView = activity.findViewById<ImageView>(R.id.insert_card_imageView)
                         Glide.with(activity.applicationContext)
@@ -225,6 +228,7 @@ class SquareService : OnLayoutChangeListener,
                     Log.i(tag, "Square is in successful payment state")
                     turnUpVolume()
                     stopTimeout()
+                    addRemoveCardScreen(activity)
                 }
                SqUIState.DECLINE_STATE -> {
                     Log.i(tag, "Square is in decline state")
@@ -239,14 +243,16 @@ class SquareService : OnLayoutChangeListener,
                 }
                 SqUIState.REMOVE_CARD_STATE -> {
                     Log.i(tag, "Square is remove card state")
-                    removeCardView = View.inflate(activity,R.layout.activity_remove_card,viewGroup)
-                    if (removeCardView != null) {
+
+                    if (removeCardView == null) {
+                        // if the view did not inflate we will inflate it now
+                        removeCardView = View.inflate(activity,R.layout.activity_remove_card,viewGroup)
                         val imageView = activity.findViewById<ImageView>(R.id.remove_card_ImageView)
                         Glide.with(activity.applicationContext)
                             .load(R.raw.remove_card).into(imageView)
+                        Log.i(tag, "Remove card view was null so Remove_card_state tried to inflate it")
                     }
                     turnUpVolume()
-                    playPaymentSuccessfulSound()
                     startRemoveCardTimer()
                     stopTimeout()
                 }
@@ -259,14 +265,9 @@ class SquareService : OnLayoutChangeListener,
 
                 SqUIState.RECEIPT_STATE -> {
                     Log.i(tag, "Square is in Receipt State")
-                    if (removeCardView == null){
-                        removeCardView = View.inflate(activity,R.layout.activity_remove_card,viewGroup)
-                        val imageView = activity.findViewById<ImageView>(R.id.remove_card_ImageView)
-                        Glide.with(activity.applicationContext)
-                            .load(R.raw.remove_card).into(imageView)
-                    }
                     pressNoReceipt()
                     userHasRemovedCard = true
+                    // this will turn off the sound
                     stopRemoveCardTimer()
                     stopTimeout()
                     removeCardTimer?.cancel()
@@ -274,36 +275,6 @@ class SquareService : OnLayoutChangeListener,
                 }
                 SqUIState.INSERT_TRY_AGAIN_STATE -> {
                     Log.i(tag, "Square is in Insert try again state")
-//                    insertCardView = View.inflate(activity, R.layout.insert_card, viewGroup)
-//                    if (insertCardView != null){
-//                        val backButton = activity.findViewById<ImageView>(R.id.insert_card_back_btn)
-//                        if(backButton != null){
-//                            backButton.setOnClickListener{
-//                                stopTimeout()
-//                                pressCancelButtonForSquareCheck()
-//                            }
-//                        }
-//                        val imageView = activity.findViewById<ImageView>(R.id.insert_card_imageView)
-//                        Glide.with(activity.applicationContext)
-//                            .load(R.raw.insert_swipe_card).into(imageView)
-//                    }
-//                    val tripTotal = VehicleTripArrayHolder.getAmountForSquareDisplay().toDouble()
-//                    val decimalFormatter = DecimalFormat("####00.00")
-//                    val decimalFormatterUnderTen = DecimalFormat("###0.00")
-//                    var tripTotalFormatted = ""
-//                    if(tripTotal < 10){
-//                        tripTotalFormatted = decimalFormatterUnderTen.format(tripTotal)
-//                    } else{
-//                        tripTotalFormatted = decimalFormatter.format(tripTotal)
-//                    }
-//                    val tripTotalTextView = activity.findViewById<TextView>(R.id.insert_card_pay_price_textView)
-//                    val insertCardTextView = activity.findViewById<TextView>(R.id.insert_card_message_textView)
-//                    insertCardTextView.text = "Please Try Again"
-//                    if(tripTotalTextView != null){
-//                        tripTotalTextView.text = "$$tripTotalFormatted"
-//                    } else {
-//                        pressCancelButtonForSquareCheck()
-//                    }
                     turnUpVolume()
                     playCardDeclinedSound()
                     stopTimeout()
@@ -338,6 +309,7 @@ class SquareService : OnLayoutChangeListener,
         }
     }
     // Swipe screen timeout and crude animation
+
     private fun startTimeout() {
         timeout = object : CountDownTimer(30000, 1000) {
             //We are running for 30 seconds
@@ -405,16 +377,6 @@ class SquareService : OnLayoutChangeListener,
         mediaPlayer.start()
     }
 
-    private fun playPaymentSuccessfulSound(){
-        if (!successfulSoundHasBeenPlayed){
-            val mediaPlayer = MediaPlayer.create(squareActivity?.applicationContext, R.raw.transaction_complete)
-            mediaPlayer.setOnCompletionListener {
-                    mediaPlayer.release()
-                }
-            mediaPlayer.start()
-            successfulSoundHasBeenPlayed = true
-        }
-    }
 
     private fun playCardDeclinedSound(){
         val mediaPlayer = MediaPlayer.create(squareActivity?.applicationContext, R.raw.card_denied_sound)
@@ -422,6 +384,23 @@ class SquareService : OnLayoutChangeListener,
             mediaPlayer.release()
         }
         mediaPlayer.start()
+    }
+    private fun addRemoveCardScreen(activity: Activity){
+       timerForRemoveCardScreen = object : CountDownTimer(1250, 1250){
+            override fun onTick(millisUntilFinished: Long) {
+
+            }
+
+            override fun onFinish() {
+                if (removeCardView == null) {
+                    removeCardView = View.inflate(activity, R.layout.activity_remove_card, viewGroup)
+                    val imageView = activity.findViewById<ImageView>(R.id.remove_card_ImageView)
+                    Glide.with(activity.applicationContext)
+                        .load(R.raw.remove_card).into(imageView)
+                    Log.i(tag, "remove card view was inflated via timer")
+                }
+            }
+        }.start()
     }
 //    View 2131298335 (7f09081f) marin.widgets.MarinGlyphView Vis:0 ClickableEnabled
 //    View 2131298684 (7f09097c) class com.squareup.marin.widgets.MarinGlyphView Vis:0 ClickableEnabled Focusable
@@ -530,16 +509,18 @@ class SquareService : OnLayoutChangeListener,
 
     // This was an experiment in automatically pressing "no receipt", but I am not using it
     private fun pressNoReceipt() {
-        Log.d("Square", "Receipt Timeout =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-")
+        Log.i(tag, "Receipt Timeout =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-")
         if (squareActivity == null || squareActivity!!.isFinishing || squareActivity!!.isDestroyed) {
             // Activity not there...don't press buttons
             Log.i(TAG, "Timeout Ignored ***************")
             return
         }
+        val noThanksViewGroup = squareActivity!!.findViewById<View>(com.squareup.sdk.reader.api.R.id.secondary_action_container) as ViewGroup
+        if(noThanksViewGroup.childCount == 1){
+            (noThanksViewGroup[0] as? Button)?.performClick()
+            Log.i(tag, "No thanks button was pressed")
+        }
 
-        val noReceipt = getButton(squareActivity!!, com.squareup.sdk.reader.api.R.id.no_receipt_button, "NoReceipt")
-        Log.e(TAG, "noReceipt ************ = " + noReceipt!!)
-            noReceipt.performClick()
     }
 
     private fun getButton(activity: Activity, id: Int, name: String): View? {
@@ -574,9 +555,19 @@ class SquareService : OnLayoutChangeListener,
             return SqUIState.SWIPE_STATE
         } else if (testResourceText(view, com.squareup.sdk.reader.api.R.id.please_sign_here, "Please Sign Here")) {
             return SqUIState.SIGNATURE_STATE
-        } else if (testResourceText(view, com.squareup.sdk.reader.api.R.id.buyer_actionbar_call_to_action, "Please remove card.")) {
-            return SqUIState.REMOVE_CARD_STATE
-        }else if (testResourceText(view, com.squareup.sdk.reader.api.R.id.buyer_actionbar_call_to_action, "How do you want to receive your digital receipts?")) {
+        }else if (testResourceText(view, com.squareup.sdk.reader.api.R.id.noho_buyer_action_bar_left_button, "New Sale")) {
+            val newViewGroup = squareActivity?.findViewById<View>(com.squareup.sdk.reader.api.R.id.noho_buyer_action_container_call_to_action) as? ViewGroup
+            if(newViewGroup?.childCount == 1) {
+                val childView = newViewGroup[0] as TextView
+                if(childView.text.contains("Please")) {
+                    Log.i(tag, "compute state is going to return remove card state since please remove card is on screen")
+                    return SqUIState.REMOVE_CARD_STATE
+                } else {
+                    Log.i(tag, "compute state is going to return receipt state since please remove card is not on screen")
+                    return SqUIState.RECEIPT_STATE
+                }
+            }
+            Log.i(tag, "compute state is going to return receipt state since since there was no child for action container")
             return SqUIState.RECEIPT_STATE
         } else if(testResourceText(view, com.squareup.sdk.reader.api.R.id.glyph_title, "Approved")){
             return SqUIState.SUCCESSFUL_PAYMENT

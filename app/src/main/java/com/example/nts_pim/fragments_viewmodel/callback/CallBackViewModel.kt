@@ -117,4 +117,10 @@ class CallBackViewModel(
     }
     internal fun getDriverId() = VehicleTripArrayHolder.getDriverId()
 
+    internal fun deviceIsBondedViaBT() = VehicleTripArrayHolder.deviceIsBondedViaBluetooth()
+
+    internal fun deviceIsNotBondedViaBT() = VehicleTripArrayHolder.deviceIsNotBondedViaBluetooth()
+
+    internal fun isDeviceBondedViaBT() = VehicleTripArrayHolder.isDeviceBondedViaBluetooth()
+
 }

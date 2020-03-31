@@ -7,7 +7,9 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.util.Log
 import android.widget.Toast
+import androidx.annotation.VisibleForTesting
 import java.util.*
 import kotlin.collections.ArrayList
 
@@ -54,6 +56,10 @@ object BlueToothHelper {
             deviceArrayWithNamePairs.add(devicePair)
         }
         return deviceArrayWithNamePairs
+    }
+    internal fun getBlueToothData(string: String){
+        Log.i("Bluetooth", "received message: $string")
+
     }
 
     // This is the receiver that you would use to receive the bluetoothReceiver.

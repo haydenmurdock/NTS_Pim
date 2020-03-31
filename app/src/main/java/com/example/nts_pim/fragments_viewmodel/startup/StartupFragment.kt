@@ -148,7 +148,7 @@ class StartupFragment: ScopedFragment(), KodeinAware {
         if(ReaderSdk.authorizationManager().authorizationState.canDeauthorize()){
             ReaderSdk.authorizationManager().addDeauthorizeCallback(deauthorizeCallback)
             ReaderSdk.authorizationManager().deauthorize()
-            Log.i("LOGGER", "$vehicleId successfully de-Authroized")
+            Log.i("LOGGER", "$vehicleId successfully de-authorized")
         }
         if(!vehicleId.isNullOrEmpty()){
             Log.i("LOGGER", "$vehicleId: Trying to reauthorize")
@@ -156,7 +156,7 @@ class StartupFragment: ScopedFragment(), KodeinAware {
             }
         }
     private val deauthorizeCallback = DeauthorizeCallback {
-       Log.i("de-authroize Callback", "$it")
+       Log.i("deauthorize Callback", "$it")
         it.isSuccess
     }
     private fun getAuthorizationCode(vehicleId: String) {

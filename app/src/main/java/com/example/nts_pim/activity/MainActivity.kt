@@ -190,6 +190,13 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                 watchingTripId = ""
             }
         })
+        callbackViewModel.isDeviceBondedViaBT().observe(this, Observer { isBTBonded->
+            if(isBTBonded){
+                Log.i("Bluetooth", "device is bonded via bluetooth, turning off AWS subscriptions")
+//                subscriptionWatcherDoPimPayment?.cancel()
+//               subscriptionWatcherUpdateVehTripStatus?.cancel()
+            }
+        })
     }
 
     //Coroutine to insert Trip Status

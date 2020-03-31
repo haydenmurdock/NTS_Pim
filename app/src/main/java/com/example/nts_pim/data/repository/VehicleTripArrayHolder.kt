@@ -21,7 +21,6 @@ object VehicleTripArrayHolder {
     private var tripStatus = "no status assigned"
     private var tripStatusMutableLiveData = MutableLiveData<String>()
 
-
     private var meterOwed = 00.00
     private var meterOwedMutableLiveData = MutableLiveData<Double>()
 
@@ -69,6 +68,8 @@ object VehicleTripArrayHolder {
 
     private var driverId = 0
 
+    private var deviceIsBondedBT = false
+    private var deviceIsBondedBTMutableLiveData = MutableLiveData<Boolean>()
 
 // Adds the status from the main activity app sync subscription. It goes to a live data array to be watched for changes. There is only 1 status in the array at all times.
 //E.g. "Trip_On_Site", "Trip_Assigned", "Trip_Picked_UP"
@@ -311,5 +312,19 @@ object VehicleTripArrayHolder {
     }
 
     fun getDriverId() = driverId
+
+    fun deviceIsBondedViaBluetooth(){
+        deviceIsBondedBT = true
+        deviceIsBondedBTMutableLiveData.value = deviceIsBondedBT
+    }
+
+    fun deviceIsNotBondedViaBluetooth(){
+        deviceIsBondedBT = false
+        deviceIsBondedBTMutableLiveData.value = deviceIsBondedBT
+    }
+
+    fun isDeviceBondedViaBluetooth(): LiveData<Boolean>{
+        return deviceIsBondedBTMutableLiveData
+    }
 }
 

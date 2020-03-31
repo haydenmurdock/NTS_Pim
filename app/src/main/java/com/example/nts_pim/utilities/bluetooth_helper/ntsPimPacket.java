@@ -4,10 +4,6 @@ import android.util.Log;
 
 import org.json.JSONObject;
 
-import javax.annotation.Signed;
-
-import kotlin.Pair;
-import kotlin.reflect.jvm.internal.impl.util.Checks;
 
 
 // Right now, all of the commands are 2 characters long.  If this changes, change this constant.
@@ -86,6 +82,8 @@ public class ntsPimPacket
 
     private static final int STX = 0x02;
     private static final int ETX = 0x03;
+    private static final int ACK = 0x06;
+    private static final int NACK = 0x15;
 
     private ReadState _readState;
     private Command _cmd;
@@ -282,6 +280,16 @@ public class ntsPimPacket
                     if (_bytesRead == _dataLen) {
                         _readState = ReadState.ETX;
                     }
+                    try {
+                        // First, try to convert the data to a string.
+                        String s = new String(_data);
+                        // If an error wasn't thrown, convert the string to a JSON object.
+                        Log.i("test", s);
+                        _jsonData = new JSONObject(s);
+                    }catch (Exception e) {
+                    Log.e(e.toString(), "NtsPimPacket.isValidPacket");
+                };
+
                     break;
                 case ETX:
                     if (b == ETX) {
@@ -299,43 +307,79 @@ public class ntsPimPacket
         return false;
     }
 
-    public byte[] toBytes()
-    {
-        byte[] packet, cmd;
-        int i;
+//    public byte[] toBytes()
+//    {
+//        byte[] packet, cmd;
+//        int i;
+//
+//        // First, figure out how many bytes are in the command.  Even though right now all of the commands are 2 characters
+//        // long, this may change in the future so going to leave it variable.
+//        cmd = _cmd.command.getBytes();
+//
+//        // Create a byte array for the packet to be sent:
+//        // - 1 byte for STX
+//        // - 2 bytes for data length
+//        // - 1 byte for ETX
+//        // - plus however many data bytes there are.
+//        packet = new byte[4 + cmd.length + _dataLen];
+//        packet[0] = STX;
+//
+//        // Insert command bytes in to packet array.
+//        System.arraycopy(cmd, 0, packet, 1, cmd.length);
+//        i = 1 + cmd.length;
+//
+//        // Split integer up in to two bytes with the most significant byte first (also know as "big endian" order).
+//        packet[i] = intToByte(_dataLen >> 8);
+//        packet[i + 1] = intToByte(_dataLen);
+//        i += 2;
+//
+//        // Write data bytes. These should already have been set with the constructor.
+//        if (_dataLen > 0) {
+//            System.arraycopy(_data, 0, packet, i, _dataLen);
+//            i += _dataLen;
+//        }
+//
+//        packet[i] = ETX;
+//
+//        return packet;
+//    }
+public byte[] toBytes() {
 
-        // First, figure out how many bytes are in the command.  Even though right now all of the commands are 2 characters
-        // long, this may change in the future so going to leave it variable.
-        cmd = _cmd.command.getBytes();
-
-        // Create a byte array for the packet to be sent:
-        // - 1 byte for STX
-        // - 2 bytes for data length
-        // - 1 byte for ETX
-        // - plus however many data bytes there are.
-        packet = new byte[4 + cmd.length + _dataLen];
-        packet[0] = STX;
-
-        // Insert command bytes in to packet array.
-        System.arraycopy(cmd, 0, packet, 1, cmd.length);
-        i = 1 + cmd.length;
-
-        // Split integer up in to two bytes with the most significant byte first (also know as "big endian" order).
-        packet[i] = intToByte(_dataLen >> 8);
-        packet[i + 1] = intToByte(_dataLen);
-        i += 2;
-
-        // Write data bytes. These should already have been set with the constructor.
-        if (_dataLen > 0) {
-            System.arraycopy(_data, 0, packet, i, _dataLen);
-            i += _dataLen;
+    final byte[] hex = {0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46};
+    int len, lrc;
+    byte[] buffer, data;
+    if (_data == null) {
+        len = 5;
+        buffer = new byte[len];
+        switch (_cmd) {
+            case ACK:
+                buffer[1] = ACK;
+                break;
+            case NACK:
+                buffer[1] = NACK;
+                break;
         }
-
-        packet[i] = ETX;
-
-        return packet;
+    } else {
+        data = _data.toString().getBytes();
+        len = data.length + 4;
+        buffer = new byte[len];
+        System.arraycopy(data, 0, buffer, 1, data.length);
     }
-
+    buffer[0] = STX;
+    lrc = calcLRC(buffer, len - 3);
+    buffer[len - 3] = hex[lrc >> 4];
+    buffer[len - 2] = hex[lrc & 0xF];
+    buffer[len - 1] = ETX;
+    return buffer;
+}
+    private int calcLRC(byte[] buffer, int count)
+    {
+        int lrc = 0;
+        for (int pos = 0; pos < count; pos++) {
+            lrc = (lrc + buffer[pos]) ^ (pos + 1);
+        }
+        return lrc & 0xFF;
+    }
     /**
      * Converts the integer's lowest order byte in to a signed byte value.
      *

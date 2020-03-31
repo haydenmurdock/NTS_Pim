@@ -236,6 +236,7 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
             val amountMoney = Money(checkOutTotal, CurrencyCode.current())
             val parametersBuilder = CheckoutParameters.newBuilder(amountMoney)
             parametersBuilder.skipReceipt(false)
+
             parametersBuilder.note("[$vehicleId][square test]")
             val checkoutManager = ReaderSdk.checkoutManager()
             checkoutManager.startCheckoutActivity(context!!, parametersBuilder.build())
