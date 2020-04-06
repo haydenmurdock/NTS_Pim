@@ -27,7 +27,6 @@ import com.example.nts_pim.utilities.enums.MeterEnum
 import com.example.nts_pim.utilities.enums.SharedPrefEnum
 import com.example.nts_pim.utilities.sound_helper.SoundHelper
 import java.text.DecimalFormat
-import kotlin.math.log
 
 
 class SquareService : OnLayoutChangeListener,
@@ -63,6 +62,8 @@ class SquareService : OnLayoutChangeListener,
         PAYMENT_CANCELED_STATE,
         AUTHORIZING,
         SUCCESSFUL_PAYMENT,
+        CARD_READER_LIST,
+        UNSUCCESSFUL_CARD_PAIRED,
         OTHER_STATE
     }
 
@@ -259,6 +260,7 @@ class SquareService : OnLayoutChangeListener,
 
                 SqUIState.NO_INTERNET_STATE -> {
                     Log.i(tag, "Square is in no internet state")
+                    Log.i(tag,  "Reader is not connected since internet is not connected")
                     stopTimeout()
                     startTimeout()
                 }
@@ -297,6 +299,27 @@ class SquareService : OnLayoutChangeListener,
                     Log.i(tag, "Square is in Authorized State")
                     stopTimeout()
                     startTimeout()
+                }
+                SqUIState.CARD_READER_LIST ->{
+                    Log.i(tag, "Square is in CARD_READER_LIST state")
+                    val newViewGroup = squareActivity?.findViewById<TextView>(com.squareup.sdk.reader.api.R.id.reader_message_bar_current_text_view)
+                    val text = newViewGroup?.text
+                    Log.i(tag, "Reader Message is $text")
+                    if(text == "Press Button on Reader to Connect - Learn More"){
+                        Log.i(tag, "Reader is not connected and is showing unavailable status and check again")
+                    }
+                    if(text == "Message is Establishing Secure Connection"){
+                        Log.i(tag, "Reader is connected and is trying to establish secure connection")
+                    }
+                    if(text == "Reader Ready"){
+                        Log.i(tag, "Reader is connected and ready")
+                    }
+                    if(text == "Reader Not Ready"){
+                        Log.i(tag, "Reader has failed to connect")
+                    }
+                }
+                SqUIState.UNSUCCESSFUL_CARD_PAIRED -> {
+                    Log.i(tag, "Square is in UNSUCCESSFUL card paired state")
                 }
                 SqUIState.INIT_STATE ->{
                 }
@@ -583,10 +606,14 @@ class SquareService : OnLayoutChangeListener,
                 return SqUIState.NO_INTERNET_STATE
         } else if (testResourceText(view, com.squareup.sdk.reader.api.R.id.glyph_message_title, "Authorizing")) {
             return SqUIState.AUTHORIZING
-        }else{
-            return SqUIState.OTHER_STATE
+        } else if(testResourceText(view, com.squareup.sdk.reader.api.R.id.up_text, "Card Readers")) {
+            return SqUIState.CARD_READER_LIST
+        }else if(testResourceText(view, com.squareup.sdk.reader.api.R.id.description, "Unavailable")) {
+                return SqUIState.UNSUCCESSFUL_CARD_PAIRED
+            }else {
+                return SqUIState.OTHER_STATE
+             }
         }
-    }
 
     private fun testResourceText(view: View, id: Int, text: String): Boolean {
         try {

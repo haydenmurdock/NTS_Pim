@@ -10,29 +10,63 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
+import android.widget.Toast
 import androidx.fragment.app.DialogFragment
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProviders
 import androidx.navigation.NavController
 import androidx.navigation.Navigation
 import com.example.nts_pim.R
+import com.example.nts_pim.data.repository.model_objects.JsonAuthCode
 import com.example.nts_pim.fragments_viewmodel.InjectorUtiles
 import com.example.nts_pim.fragments_viewmodel.base.ScopedFragment
 import com.example.nts_pim.fragments_viewmodel.callback.CallBackViewModel
+import com.example.nts_pim.fragments_viewmodel.vehicle_setup.VehicleSetupModelFactory
+import com.example.nts_pim.fragments_viewmodel.vehicle_setup.VehicleSetupViewModel
 import com.example.nts_pim.utilities.bluetooth_helper.BlueToothHelper
 import com.example.nts_pim.utilities.bluetooth_helper.BlueToothServerController
 import com.example.nts_pim.utilities.bluetooth_helper.BluetoothDataCenter
+import com.google.gson.Gson
+import com.squareup.sdk.reader.ReaderSdk
+import com.squareup.sdk.reader.authorization.AuthorizeCallback
+import com.squareup.sdk.reader.authorization.DeauthorizeCallback
 import kotlinx.android.synthetic.main.bluetooth_setup_screen.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import okhttp3.Call
+import okhttp3.Callback
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import org.kodein.di.KodeinAware
+import org.kodein.di.android.x.closestKodein
+import org.kodein.di.generic.instance
+import java.io.IOException
+import java.lang.Error
+import kotlin.math.log
 
-class BluetoothSetupFragment: ScopedFragment() {
+class BluetoothSetupFragment: ScopedFragment(), KodeinAware {
+
+    override val kodein by closestKodein()
+    private val viewModelFactory: VehicleSetupModelFactory by instance()
+    private lateinit var viewModel: VehicleSetupViewModel
+    private var readerSdk = ReaderSdk.authorizationManager()
+    private val logtag = "Square Reader Setup"
     var mArrayAdapter: ArrayAdapter<String>? = null
     var message = ""
     var devices = ArrayList<String>()
     private var navController: NavController? = null
     private lateinit var callBackViewModel: CallBackViewModel
     private val currentFragmentId = R.id.bluetoothSetupFragment
+    private var vehicleId: String? = null
+
+
+    private val deauthorizeCallback = DeauthorizeCallback {
+        Log.i(logtag, "deauthorize callback: $it")
+    }
+
+    private val authCallback = AuthorizeCallback{
+        Log.i(logtag, "authorizeCallBack: $it")
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -44,24 +78,27 @@ class BluetoothSetupFragment: ScopedFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         val callBackFactory = InjectorUtiles.provideCallBackModelFactory()
+        viewModel = ViewModelProviders.of(this, viewModelFactory)
+            .get(VehicleSetupViewModel::class.java)
         callBackViewModel = ViewModelProviders.of(this, callBackFactory)
             .get(CallBackViewModel::class.java)
         val pairedDevices = BlueToothHelper.getPairedDevicesAndRegisterBTReceiver(activity!!)
         val btAdapter = BluetoothAdapter.getDefaultAdapter()
+        setUpSquareAuthCallbacks()
+        vehicleId = viewModel.getVehicleID()
         devices = ArrayList()
         mArrayAdapter = ArrayAdapter(this.context!!, R.layout.dialog_select_bluetooth_device)
         navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
         //starting server
-        launch(Dispatchers.Main.immediate){
-            setUpBluetoothServer(activity!!)
-        }
+//        launch(Dispatchers.Main.immediate){
+//            setUpBluetoothServer(activity!!)
+//        }
         //adding devices to adapter and device array. If there is not a SAMSUNG device bonded it starts the discovery mode.
         pairedDevices.forEach { device ->
             devices.add(device.first)
             mArrayAdapter!!.add((if (device.first != null) device.first else "Unknown") + "\n" + device.second + "\nPaired")
 
         }
-
         pairedDevices.forEach { device ->
             if(device.first.contains("SAMSUNG")){
                 Log.i("Bluetooth", "Device has been bonded via bluetooth")
@@ -72,20 +109,80 @@ class BluetoothSetupFragment: ScopedFragment() {
                 }
             }
         }
-        blueToothSetup_button.setOnClickListener {
-            if (BluetoothAdapter.getDefaultAdapter().startDiscovery()) {
-                val dialog = SelectDeviceDialog(mArrayAdapter!!, devices)
-                if (activity?.supportFragmentManager != null) {
-                    dialog.show(activity!!.supportFragmentManager,
-                        "select a device")
-                    devices.clear()
-                }
-            }
+//       BluetoothDataCenter.getResponseMessage().observe(this.viewLifecycleOwner, Observer { tripStatus ->
+//            bluetoothFragment_messageReceivedTextView.text = tripStatus
+//        })
+
+
+
+
+//        toWelcomeScreen()
+    }
+    private fun setUpSquareAuthCallbacks(){
+        readerSdk.addAuthorizeCallback(authCallback)
+        readerSdk.addDeauthorizeCallback(deauthorizeCallback)
+    }
+    private fun setUpSquareReaderCallBack(){
+
+    }
+    private fun reauthorizeSquare() = launch(Dispatchers.Main.immediate){
+        if(readerSdk.authorizationState.canDeauthorize()){
+            ReaderSdk.authorizationManager().deauthorize()
+            Log.i("LOGGER", "$vehicleId successfully de-authorized")
         }
-       BluetoothDataCenter.getResponseMessage().observe(this.viewLifecycleOwner, Observer { tripStatus ->
-            bluetoothFragment_messageReceivedTextView.text = tripStatus
-        })
-        toWelcomeScreen()
+        if(!vehicleId.isNullOrEmpty()){
+            Log.i("LOGGER", "$vehicleId: Trying to reauthorize")
+            getAuthorizationCode(vehicleId!!)
+        }
+    }
+
+    private fun getAuthorizationCode(vehicleId: String) {
+        val url = "https://i8xgdzdwk5.execute-api.us-east-2.amazonaws.com/prod/CheckOAuthToken?vehicleId=$vehicleId"
+        val client = OkHttpClient()
+        val request = Request.Builder()
+            .url(url)
+            .build()
+        try {
+            client.newCall(request).enqueue(object : Callback {
+                override fun onResponse(call: Call, response: okhttp3.Response) {
+                    if (response.code == 200) {
+                        val gson = Gson()
+                        val convertedObject =
+                            gson.fromJson(response.body?.string(), JsonAuthCode::class.java)
+                        val authCode = convertedObject.authCode
+                        onAuthorizationCodeRetrieved(authCode, vehicleId)
+                        Log.i("LOGGER", "$vehicleId successfully got AuthCode")
+                    }
+                    if (response.code == 404) {
+                        launch(Dispatchers.Main.immediate) {
+                            Toast.makeText(
+                                context!!,
+                                "Vehicle not found in fleet, check fleet management portal",
+                                Toast.LENGTH_LONG
+                            ).show()
+                        }
+                    }
+                    if (response.code == 401) {
+                        launch(Dispatchers.Main.immediate){
+                            Toast.makeText(
+                                context!!,
+                                "Need to authorize fleet with log In",
+                                Toast.LENGTH_LONG
+                            ).show()
+                        }
+                    }
+                }
+                override fun onFailure(call: Call, e: IOException) {
+                    println("failure")
+                }
+            })
+        } catch (e: Error) {
+            println(e)
+        }
+    }
+    private fun onAuthorizationCodeRetrieved(authorizationCode: String, vehicleId: String)
+            = launch(Dispatchers.Main.immediate) {
+       readerSdk.authorize(authorizationCode)
     }
     //Navigation
     private fun setUpBluetoothServer(activity: Activity){
@@ -103,18 +200,5 @@ class BluetoothSetupFragment: ScopedFragment() {
             callBackViewModel.getTripStatus().removeObservers(this.viewLifecycleOwner)
         }
         super.onDestroy()
-    }
-}
-class SelectDeviceDialog(private val mArrayAdapter: ArrayAdapter<String>, private val devices: ArrayList<String>) : DialogFragment() {
-    override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
-        val builder = AlertDialog.Builder(this.activity)
-        builder.setTitle("List of Paired Devices")
-
-        builder.setAdapter(mArrayAdapter) { _, which: Int ->
-            BluetoothAdapter.getDefaultAdapter().cancelDiscovery()
-            //BluetoothClient(devices[which],"test").start()
-        }
-
-        return builder.create()
     }
 }

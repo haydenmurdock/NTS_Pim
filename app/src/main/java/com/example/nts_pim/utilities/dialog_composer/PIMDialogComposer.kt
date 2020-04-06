@@ -7,15 +7,7 @@ import kotlin.system.exitProcess
 
 
 object PIMDialogComposer: ScopedFragment() {
-    val exitCode = 0
-
-    internal fun showNoVehicleIDError(activity: Activity){
-        val noVehicleIDError = AlertDialog.Builder(activity)
-        noVehicleIDError.setTitle("No vehicle ID ERROR")
-        noVehicleIDError.setMessage("There was an error retrieving the vehicle ID from server, double checking PIN and internet connection")
-            .setNegativeButton("Okay", null)
-        noVehicleIDError.show()
-    }
+    private const val exitCode = 0
 
     internal fun exitApplication(activity: Activity){
         val exitApplicationAlert = AlertDialog.Builder(activity)
