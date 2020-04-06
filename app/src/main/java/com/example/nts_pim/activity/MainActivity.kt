@@ -24,10 +24,12 @@ import androidx.lifecycle.ViewModelProviders
 import androidx.navigation.Navigation.findNavController
 import com.amazonaws.amplify.generated.graphql.GetTripQuery
 import com.amazonaws.amplify.generated.graphql.OnDoPimPaymentSubscription
+import com.amazonaws.amplify.generated.graphql.OnPimSettingsUpdateSubscription
 import com.amazonaws.amplify.generated.graphql.OnUpdateVehTripStatusSubscription
 import com.amazonaws.mobileconnectors.appsync.AWSAppSyncClient
 import com.amazonaws.mobileconnectors.appsync.AppSyncSubscriptionCall
 import com.amazonaws.mobileconnectors.appsync.fetcher.AppSyncResponseFetchers
+import com.amazonaws.mobileconnectors.appsync.subscription.AppSyncSubscription
 import com.apollographql.apollo.GraphQLCall
 import com.apollographql.apollo.api.Response
 import com.apollographql.apollo.exception.ApolloException
@@ -36,6 +38,7 @@ import com.example.nts_pim.R
 import com.example.nts_pim.UnlockScreenLock
 import com.example.nts_pim.data.repository.VehicleTripArrayHolder
 import com.example.nts_pim.data.repository.model_objects.CurrentTrip
+import com.example.nts_pim.data.repository.model_objects.JsonAuthCode
 import com.example.nts_pim.data.repository.providers.ModelPreferences
 import com.example.nts_pim.fragments_viewmodel.InjectorUtiles
 import com.example.nts_pim.fragments_viewmodel.base.ClientFactory
@@ -49,13 +52,21 @@ import com.example.nts_pim.utilities.mutation_helper.PIMMutationHelper
 import com.example.nts_pim.utilities.power_cycle.PowerAccessibilityService
 import com.example.nts_pim.utilities.sound_helper.SoundHelper
 import com.example.nts_pim.utilities.view_helper.ViewHelper
+import com.google.gson.Gson
+import com.squareup.sdk.reader.ReaderSdk
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import okhttp3.Call
+import okhttp3.Callback
+import okhttp3.OkHttpClient
+import okhttp3.Request
 import org.kodein.di.KodeinAware
 import org.kodein.di.android.closestKodein
 import org.kodein.di.generic.instance
+import java.io.IOException
+import java.lang.Error
 import java.util.jar.Manifest
 import kotlin.coroutines.CoroutineContext
 
@@ -79,6 +90,8 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
     private var subscriptionWatcherDoPimPayment: AppSyncSubscriptionCall<OnDoPimPaymentSubscription.Data>? =
         null
     private var subscriptionWatcherUpdateVehTripStatus: AppSyncSubscriptionCall<OnUpdateVehTripStatusSubscription.Data>? =
+        null
+    private var subscriptionWatcherReauthorizeSquare: AppSyncSubscriptionCall<OnPimSettingsUpdateSubscription.Data>? =
         null
     private var loggingTimer: CountDownTimer? = null
     private var vehicleSubscriptionTimer: CountDownTimer? = null
@@ -229,7 +242,6 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
             val tripStatus = response.data()?.onUpdateVehTripStatus()?.tripStatus()
             val awsTripId = response.data()?.onUpdateVehTripStatus()?.tripId()
 
-
             if (pimStatus == "_") {
                 // sends back requested current pim status
                 sendPIMStatus()
@@ -242,7 +254,6 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                subscribeToDoPIMPayment(awsTripId)
                 tripId = awsTripId
             }
-
         }
 
         override fun onFailure(e: ApolloException) {
@@ -252,9 +263,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
 
         }
 
-        override fun onCompleted() {
-
-        }
+        override fun onCompleted() {}
     }
 
     private fun subscribeToDoPIMPayment(tripId: String){
@@ -275,8 +284,6 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
             val meterState = response.data()?.onDoPimPayment()?.meterState()
             val pimNoReceipt = response.data()?.onDoPimPayment()?.pimNoReceipt()
             val pimPaymentAmount = response.data()?.onDoPimPayment()?.pimPayAmt()
-            val dropoffLocation = response.data()?.onDoPimPayment()?.dropoffLocation()
-            val tripEndTime = response.data()?.onDoPimPayment()?.tripEndTime()
             val owedPriceForMeter = response.data()?.onDoPimPayment()?.owedPrice()
             val tripNumber = response.data()?.onDoPimPayment()?.tripNbr()
             val transactionId = response.data()?.onDoPimPayment()?.pimTransId()
@@ -319,7 +326,91 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
 
         }
     }
+//    private fun subscribeToSquareReauth(deviceId: String){
+//        val subscription = OnPimSettingsUpdateSubscription.builder().deviceId(deviceId).build()
+//        if(subscriptionWatcherReauthorizeSquare == null){
+//            subscriptionWatcherReauthorizeSquare = mAWSAppSyncClient?.subscribe(subscription)
+//        } else {
+//            subscriptionWatcherReauthorizeSquare.cancel()
+//            subscriptionWatcherReauthorizeSquare = mAWSAppSyncClient?.subscribe(subscription)
+//        }
+//        subscriptionWatcherReauthorizeSquare?.execute(reAuthSquareCallback)
+//    }
 
+//    private var reAuthSquareCallback = object: AppSyncSubscriptionCall.Callback<OnPimSettingsUpdateSubscription.Data>{
+//        override fun onResponse(response: Response<OnPimSettingsUpdateSubscription.Data>) {
+//            val reauthSquare = response.data()?.onPIMSettingsUpdate()?.reAuthSquare()
+//                if(reauthSquare){
+//                    reauthSquare
+//                }
+//        }
+//
+//        override fun onFailure(e: ApolloException) {
+//            subscriptionWatcherReauthorizeSquare.cancel()
+//            subscriptionWatcherReauthorizeSquare = null
+//        }
+//
+//        override fun onCompleted() {}
+//
+//    }
+//    private fun reauthorizeSquare() = launch(Dispatchers.Main.immediate){
+//        if(ReaderSdk.authorizationManager().authorizationState.canDeauthorize()){
+//            ReaderSdk.authorizationManager().deauthorize()
+//            Log.i("LOGGER", "$vehicleId successfully de-authorized")
+//        }
+//        if(!vehicleId.isNullOrEmpty()){
+//            Log.i("LOGGER", "$vehicleId: Trying to reauthorize")
+//            getAuthorizationCode(vehicleId!!)
+//        }
+//    }
+//    private fun getAuthorizationCode(vehicleId: String) {
+//        val url = "https://i8xgdzdwk5.execute-api.us-east-2.amazonaws.com/prod/CheckOAuthToken?vehicleId=$vehicleId"
+//        val client = OkHttpClient()
+//        val request = Request.Builder()
+//            .url(url)
+//            .build()
+//        try {
+//            client.newCall(request).enqueue(object : Callback {
+//                override fun onResponse(call: Call, response: okhttp3.Response) {
+//                    if (response.code == 200) {
+//                        val gson = Gson()
+//                        val convertedObject =
+//                            gson.fromJson(response.body?.string(), JsonAuthCode::class.java)
+//                        val authCode = convertedObject.authCode
+//                        onAuthorizationCodeRetrieved(authCode, vehicleId)
+//                        Log.i("LOGGER", "$vehicleId successfully got AuthCode")
+//                    }
+//                    if (response.code == 404) {
+//                        launch(Dispatchers.Main.immediate) {
+//                            Toast.makeText(
+//                               this,
+//                                "Vehicle not found in fleet, check fleet management portal",
+//                                Toast.LENGTH_LONG
+//                            ).show()
+//                        }
+//                    }
+//                    if (response.code == 401) {
+//                        launch(Dispatchers.Main.immediate){
+//                            Toast.makeText(
+//                                this,
+//                                "Need to authorize fleet with log In",
+//                                Toast.LENGTH_LONG
+//                            ).show()
+//                        }
+//                    }
+//                }
+//                override fun onFailure(call: Call, e: IOException) {
+//                    println("failure")
+//                }
+//            })
+//        } catch (e: Error) {
+//            println(e)
+//        }
+//    }
+//    private fun onAuthorizationCodeRetrieved(authorizationCode: String, vehicleId: String)
+//            = launch(Dispatchers.Main.immediate) {
+//        ReaderSdk.authorizationManager().authorize(authorizationCode)
+//    }
     private fun getMeterOwedQuery(tripId: String) = launch(Dispatchers.IO){
         if (mAWSAppSyncClient == null) {
             mAWSAppSyncClient = ClientFactory.getInstance(this@MainActivity.applicationContext)
@@ -395,7 +486,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
         }
     private fun forceSpeaker() {
         try {
-           // playTestSound()
+            playTestSound()
         } catch (e: Exception) {
             Log.e(ContentValues.TAG, e.toString())
         }

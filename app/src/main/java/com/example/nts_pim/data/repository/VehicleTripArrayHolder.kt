@@ -11,20 +11,36 @@ import com.example.nts_pim.utilities.enums.SharedPrefEnum
 
 // The vehicleTripArrayHolder object holds all the arrays for app-sync and LiveData
 object VehicleTripArrayHolder {
-
+    //Square data options
     private var isSquareTransactionComplete = false
     private var isSquareTransactionCompleteMutableLiveData = MutableLiveData<Boolean>()
 
     private var isSquareTransactionStarted = false
     private var isSquareTransactionStartedMutableLiveData =  MutableLiveData<Boolean>()
+    //This is and card reader are not private since we use them for the square service
+    var squareHasBeenSetUp = false
 
+    var cardReaderStatusHasBeenChecked = false
+    private var cardReaderStatusHasBeenCheckedMLD = MutableLiveData<Boolean>()
+
+    private var squareHasTimedOut = false
+    private var squareHasTimedOutMutableLiveData = MutableLiveData<Boolean>()
+
+    private var amountForSquareDisplay = "0"
+
+    private var needToReAuthSquare = false
+    private var needToReAuthSquareMLD = MutableLiveData<Boolean>()
+
+    var cardReaderStatus = "default"
+
+    //Trip data
     private var tripStatus = "no status assigned"
     private var tripStatusMutableLiveData = MutableLiveData<String>()
 
     private var meterOwed = 00.00
     private var meterOwedMutableLiveData = MutableLiveData<Double>()
 
-     private var meterStatePIM = "off"
+    private var meterStatePIM = "off"
     private val meterStatePIMMutableLiveData = MutableLiveData<String>()
 
     private var batteryPowerIsSafe = false
@@ -34,16 +50,9 @@ object VehicleTripArrayHolder {
 
     private var tabletNeedsReSync = false
     private var tabletNeedsReySyncMutableLiveData = MutableLiveData<Boolean>()
-    //We use this for Pim Status Request
-    private var internalPIMStatus = ""
-
-    var squareHasBeenSetUp = false
 
     private var newTripHasStarted = false
     private var newTripHasStartedMutableLiveData = MutableLiveData<Boolean>()
-
-    private var squareHasTimedOut = false
-    private var squareHasTimedOutMutableLiveData = MutableLiveData<Boolean>()
 
     private var isOnline = false
     private var isOnlineMutableLiveData = MutableLiveData<Boolean>()
@@ -55,14 +64,11 @@ object VehicleTripArrayHolder {
     private var pimPayAmount:Double = 0.0
     private var pimPayAmountMutableLiveDate = MutableLiveData<Double>()
 
-
     private var pimPaidAmount:Double = 0.0
     private var pimNoReceipt = false
 
     private var tripEnded = false
     private var tripEndedMutableLiveData = MutableLiveData<Boolean>()
-
-    private var amountForSquareDisplay = "0"
 
     var paymentTypeSelected = "none"
 
@@ -70,6 +76,9 @@ object VehicleTripArrayHolder {
 
     private var deviceIsBondedBT = false
     private var deviceIsBondedBTMutableLiveData = MutableLiveData<Boolean>()
+
+    //We use this for Pim Status Request
+    private var internalPIMStatus = ""
 
 // Adds the status from the main activity app sync subscription. It goes to a live data array to be watched for changes. There is only 1 status in the array at all times.
 //E.g. "Trip_On_Site", "Trip_Assigned", "Trip_Picked_UP"
@@ -326,5 +335,26 @@ object VehicleTripArrayHolder {
     fun isDeviceBondedViaBluetooth(): LiveData<Boolean>{
         return deviceIsBondedBTMutableLiveData
     }
+
+    fun updateReaderStatus(status: String){
+        cardReaderStatus = status
+        Log.i("Square", "Internal data: Reader Status updated: $cardReaderStatus")
+    }
+
+    fun readerStatusHasBeenChecked(){
+        cardReaderStatusHasBeenChecked = true
+        cardReaderStatusHasBeenCheckedMLD.postValue(cardReaderStatusHasBeenChecked)
+        Log.i("Square", "Internal data: Reader Status has been checked: $cardReaderStatusHasBeenChecked")
+    }
+
+    fun needToReAuthorizeSquare(){
+        needToReAuthSquare = true
+        needToReAuthSquareMLD.postValue(needToReAuthSquare)
+        Log.i("Square", "Internal data: needToReAuthSquare: $needToReAuthSquare")
+    }
+
+    fun doWeNeedToReAuthorizeSquare() = needToReAuthSquareMLD as LiveData<Boolean>
+
+    fun isReaderStatusConnected() = cardReaderStatusHasBeenCheckedMLD as LiveData<Boolean>
 }
 

@@ -173,7 +173,6 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
         viewModel.isSquareAuthorized().observe(this.viewLifecycleOwner, Observer {
             isSquareAuthorized = it
             if (it) {
-                //** Scott **
                 updateChecklist(4, true, adapter as MyCustomAdapter)
                 startReaderSettings(adapter as MyCustomAdapter)
                 showUIForSquareAuthorizationSuccess()

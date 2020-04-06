@@ -123,4 +123,8 @@ class CallBackViewModel(
 
     internal fun isDeviceBondedViaBT() = VehicleTripArrayHolder.isDeviceBondedViaBluetooth()
 
+    internal fun doWeNeedToReAuthorizeSquare() = VehicleTripArrayHolder.doWeNeedToReAuthorizeSquare()
+
+    internal fun isReaderConnected() = VehicleTripArrayHolder.isReaderStatusConnected()
+
 }

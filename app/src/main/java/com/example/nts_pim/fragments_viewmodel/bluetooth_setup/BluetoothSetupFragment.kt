@@ -1,8 +1,6 @@
 package com.example.nts_pim.fragments_viewmodel.bluetooth_setup
 
 import android.app.Activity
-import android.app.AlertDialog
-import android.app.Dialog
 import android.bluetooth.BluetoothAdapter
 import android.os.Bundle
 import android.util.Log
@@ -11,38 +9,44 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import android.widget.Toast
-import androidx.fragment.app.DialogFragment
+import androidx.annotation.MainThread
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProviders
 import androidx.navigation.NavController
 import androidx.navigation.Navigation
+import com.amazonaws.mobileconnectors.appsync.AWSAppSyncClient
 import com.example.nts_pim.R
+import com.example.nts_pim.data.repository.VehicleTripArrayHolder
 import com.example.nts_pim.data.repository.model_objects.JsonAuthCode
 import com.example.nts_pim.fragments_viewmodel.InjectorUtiles
+import com.example.nts_pim.fragments_viewmodel.base.ClientFactory
 import com.example.nts_pim.fragments_viewmodel.base.ScopedFragment
 import com.example.nts_pim.fragments_viewmodel.callback.CallBackViewModel
 import com.example.nts_pim.fragments_viewmodel.vehicle_setup.VehicleSetupModelFactory
 import com.example.nts_pim.fragments_viewmodel.vehicle_setup.VehicleSetupViewModel
 import com.example.nts_pim.utilities.bluetooth_helper.BlueToothHelper
 import com.example.nts_pim.utilities.bluetooth_helper.BlueToothServerController
-import com.example.nts_pim.utilities.bluetooth_helper.BluetoothDataCenter
+import com.example.nts_pim.utilities.mutation_helper.PIMMutationHelper
 import com.google.gson.Gson
 import com.squareup.sdk.reader.ReaderSdk
 import com.squareup.sdk.reader.authorization.AuthorizeCallback
 import com.squareup.sdk.reader.authorization.DeauthorizeCallback
-import kotlinx.android.synthetic.main.bluetooth_setup_screen.*
+import com.squareup.sdk.reader.core.CallbackReference
+import com.squareup.sdk.reader.core.Result
+import com.squareup.sdk.reader.core.ResultError
+import com.squareup.sdk.reader.hardware.ReaderSettingsErrorCode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.internal.waitMillis
 import org.kodein.di.KodeinAware
 import org.kodein.di.android.x.closestKodein
 import org.kodein.di.generic.instance
 import java.io.IOException
 import java.lang.Error
-import kotlin.math.log
 
 class BluetoothSetupFragment: ScopedFragment(), KodeinAware {
 
@@ -50,22 +54,39 @@ class BluetoothSetupFragment: ScopedFragment(), KodeinAware {
     private val viewModelFactory: VehicleSetupModelFactory by instance()
     private lateinit var viewModel: VehicleSetupViewModel
     private var readerSdk = ReaderSdk.authorizationManager()
+    private val readerManager = ReaderSdk.readerManager()
+    private var mAWSAppSyncClient: AWSAppSyncClient? = null
+    private var readerSettingsCallbackRef: CallbackReference? = null
     private val logtag = "Square Reader Setup"
-    var mArrayAdapter: ArrayAdapter<String>? = null
+    private var mArrayAdapter: ArrayAdapter<String>? = null
     var message = ""
-    var devices = ArrayList<String>()
+    private var devices = ArrayList<String>()
     private var navController: NavController? = null
     private lateinit var callBackViewModel: CallBackViewModel
     private val currentFragmentId = R.id.bluetoothSetupFragment
     private var vehicleId: String? = null
+    private var numberOfReaderFailedAttempts = 0
 
 
     private val deauthorizeCallback = DeauthorizeCallback {
         Log.i(logtag, "deauthorize callback: $it")
     }
 
-    private val authCallback = AuthorizeCallback{
-        Log.i(logtag, "authorizeCallBack: $it")
+    private val authCallback = AuthorizeCallback{authorized ->
+        Log.i(logtag, "authorizeCallBack: $authorized")
+        if(authorized.isSuccess){
+            if (numberOfReaderFailedAttempts <= 2){
+                Log.i(logtag, "Reader was authorized $numberOfReaderFailedAttempts number of times. Starting square card reader check")
+                startSquareCardReaderCheck()
+                numberOfReaderFailedAttempts += 1
+            } else {
+                PIMMutationHelper.updateReaderStatus(
+                    vehicleId!!,
+                    VehicleTripArrayHolder.cardReaderStatus,
+                    mAWSAppSyncClient!!)
+                toWelcomeScreen()
+            }
+        }
     }
 
     override fun onCreateView(
@@ -82,17 +103,33 @@ class BluetoothSetupFragment: ScopedFragment(), KodeinAware {
             .get(VehicleSetupViewModel::class.java)
         callBackViewModel = ViewModelProviders.of(this, callBackFactory)
             .get(CallBackViewModel::class.java)
+        readerSettingsCallbackRef =
+            readerManager.addReaderSettingsActivityCallback(this::onReaderSettingsResultBTSetup)
         val pairedDevices = BlueToothHelper.getPairedDevicesAndRegisterBTReceiver(activity!!)
+        mAWSAppSyncClient = ClientFactory.getInstance(context)
         val btAdapter = BluetoothAdapter.getDefaultAdapter()
         setUpSquareAuthCallbacks()
         vehicleId = viewModel.getVehicleID()
         devices = ArrayList()
         mArrayAdapter = ArrayAdapter(this.context!!, R.layout.dialog_select_bluetooth_device)
         navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
-        //starting server
-//        launch(Dispatchers.Main.immediate){
-//            setUpBluetoothServer(activity!!)
-//        }
+
+        startSquareCardReaderCheck()
+
+        callBackViewModel.doWeNeedToReAuthorizeSquare().observe(this.viewLifecycleOwner, Observer {needsAuthorization->
+            if(needsAuthorization){
+              reauthorizeSquare()
+            }
+        })
+        callBackViewModel.isReaderConnected().observe(this.viewLifecycleOwner, Observer {connected ->
+            if(connected){
+                PIMMutationHelper.updateReaderStatus(
+                    vehicleId!!,
+                    VehicleTripArrayHolder.cardReaderStatus,
+                    mAWSAppSyncClient!!)
+                toWelcomeScreen()
+            }
+        })
         //adding devices to adapter and device array. If there is not a SAMSUNG device bonded it starts the discovery mode.
         pairedDevices.forEach { device ->
             devices.add(device.first)
@@ -109,21 +146,20 @@ class BluetoothSetupFragment: ScopedFragment(), KodeinAware {
                 }
             }
         }
+        //starting server
+//        launch(Dispatchers.Main.immediate){
+//            setUpBluetoothServer(activity!!)
+//        }
 //       BluetoothDataCenter.getResponseMessage().observe(this.viewLifecycleOwner, Observer { tripStatus ->
 //            bluetoothFragment_messageReceivedTextView.text = tripStatus
 //        })
-
-
-
-
-//        toWelcomeScreen()
     }
     private fun setUpSquareAuthCallbacks(){
         readerSdk.addAuthorizeCallback(authCallback)
         readerSdk.addDeauthorizeCallback(deauthorizeCallback)
     }
-    private fun setUpSquareReaderCallBack(){
-
+    private fun startSquareCardReaderCheck(){
+        ReaderSdk.readerManager().startReaderSettingsActivity(context!!)
     }
     private fun reauthorizeSquare() = launch(Dispatchers.Main.immediate){
         if(readerSdk.authorizationState.canDeauthorize()){
@@ -133,6 +169,25 @@ class BluetoothSetupFragment: ScopedFragment(), KodeinAware {
         if(!vehicleId.isNullOrEmpty()){
             Log.i("LOGGER", "$vehicleId: Trying to reauthorize")
             getAuthorizationCode(vehicleId!!)
+        }
+    }
+    private fun onReaderSettingsResultBTSetup(result: Result<Void, ResultError<ReaderSettingsErrorCode>>) {
+        if (result.isSuccess){
+        }
+        if (result.isError) {
+            val error = result.error
+            when (error.code) {
+                ReaderSettingsErrorCode.SDK_NOT_AUTHORIZED -> {
+                    Toast.makeText(
+                        context!!,
+                        "SDK not authorized, trying to reauthorized square", Toast.LENGTH_LONG
+                    ).show()
+                    reauthorizeSquare()
+                }
+                ReaderSettingsErrorCode.USAGE_ERROR -> {
+                    Log.i(logtag, "Usage error: ${error.debugMessage}")
+                }
+            }
         }
     }
 
@@ -189,7 +244,7 @@ class BluetoothSetupFragment: ScopedFragment(), KodeinAware {
         BlueToothServerController(activity).start()
     }
 
-    private fun toWelcomeScreen(){
+    private fun toWelcomeScreen() = launch(Dispatchers.Main.immediate){
         if (navController?.currentDestination?.id == currentFragmentId) {
             navController?.navigate(R.id.action_bluetoothSetupFragment_to_welcome_fragment)
         }
@@ -198,6 +253,9 @@ class BluetoothSetupFragment: ScopedFragment(), KodeinAware {
     override fun onDestroy() {
         if(view != null){
             callBackViewModel.getTripStatus().removeObservers(this.viewLifecycleOwner)
+            callBackViewModel.doWeNeedToReAuthorizeSquare().removeObservers(this.viewLifecycleOwner)
+            callBackViewModel.isReaderConnected().removeObservers(this.viewLifecycleOwner)
+            readerSettingsCallbackRef?.clear()
         }
         super.onDestroy()
     }

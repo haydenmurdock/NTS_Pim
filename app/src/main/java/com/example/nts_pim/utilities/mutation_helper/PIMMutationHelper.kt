@@ -30,6 +30,23 @@ object PIMMutationHelper {
         }
     }
 
+    fun updateReaderStatus(vehicleId: String, readerStatus: String, appSyncClient: AWSAppSyncClient){
+        val updatePimStatusInput = UpdateVehTripStatusInput.builder()?.vehicleId(vehicleId)?.readerStatus(readerStatus)?.build()
+
+        appSyncClient.mutate(UpdateVehTripStatusMutation.builder().parameters(updatePimStatusInput).build())
+            ?.enqueue(mutationCallbackOnReaderUpdate)
+    }
+
+    private val mutationCallbackOnReaderUpdate = object : GraphQLCall.Callback<UpdateVehTripStatusMutation.Data>() {
+        override fun onResponse(response: Response<UpdateVehTripStatusMutation.Data>) {
+            Log.i("Results", "ReaderStatus Updated ${response.data()}")
+        }
+
+        override fun onFailure(e: ApolloException) {
+            Log.e("Error", "There was an issue updating the pimStatus: $e")
+        }
+    }
+
     fun updatePaymentType(vehicleId: String, paymentType: String, appSyncClient: AWSAppSyncClient, tripId: String){
         val updatePaymentTypeInput = PimPaymentMadeInput.builder().vehicleId(vehicleId).tripId(tripId).paymentType(paymentType).build()
 

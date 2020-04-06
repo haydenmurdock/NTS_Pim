@@ -67,7 +67,6 @@ class ConfirmationFragment: ScopedFragment(), KodeinAware {
     private val visible = View.VISIBLE
     private val gone = View.GONE
 
-
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?

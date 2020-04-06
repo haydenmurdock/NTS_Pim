@@ -33,20 +33,14 @@ import android.content.pm.PackageManager
 import android.telephony.TelephonyManager
 import android.util.Log
 import android.widget.ArrayAdapter
-import com.amazonaws.amplify.generated.graphql.SavePaymentDetailsMutation
-import com.amazonaws.amplify.generated.graphql.UpdateVehTripStatusMutation
 import com.amazonaws.mobileconnectors.appsync.AWSAppSyncClient
-import com.apollographql.apollo.GraphQLCall
-import com.apollographql.apollo.api.Response
-import com.apollographql.apollo.exception.ApolloException
 import com.example.nts_pim.BuildConfig
+import com.example.nts_pim.data.repository.VehicleTripArrayHolder
 import com.example.nts_pim.data.repository.model_objects.*
 import com.example.nts_pim.data.repository.providers.ModelPreferences
 import com.example.nts_pim.fragments_viewmodel.base.ClientFactory
-import com.example.nts_pim.fragments_viewmodel.bluetooth_setup.SelectDeviceDialog
 import com.example.nts_pim.fragments_viewmodel.vehicle_settings.setting_keyboard_viewModels.SettingsKeyboardViewModel
 import com.example.nts_pim.utilities.enums.SharedPrefEnum
-import com.example.nts_pim.utilities.enums.VehicleStatusEnum
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import com.google.gson.Gson
 import com.squareup.sdk.reader.checkout.CheckoutParameters
@@ -58,9 +52,7 @@ import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import type.UpdateVehTripStatusInput
 import java.io.IOException
-import java.lang.Error
 import java.lang.Exception
 import java.util.*
 
@@ -107,7 +99,7 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
         keyboardViewModel = ViewModelProviders.of(this, keyboardFactory)
             .get(SettingsKeyboardViewModel::class.java)
         vehicleId = viewModel.getVehicleID()
-
+        VehicleTripArrayHolder.readerStatusHasBeenChecked()
         tripID = ModelPreferences(context!!)
             .getObject(
                 SharedPrefEnum.CURRENT_TRIP.key,
@@ -174,8 +166,6 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
                 devices.add(device.name)
                 mArrayAdapter!!.add((if (device.name != null) device.name else "Unknown") + "\n" + device.address+ "\nPaired")
             }
-            val dialog = SelectDeviceDialog(mArrayAdapter!!, devices)
-            dialog.show(activity!!.supportFragmentManager, "Paired Devices")
         }
     }
 
@@ -287,7 +277,7 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
                 "currentTrip: $currentTrip, vehicle Settings $vehicleSettings, pin $pin,deviceID $deviceID, setUpStatus: $statusObject")
         }
     }
-    //** Scott **
+
     private fun onReaderSettingsResult(result: Result<Void, ResultError<ReaderSettingsErrorCode>>) {
         Log.d("VehicleSettingsDetailFragment", "BlueToothDeviceAdapter: State- ${bluetoothDeviceAdapter.state}, " +
                 "Enabled:  ${bluetoothDeviceAdapter.isEnabled}" +

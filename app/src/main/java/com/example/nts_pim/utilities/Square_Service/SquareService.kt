@@ -24,6 +24,7 @@ import com.example.nts_pim.data.repository.model_objects.SetupComplete
 import com.example.nts_pim.data.repository.providers.ModelPreferences
 import com.example.nts_pim.utilities.view_walker.ViewWalker
 import com.example.nts_pim.utilities.enums.MeterEnum
+import com.example.nts_pim.utilities.enums.ReaderStatusEnum
 import com.example.nts_pim.utilities.enums.SharedPrefEnum
 import com.example.nts_pim.utilities.sound_helper.SoundHelper
 import java.text.DecimalFormat
@@ -39,13 +40,15 @@ class SquareService : OnLayoutChangeListener,
     private var mTransactionMode = false
     private var removeCardView: View? = null
     private var insertCardView: View? = null
+    private var cardReaderCheckView:View? = null
     private var timeout: CountDownTimer? = null
     private var removeCardTimer: CountDownTimer? = null
     private var closeSquareForSoundCheckTimer: CountDownTimer? = null
     private var timerForRemoveCardScreen: CountDownTimer? = null
+    private var readerCheckTimer:CountDownTimer? = null
+    private var setupCompleteObject: SetupComplete? = null
     private var mSuccessPlayed = false
     private var userHasRemovedCard = false
-    private var successfulSoundHasBeenPlayed = false
     private var tag = "Square"
 
 
@@ -86,7 +89,7 @@ class SquareService : OnLayoutChangeListener,
         // Figure our it this onResume call is for the square activity
         val name = activity.localClassName
         if (name == "com.squareup.ui.main.ApiMainActivity") {
-            val setupCompleteObject = ModelPreferences(activity.applicationContext)
+             setupCompleteObject = ModelPreferences(activity.applicationContext)
                 .getObject(SharedPrefEnum.SETUP_COMPLETE.key, SetupComplete::class.java)
             if (setupCompleteObject?.status == false || setupCompleteObject == null){
                 return
@@ -98,7 +101,8 @@ class SquareService : OnLayoutChangeListener,
             state = SqUIState.INIT_STATE
             mSuccessPlayed = true
 
-            if (!VehicleTripArrayHolder.squareHasBeenSetUp){
+            if (!VehicleTripArrayHolder.squareHasBeenSetUp &&
+                VehicleTripArrayHolder.cardReaderStatusHasBeenChecked){
                 viewGroup!!.visibility = View.INVISIBLE
                 closeSquareForSoundCheck()
                 //I tried view.gone but it didn't change anything.
@@ -300,22 +304,51 @@ class SquareService : OnLayoutChangeListener,
                     stopTimeout()
                     startTimeout()
                 }
-                SqUIState.CARD_READER_LIST ->{
+                SqUIState.CARD_READER_LIST -> {
                     Log.i(tag, "Square is in CARD_READER_LIST state")
-                    val newViewGroup = squareActivity?.findViewById<TextView>(com.squareup.sdk.reader.api.R.id.reader_message_bar_current_text_view)
-                    val text = newViewGroup?.text
-                    Log.i(tag, "Reader Message is $text")
-                    if(text == "Press Button on Reader to Connect - Learn More"){
-                        Log.i(tag, "Reader is not connected and is showing unavailable status and check again")
-                    }
-                    if(text == "Message is Establishing Secure Connection"){
-                        Log.i(tag, "Reader is connected and is trying to establish secure connection")
-                    }
-                    if(text == "Reader Ready"){
-                        Log.i(tag, "Reader is connected and ready")
-                    }
-                    if(text == "Reader Not Ready"){
-                        Log.i(tag, "Reader has failed to connect")
+                    if(!VehicleTripArrayHolder.cardReaderStatusHasBeenChecked) {
+                        stopTimeout()
+                        // This is where we check the reader status bar to find if we too reauthorize square for a failed reader status
+                        cardReaderCheckView = View.inflate(activity,R.layout.card_reader_check_screen, viewGroup)
+                        SoundHelper.turnOffSound(activity.applicationContext)
+                        Log.i(tag, "Reader has not been check. Inflating view over reader list")
+                        val newViewGroup =
+                            squareActivity?.findViewById<TextView>(com.squareup.sdk.reader.api.R.id.reader_message_bar_current_text_view)
+                        val squareReaderState = newViewGroup?.text
+                        Log.i(tag, "Reader Message: $squareReaderState")
+                        if (squareReaderState == "Press Button on Reader to Connect – Learn More") {
+                            Log.i(
+                                tag,
+                                "Reader is not connected and is showing unavailable status and check again"
+                            )
+                            VehicleTripArrayHolder.updateReaderStatus(ReaderStatusEnum.UNAVAILABLE.name)
+                            stopReaderCheckTimeout()
+                            startReaderCheckTimeout()
+                        }
+                        if (squareReaderState == "Establishing Secure Connection") {
+                            Log.i(
+                                tag,
+                                "Reader is connected and is trying to establish secure connection"
+                            )
+                            //Begin Connection timer....
+                            stopReaderCheckTimeout()
+                            startReaderCheckTimeout()
+                        }
+                        if (squareReaderState == "Reader Ready") {
+                            stopReaderCheckTimeout()
+                            Log.i(tag, "Reader is connected and ready")
+                            VehicleTripArrayHolder.updateReaderStatus(ReaderStatusEnum.CONNECTED.name)
+                            removeSquareReaderView()
+                        }
+                        if (squareReaderState == "Reader Not Ready") {
+                            stopReaderCheckTimeout()
+                            Log.i(tag, "Reader has failed to connect")
+                            VehicleTripArrayHolder.updateReaderStatus(ReaderStatusEnum.FAILED.name)
+                            VehicleTripArrayHolder.needToReAuthorizeSquare()
+                            viewGroup.removeView(cardReaderCheckView)
+                            Log.i(tag, "Removed Square Card Reader View")
+                            squareActivity?.finish()
+                        }
                     }
                 }
                 SqUIState.UNSUCCESSFUL_CARD_PAIRED -> {
@@ -332,16 +365,67 @@ class SquareService : OnLayoutChangeListener,
         }
     }
     // Swipe screen timeout and crude animation
-
+    private fun startReaderCheckTimeout(){
+        if(readerCheckTimer == null){
+            readerCheckTimer = object :CountDownTimer(20000, 2500){
+                override fun onTick(millisUntilFinished: Long) {
+                    val newViewGroup =
+                        squareActivity?.findViewById<TextView>(com.squareup.sdk.reader.api.R.id.reader_message_bar_current_text_view)
+                    val squareReaderState = newViewGroup?.text
+                    Log.i(tag, "Reader Check Timer: squareReaderState: $squareReaderState")
+                    if (squareReaderState!!.contains("Reader Ready")) {
+                        Log.i(tag, "Reader checked via readerCheckTimer. Reader is Connected")
+                        VehicleTripArrayHolder.updateReaderStatus(ReaderStatusEnum.CONNECTED.name)
+                        onFinish()
+                    }
+                    if(squareReaderState.contains("Reader Not Ready")){
+                        Log.i(tag, "Reader checked via readerCheckTimer. Reader has failed")
+                        VehicleTripArrayHolder.updateReaderStatus(ReaderStatusEnum.FAILED.name)
+                        VehicleTripArrayHolder.needToReAuthorizeSquare()
+                        stopReaderCheckTimeout()
+                        squareActivity!!.finish()
+                    }
+                }
+                override fun onFinish() {
+                    val newViewGroup =
+                        squareActivity?.findViewById<TextView>(com.squareup.sdk.reader.api.R.id.reader_message_bar_current_text_view)
+                    val squareReaderState = newViewGroup?.text
+                    if(squareReaderState!!.contains("Establishing Secure Connection")){
+                        VehicleTripArrayHolder.updateReaderStatus(ReaderStatusEnum.FAILED.name)
+                        VehicleTripArrayHolder.needToReAuthorizeSquare()
+                        stopReaderCheckTimeout()
+                        squareActivity!!.finish()
+                    } else {
+                        removeSquareReaderView()
+                    }
+                }
+            }.start()
+        } else {
+            Log.i(tag, "start Reader timer is already running")
+        }
+    }
+    private fun stopReaderCheckTimeout(){
+        if (readerCheckTimer != null) {
+            readerCheckTimer!!.cancel()
+            Log.i("Square", "Reader Check timer was cancelled")
+            readerCheckTimer = null
+        }
+    }
+    private fun removeSquareReaderView(){
+        if(cardReaderCheckView != null){
+            VehicleTripArrayHolder.readerStatusHasBeenChecked()
+            viewGroup?.removeView(cardReaderCheckView)
+            Log.i(tag, "Removed Square Card Reader View")
+            SoundHelper.turnOnSound(squareActivity!!.applicationContext)
+            squareActivity!!.finish()
+        }
+    }
     private fun startTimeout() {
         timeout = object : CountDownTimer(30000, 1000) {
             //We are running for 30 seconds
-            override fun onTick(millisUntilFinished: Long) {
-
-            }
+            override fun onTick(millisUntilFinished: Long) {}
             override fun onFinish() {
                 pressCancelButtons()
-
             }
         }.start()
     }
@@ -353,14 +437,11 @@ class SquareService : OnLayoutChangeListener,
             timeout = null
         }
     }
-
     // "Remove your card" Timer
     private fun startRemoveCardTimer() {
         removeCardTimer = object : CountDownTimer(1000, 1000) {
             // 1 seconds
-            override fun onTick(millisUntilFinished: Long) {
-            }
-
+            override fun onTick(millisUntilFinished: Long) {}
             override fun onFinish() {
                 if (!userHasRemovedCard){
                     playCardRemoverSound()
@@ -425,12 +506,7 @@ class SquareService : OnLayoutChangeListener,
             }
         }.start()
     }
-//    View 2131298335 (7f09081f) marin.widgets.MarinGlyphView Vis:0 ClickableEnabled
-//    View 2131298684 (7f09097c) class com.squareup.marin.widgets.MarinGlyphView Vis:0 ClickableEnabled Focusable
-//    View 2131298678 (7f090976) class com.squareup.marin.widgets.MarinGlyphView Vis:0 ClickableEnabled Focusable
-//    View 2131297991 (7f0906c7) class android.widget.RelativeLayout Vis:0 ClickableEnabled Focusable
-//    View 2131298212 (7f0907a4) class com.squareup.marketfont.MarketButton Vis:0 Clickable Enabled Focusable  BUTTON: 'Cancel Payment'
-    // This function "cancels" the square operation. How to cancel depends on where we are on the square activities
+
    fun pressCancelButtons() {
         Log.i(
             "Square",
@@ -479,7 +555,6 @@ class SquareService : OnLayoutChangeListener,
         VehicleTripArrayHolder.squareHasTimedOut()
          }
     }
-
 
     private fun pressCancelButtonForSquareCheck() {
         val cancelButton1 =
@@ -608,8 +683,6 @@ class SquareService : OnLayoutChangeListener,
             return SqUIState.AUTHORIZING
         } else if(testResourceText(view, com.squareup.sdk.reader.api.R.id.up_text, "Card Readers")) {
             return SqUIState.CARD_READER_LIST
-        }else if(testResourceText(view, com.squareup.sdk.reader.api.R.id.description, "Unavailable")) {
-                return SqUIState.UNSUCCESSFUL_CARD_PAIRED
             }else {
                 return SqUIState.OTHER_STATE
              }
