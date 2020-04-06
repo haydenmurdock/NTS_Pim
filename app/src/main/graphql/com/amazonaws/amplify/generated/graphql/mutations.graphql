@@ -129,6 +129,7 @@ mutation UpdatePimStatus($parameters: updatePimStatusInput) {
     meterTotalTrips
     pimStatus
     postedStatus
+    readerStatus
     tripId
     tripStatus
     vehicleId
@@ -206,6 +207,7 @@ mutation UpdateStatus($parameters: updateStatusInput) {
     meterTotalTrips
     pimStatus
     postedStatus
+    readerStatus
     tripId
     tripStatus
     vehicleId
@@ -300,6 +302,7 @@ mutation UpdateTripStatus($parameters: updateTripStatusInput) {
     meterTotalTrips
     pimStatus
     postedStatus
+    readerStatus
     tripId
     tripStatus
     vehicleId
@@ -383,6 +386,7 @@ mutation UpdateDeviceIdToImei($parameters: updateDeviceIdToIMEIInput) {
     btAddress
     appVersion
     reAuthSquare
+    useBluetooth
   }
 }
 mutation UpdateTripFare($parameters: updateTripFareInput) {
@@ -546,6 +550,7 @@ mutation UpdateVehTripStatus($parameters: updateVehTripStatusInput) {
     meterTotalTrips
     pimStatus
     postedStatus
+    readerStatus
     tripId
     tripStatus
     vehicleId
@@ -705,6 +710,7 @@ mutation ResetReAuthSquare($parameters: resetReAuthSquareInput) {
     btAddress
     appVersion
     reAuthSquare
+    useBluetooth
   }
 }
 mutation UpdatePimSettings($parameters: updatePIMSettingsInput) {
@@ -717,5 +723,19 @@ mutation UpdatePimSettings($parameters: updatePIMSettingsInput) {
     btAddress
     appVersion
     reAuthSquare
+    useBluetooth
+  }
+}
+mutation UpdatePimSettingsPortal($parameters: updatePIMSettingsPortalInput) {
+  updatePIMSettingsPortal(parameters: $parameters) {
+    deviceId
+    error
+    errorCode
+    vehicleId
+    log
+    btAddress
+    appVersion
+    reAuthSquare
+    useBluetooth
   }
 }

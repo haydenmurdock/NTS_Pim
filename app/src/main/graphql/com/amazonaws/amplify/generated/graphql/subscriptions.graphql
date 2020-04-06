@@ -71,6 +71,7 @@ subscription OnStatusUpdate($vehicleId: String) {
     meterTotalTrips
     pimStatus
     postedStatus
+    readerStatus
     tripId
     tripStatus
     vehicleId
@@ -165,6 +166,7 @@ subscription OnUpdatePimStatus($vehicleId: String) {
     meterTotalTrips
     pimStatus
     postedStatus
+    readerStatus
     tripId
     tripStatus
     vehicleId
@@ -187,6 +189,7 @@ subscription OnUpdateVehTripStatus($vehicleId: String) {
     meterTotalTrips
     pimStatus
     postedStatus
+    readerStatus
     tripId
     tripStatus
     vehicleId
@@ -334,5 +337,18 @@ subscription OnPimPaymentMade($tripId: String) {
     voucherAcctNbr
     voucherEnteredAmt
     voucherNbr
+  }
+}
+subscription OnPimSettingsUpdate($deviceId: String) {
+  onPIMSettingsUpdate(deviceId: $deviceId) {
+    deviceId
+    error
+    errorCode
+    vehicleId
+    log
+    btAddress
+    appVersion
+    reAuthSquare
+    useBluetooth
   }
 }

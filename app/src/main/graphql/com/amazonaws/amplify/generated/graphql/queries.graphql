@@ -97,6 +97,7 @@ query GetPimSettings(
     btAddress
     appVersion
     reAuthSquare
+    useBluetooth
   }
 }
 query GetSettings($deviceId: String!, $pin: String, $appVersion: String) {
@@ -171,6 +172,7 @@ query GetStatus($vehicleId: String!) {
     meterTotalTrips
     pimStatus
     postedStatus
+    readerStatus
     tripId
     tripStatus
     vehicleId
@@ -427,5 +429,19 @@ query GetLoggingSettings($deviceId: String!) {
     btAddress
     appVersion
     reAuthSquare
+    useBluetooth
+  }
+}
+query GetPimInfo($vehicleId: String!) {
+  getPIMInfo(vehicleId: $vehicleId) {
+    deviceId
+    error
+    errorCode
+    vehicleId
+    log
+    btAddress
+    appVersion
+    reAuthSquare
+    useBluetooth
   }
 }
