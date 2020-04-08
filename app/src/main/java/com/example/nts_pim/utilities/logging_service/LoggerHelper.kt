@@ -1,9 +1,9 @@
 package com.example.nts_pim.utilities.logging_service
 
 import android.Manifest
-import android.content.Context
 import android.util.Log
 import androidx.core.content.ContextCompat
+import com.example.nts_pim.PimApplication
 import com.example.nts_pim.data.repository.model_objects.VehicleID
 import com.example.nts_pim.data.repository.providers.ModelPreferences
 import com.example.nts_pim.utilities.enums.SharedPrefEnum
@@ -26,20 +26,20 @@ object LoggerHelper {
     private val FILENAME = "Pim_log_$dateTimeStamp.txt"
     private val timeTimeStamp = SimpleDateFormat("HH:mm:ss")
     val charset = Charsets.UTF_8
-    private var path: File? = null
     private var logToSend: String? = null
     private var vehicleId: String? = null
     private const val logFragmentStartStamp = "-LOG FRAGMENT START-"
     private const val logFragmentEndStamp = "-LOG FRAGMENT END-"
     private const val permissionGranted = 0
+    private val pimContext = PimApplication.pimContext
 
 
-    internal fun writeToLog (context: Context, log: String){
-        val readPermission = ContextCompat.checkSelfPermission(context, Manifest.permission.READ_EXTERNAL_STORAGE)
-        val writePermission = ContextCompat.checkSelfPermission(context, Manifest.permission.WRITE_EXTERNAL_STORAGE)
+    internal fun writeToLog (log: String){
+        val readPermission = ContextCompat.checkSelfPermission(pimContext, Manifest.permission.READ_EXTERNAL_STORAGE)
+        val writePermission = ContextCompat.checkSelfPermission(pimContext, Manifest.permission.WRITE_EXTERNAL_STORAGE)
         if(logging && writePermission == permissionGranted && readPermission == permissionGranted){
             if (vehicleId == null){
-                vehicleId = ModelPreferences(context).getObject(SharedPrefEnum.VEHICLE_ID.key, VehicleID::class.java)?.vehicleID
+                vehicleId = ModelPreferences(pimContext).getObject(SharedPrefEnum.VEHICLE_ID.key, VehicleID::class.java)?.vehicleID
             }
             val logTimeStamp = timeTimeStamp.format(Date())
             if(logToSend == null){
@@ -47,34 +47,6 @@ object LoggerHelper {
             } else {
                 logToSend += logTimeStamp + "_" + log + "\n"
             }
-//            path = File(Environment.getExternalStorageDirectory().path)
-//            if(!path!!.exists()){
-//                path!!.mkdir()
-//            }
-//            path = File(path, "PIM_LOGGING")
-//            if(!path!!.exists()){
-//                path!!.mkdir()
-//            }
-//            path  = File(path, FILENAME)
-//            var fos =  FileOutputStream(path,true)
-//            try {
-//                fos = context.openFileOutput(FILENAME, 0)
-//                fos.write(log.toByteArray(charset))
-//                Log.i("LOGGER", "wrote to file to $path")
-//            } catch (ex: FileNotFoundException){
-//                Log.i("LOGGER", "FAIL for file exeption ${ex.message}")
-//                print(ex.message)
-//            } catch (e: IOException){
-//                Log.i("LOGGER", "FAIL for IOEXCEPTION: ${e.message}")
-//            } finally {
-//                if(fos != null){
-//                    try {
-//                        fos.close()
-//                    }catch (e: IOException){
-//                        Log.i("LOGGER", "FAIL for fos Close IOEXCEPTION: ${e.message}")
-//                    }
-//                }
-//            }
         } else {
             Log.i("LOGGER", "Not logging information," +
                     " logging == $logging, " +
@@ -82,34 +54,10 @@ object LoggerHelper {
                     " write permission == $writePermission ")
         }
     }
-    private fun readInternalLog(context: Context) {
-        var fis: FileInputStream? = null
-        try {
-            fis = context.openFileInput(FILENAME)
-            val irs = InputStreamReader(fis)
-            val reader = BufferedReader(irs)
-            val sb = StringBuilder()
-            var line: String? = null
-            while ({ line = reader.readLine(); line }() != null) {
-             sb.append(line).append("\n")
-            }
-            Log.i("LOGGER", "Log: ${sb}")
-        } catch (e: FileNotFoundException) {
-            Log.i("LOGGER", "FAIL for file not found opening log: ${e.message}")
-        } finally {
-            try {
-                if (fis != null) {
-                    fis.close()
-                }
-            } catch (e: IOException) {
-                Log.i("LOGGER", "FAIL for closing FIS: ${e.message}")
-            }
-        }
-    }
 
-   internal fun sendLogToAWS(EnteredVehicleId: String, context: Context){
-       var vehicleIdForLog = EnteredVehicleId
-       if (EnteredVehicleId == ""){
+   internal fun sendLogToAWS(enteredVehicleId: String){
+       var vehicleIdForLog = enteredVehicleId
+       if (enteredVehicleId == ""){
            vehicleIdForLog = vehicleId ?: ""
        }
        if(logToSend == null){

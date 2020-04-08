@@ -34,7 +34,6 @@ android {
 
     buildTypes {
         release {
-            minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             signingConfig signingConfigs.debug
             multiDexEnabled = true
@@ -84,10 +83,6 @@ dependencies {
 
     implementation 'androidx.navigation:navigation-fragment-ktx:2.2.1'
     implementation 'androidx.navigation:navigation-ui-ktx:2.2.1'
-
-    //These are for Room
-    implementation "androidx.legacy:legacy-support-v4:1.0.0"
-    kapt "androidx.room:room-compiler:$room_version"
 
     //ViewModel
     implementation "androidx.lifecycle:lifecycle-extensions:$lifecycle_version"
@@ -139,12 +134,8 @@ dependencies {
 
     //SpinKit
     implementation 'com.github.ybq:Android-SpinKit:1.4.0'
-    //meter ticker animation
-    implementation 'com.robinhood.ticker:ticker:2.0.2'
     //Lottie animation
     implementation "com.airbnb.android:lottie:3.0.7"
-    //tasty Toast
-    implementation 'com.sdsmdg.tastytoast:tastytoast:0.1.1'
     //Glide
     implementation 'com.github.bumptech.glide:glide:4.9.0'
 

@@ -57,7 +57,7 @@ class InteractionCompleteFragment : ScopedFragment(), KodeinAware {
         }
         override fun onFinish() {
             callbackViewModel.clearAllTripValues()
-            LoggerHelper.writeToLog(context!!, "$logFragment, restart Timer Finished")
+            LoggerHelper.writeToLog("$logFragment, restart Timer Finished")
             restartApp()
         }
     }
@@ -148,7 +148,7 @@ class InteractionCompleteFragment : ScopedFragment(), KodeinAware {
         currentTrip?.isActive = false
         ModelPreferences(context!!).putObject(SharedPrefEnum.CURRENT_TRIP.key, currentTrip)
         TripDetails.textToSpeechActivated = false
-        LoggerHelper.writeToLog(context!!, "$logFragment, internal trip status changed. Trip Active ${currentTrip?.isActive}")
+        LoggerHelper.writeToLog("$logFragment, internal trip status changed. Trip Active ${currentTrip?.isActive}")
     }
 
     override fun onDestroy() {

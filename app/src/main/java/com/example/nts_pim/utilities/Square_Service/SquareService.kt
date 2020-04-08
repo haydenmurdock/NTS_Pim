@@ -17,8 +17,10 @@ import android.widget.Button
 import android.widget.ImageView
 import androidx.core.view.get
 import androidx.core.view.isVisible
+import androidx.navigation.Navigation
 import com.bumptech.glide.Glide
 import com.example.nts_pim.R
+import com.example.nts_pim.activity.MainActivity
 import com.example.nts_pim.data.repository.VehicleTripArrayHolder
 import com.example.nts_pim.data.repository.model_objects.SetupComplete
 import com.example.nts_pim.data.repository.providers.ModelPreferences
@@ -26,6 +28,7 @@ import com.example.nts_pim.utilities.view_walker.ViewWalker
 import com.example.nts_pim.utilities.enums.MeterEnum
 import com.example.nts_pim.utilities.enums.ReaderStatusEnum
 import com.example.nts_pim.utilities.enums.SharedPrefEnum
+import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import com.example.nts_pim.utilities.sound_helper.SoundHelper
 import java.text.DecimalFormat
 
@@ -74,12 +77,6 @@ class SquareService : OnLayoutChangeListener,
         mTransactionMode = enable
     }
 
-    /* The Application class calls Application.registerActivityLifecycleCallbacks and creates
-       a new Application.ActivityLifecycleCallbacks object. This catches all onResume, onPause and
-       etc. calls to all activities, including the square activities.
-       The onActivityResumed() method calls this method
-     */
-
     @SuppressLint("ClickableViewAccessibility")
     fun processActivityResume(activity: Activity) {
         fullScreenMode(activity)
@@ -103,8 +100,12 @@ class SquareService : OnLayoutChangeListener,
 
             if (!VehicleTripArrayHolder.squareHasBeenSetUp &&
                 VehicleTripArrayHolder.cardReaderStatusHasBeenChecked){
-                viewGroup!!.visibility = View.INVISIBLE
-                closeSquareForSoundCheck()
+                val navController = Navigation.findNavController(activity, R.id.nav_host_fragment)
+                if(navController.currentDestination?.id == R.id.welcome_fragment){
+                    viewGroup!!.visibility = View.INVISIBLE
+                    closeSquareForSoundCheck()
+                    LoggerHelper.writeToLog("$tag, Square call is on welcome screen, view should be invisible")
+                }
                 //I tried view.gone but it didn't change anything.
             } else {
                 turnUpVolume()
@@ -317,15 +318,18 @@ class SquareService : OnLayoutChangeListener,
                         val squareReaderState = newViewGroup?.text
                         Log.i(tag, "Reader Message: $squareReaderState")
                         if (squareReaderState == "Press Button on Reader to Connect – Learn More") {
+                            LoggerHelper.writeToLog("$tag, Square service is on card reader list in unavailable status")
                             Log.i(
                                 tag,
                                 "Reader is not connected and is showing unavailable status and check again"
                             )
-                            VehicleTripArrayHolder.updateReaderStatus(ReaderStatusEnum.UNAVAILABLE.name)
+                            VehicleTripArrayHolder.updateReaderStatus(ReaderStatusEnum.UNAVAILABLE.status)
                             stopReaderCheckTimeout()
                             startReaderCheckTimeout()
+
                         }
                         if (squareReaderState == "Establishing Secure Connection") {
+                            LoggerHelper.writeToLog("$tag, Square service is on card reader list in establishing connection status")
                             Log.i(
                                 tag,
                                 "Reader is connected and is trying to establish secure connection"
@@ -333,17 +337,21 @@ class SquareService : OnLayoutChangeListener,
                             //Begin Connection timer....
                             stopReaderCheckTimeout()
                             startReaderCheckTimeout()
+
                         }
                         if (squareReaderState == "Reader Ready") {
+                            LoggerHelper.writeToLog("$tag, Square service is on card reader list in Reader Ready status")
                             stopReaderCheckTimeout()
                             Log.i(tag, "Reader is connected and ready")
-                            VehicleTripArrayHolder.updateReaderStatus(ReaderStatusEnum.CONNECTED.name)
+                            VehicleTripArrayHolder.updateReaderStatus(ReaderStatusEnum.CONNECTED.status)
                             removeSquareReaderView()
+
                         }
                         if (squareReaderState == "Reader Not Ready") {
+                            LoggerHelper.writeToLog("$tag, Square service is on Reader Not Ready- aka- failed status")
                             stopReaderCheckTimeout()
                             Log.i(tag, "Reader has failed to connect")
-                            VehicleTripArrayHolder.updateReaderStatus(ReaderStatusEnum.FAILED.name)
+                            VehicleTripArrayHolder.updateReaderStatus(ReaderStatusEnum.FAILED.status)
                             VehicleTripArrayHolder.needToReAuthorizeSquare()
                             viewGroup.removeView(cardReaderCheckView)
                             Log.i(tag, "Removed Square Card Reader View")
@@ -375,12 +383,14 @@ class SquareService : OnLayoutChangeListener,
                     Log.i(tag, "Reader Check Timer: squareReaderState: $squareReaderState")
                     if (squareReaderState!!.contains("Reader Ready")) {
                         Log.i(tag, "Reader checked via readerCheckTimer. Reader is Connected")
-                        VehicleTripArrayHolder.updateReaderStatus(ReaderStatusEnum.CONNECTED.name)
+                        LoggerHelper.writeToLog("$tag, Reader checked via readerCheckTimer. Reader is Connected")
+                        VehicleTripArrayHolder.updateReaderStatus(ReaderStatusEnum.CONNECTED.status)
                         onFinish()
                     }
                     if(squareReaderState.contains("Reader Not Ready")){
                         Log.i(tag, "Reader checked via readerCheckTimer. Reader has failed")
-                        VehicleTripArrayHolder.updateReaderStatus(ReaderStatusEnum.FAILED.name)
+                        LoggerHelper.writeToLog("$tag, Reader checked via readerCheckTimer. Reader has failed")
+                        VehicleTripArrayHolder.updateReaderStatus(ReaderStatusEnum.FAILED.status)
                         VehicleTripArrayHolder.needToReAuthorizeSquare()
                         stopReaderCheckTimeout()
                         squareActivity!!.finish()
@@ -391,7 +401,9 @@ class SquareService : OnLayoutChangeListener,
                         squareActivity?.findViewById<TextView>(com.squareup.sdk.reader.api.R.id.reader_message_bar_current_text_view)
                     val squareReaderState = newViewGroup?.text
                     if(squareReaderState!!.contains("Establishing Secure Connection")){
-                        VehicleTripArrayHolder.updateReaderStatus(ReaderStatusEnum.FAILED.name)
+                        Log.i(tag, "Reader checked via readerCheckTimer. Reader has failed")
+                        LoggerHelper.writeToLog("$tag, Reader checked via readerCheckTimer. Reader is still establishing connection after 20 seconds. Reader Failed")
+                        VehicleTripArrayHolder.updateReaderStatus(ReaderStatusEnum.FAILED.status)
                         VehicleTripArrayHolder.needToReAuthorizeSquare()
                         stopReaderCheckTimeout()
                         squareActivity!!.finish()
@@ -416,7 +428,8 @@ class SquareService : OnLayoutChangeListener,
             VehicleTripArrayHolder.readerStatusHasBeenChecked()
             viewGroup?.removeView(cardReaderCheckView)
             Log.i(tag, "Removed Square Card Reader View")
-            SoundHelper.turnOnSound(squareActivity!!.applicationContext)
+            Log.i(tag, "Reader checked via readerCheckTimer. Reader has failed")
+            LoggerHelper.writeToLog("$tag, Removed Square Reader Check View and activity.finished() was called")
             squareActivity!!.finish()
         }
     }

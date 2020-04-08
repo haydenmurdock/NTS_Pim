@@ -175,22 +175,22 @@ class EmailOrTextFragment : ScopedFragment(), KodeinAware {
             }
         })
         email_or_text_back_btn.setOnClickListener {
-            LoggerHelper.writeToLog(context!!, "$logFragment, Back button hit")
+            LoggerHelper.writeToLog("$logFragment, Back button hit")
            backToCreditOrCash()
         }
         //Email Button
         email_btn.setOnClickListener {
-            LoggerHelper.writeToLog(context!!, "$logFragment, Email button hit")
+            LoggerHelper.writeToLog("$logFragment, Email button hit")
            toEmailReceipt()
         }
         //Text Message Button
         text_message_btn.setOnClickListener {
-            LoggerHelper.writeToLog(context!!, "$logFragment, Text Message button hit")
+            LoggerHelper.writeToLog("$logFragment, Text Message button hit")
             toTextReceipt()
         }
         //No Receipt Button
         no_receipt_btn.setOnClickListener {
-            LoggerHelper.writeToLog(context!!, "$logFragment, No receipt button hit")
+            LoggerHelper.writeToLog("$logFragment, No receipt button hit")
            toThankYou()
         }
     }
@@ -224,7 +224,7 @@ class EmailOrTextFragment : ScopedFragment(), KodeinAware {
     }
 
     private fun updatePaymentDetail(transactionId: String, tripNumber: Int, vehicleId: String, awsAppSyncClient: AWSAppSyncClient, paymentType: String, tripID: String) = launch(Dispatchers.IO){
-        LoggerHelper.writeToLog(context!!, "$logFragment, Cash selected so updated Payment API, $transactionId, $tripNumber, $paymentType")
+        LoggerHelper.writeToLog("$logFragment, Cash selected so updated Payment API, $transactionId, $tripNumber, $paymentType")
         PIMMutationHelper.updatePaymentDetails(transactionId, tripNumber, vehicleId, awsAppSyncClient, paymentType, tripID)
     }
 
@@ -247,7 +247,7 @@ class EmailOrTextFragment : ScopedFragment(), KodeinAware {
             }
             override fun onFinish() {
                 if (!resources.getBoolean(R.bool.isSquareBuildOn)) {
-                    LoggerHelper.writeToLog(context!!, "$logFragment, Inactivity Timer finished")
+                    LoggerHelper.writeToLog("$logFragment, Inactivity Timer finished")
                     toThankYou()
                 }
             }
@@ -269,14 +269,14 @@ class EmailOrTextFragment : ScopedFragment(), KodeinAware {
                 !response.data()?.trip?.custEmail().isNullOrBlank()) {
                 val previousEmailAWS = response.data()?.trip?.custEmail() as String
                 previousEmail = previousEmailAWS
-                LoggerHelper.writeToLog(context!!, "$logFragment, checked AWS for custEmail. $previousEmail")
+                LoggerHelper.writeToLog("$logFragment, checked AWS for custEmail. $previousEmail")
             }
 
             if(!response.data()!!.trip.custPhoneNbr().isNullOrEmpty() ||
                 !response.data()!!.trip.custPhoneNbr().isNullOrBlank()) {
                 val previousPhoneNumberAWS = response.data()?.trip?.custPhoneNbr() as String
                 previousPhoneNumber = previousPhoneNumberAWS
-                LoggerHelper.writeToLog(context!!, "$logFragment, checked AWS for custEmail. $previousPhoneNumber")
+                LoggerHelper.writeToLog("$logFragment, checked AWS for custEmail. $previousPhoneNumber")
             }
          }
         override fun onFailure(e: ApolloException) {
@@ -286,7 +286,7 @@ class EmailOrTextFragment : ScopedFragment(), KodeinAware {
     private fun receiptCheck(pimNoReceipt: Boolean){
         //True if the customer does not need a receipt
         if(pimNoReceipt){
-            LoggerHelper.writeToLog(context!!, "$logFragment, PIM does not need to take receipt")
+            LoggerHelper.writeToLog("$logFragment, PIM does not need to take receipt")
             toThankYou()
         }
     }

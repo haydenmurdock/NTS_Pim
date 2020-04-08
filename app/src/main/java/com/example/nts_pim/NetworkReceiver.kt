@@ -16,15 +16,15 @@ class NetworkReceiver:BroadcastReceiver() {
             if (isOnline(context)) {
                 VehicleTripArrayHolder.pimIsOnline()
                 Log.i("LOGGER", "TABLET IS ONLINE")
-                LoggerHelper.writeToLog(context!!, "${logFragment}, TABLET IS ONLINE")
+                LoggerHelper.writeToLog("${logFragment}, TABLET IS ONLINE")
             } else {
                 VehicleTripArrayHolder.pimIsOffline()
                 Log.i("LOGGER", "TABLET IS OFFLINE ")
-                LoggerHelper.writeToLog(context!!, "${logFragment}, TABLET IS OFFLINE")
+                LoggerHelper.writeToLog("${logFragment}, TABLET IS OFFLINE")
             }
         } catch (e: java.lang.NullPointerException) {
             e.printStackTrace()
-            LoggerHelper.writeToLog(context!!, "${logFragment}, TABLET IS OFFLINE ERROR: ${e.message}")
+            LoggerHelper.writeToLog("${logFragment}, TABLET IS OFFLINE ERROR: ${e.message}")
         }
     }
     private fun isOnline(context: Context?): Boolean {

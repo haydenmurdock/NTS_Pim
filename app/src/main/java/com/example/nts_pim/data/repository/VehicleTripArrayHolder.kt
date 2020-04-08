@@ -7,6 +7,7 @@ import androidx.lifecycle.MutableLiveData
 import com.example.nts_pim.data.repository.model_objects.CurrentTrip
 import com.example.nts_pim.data.repository.providers.ModelPreferences
 import com.example.nts_pim.utilities.enums.SharedPrefEnum
+import com.example.nts_pim.utilities.logging_service.LoggerHelper
 
 
 // The vehicleTripArrayHolder object holds all the arrays for app-sync and LiveData
@@ -339,18 +340,21 @@ object VehicleTripArrayHolder {
     fun updateReaderStatus(status: String){
         cardReaderStatus = status
         Log.i("Square", "Internal data: Reader Status updated: $cardReaderStatus")
+        LoggerHelper.writeToLog("Square, Card Reader Status updated: $cardReaderStatus")
     }
 
     fun readerStatusHasBeenChecked(){
         cardReaderStatusHasBeenChecked = true
         cardReaderStatusHasBeenCheckedMLD.postValue(cardReaderStatusHasBeenChecked)
         Log.i("Square", "Internal data: Reader Status has been checked: $cardReaderStatusHasBeenChecked")
+        LoggerHelper.writeToLog("Square, Card Reader Status has been checked: $cardReaderStatusHasBeenChecked")
     }
 
     fun needToReAuthorizeSquare(){
         needToReAuthSquare = true
         needToReAuthSquareMLD.postValue(needToReAuthSquare)
         Log.i("Square", "Internal data: needToReAuthSquare: $needToReAuthSquare")
+        LoggerHelper.writeToLog("Square, Square needs needs to be to be reAuthorized")
     }
 
     fun doWeNeedToReAuthorizeSquare() = needToReAuthSquareMLD as LiveData<Boolean>

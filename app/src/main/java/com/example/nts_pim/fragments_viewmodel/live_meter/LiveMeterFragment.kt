@@ -92,7 +92,7 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
                 currentTrip != null){
             tripId = currentTrip!!.tripID
             getMeterOwedQuery(tripId)
-            LoggerHelper.writeToLog(context!!, "$logFragment: had to query Meter Owed for $tripId")
+            LoggerHelper.writeToLog("$logFragment: had to query Meter Owed for $tripId")
         }
 
         checkCurrentTrip()
@@ -118,7 +118,7 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
                 if(textToSpeechMode){
                     playAccessibilityMessage("Meter Value $meterValue")
                 }
-                LoggerHelper.writeToLog(context!!, "$logFragment: Meter UI is displaying $meterValue")
+                LoggerHelper.writeToLog("$logFragment: Meter UI is displaying $meterValue")
             }
         })
         callbackViewModel.getMeterState().observe(this.viewLifecycleOwner, Observer {AWSMeterState ->
@@ -157,7 +157,7 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
     private fun playAccessibilityMessage(messageToSpeak: String) {
         Log.i("TTS", "playing meter amount")
 
-        LoggerHelper.writeToLog(context!!, "$logFragment,  Pim Read $messageToSpeak to customer")
+        LoggerHelper.writeToLog("$logFragment,  Pim Read $messageToSpeak to customer")
     }
 
     private fun toEmailText(){
@@ -233,14 +233,14 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
     private fun reSyncComplete() = launch(Dispatchers.Main.immediate) {
         callbackViewModel.updateCurrentTrip(true, tripId, meterState, context!!)
         callbackViewModel.reSyncComplete()
-        LoggerHelper.writeToLog(context!!, "$logFragment: Resync Complete")
+        LoggerHelper.writeToLog("$logFragment: Resync Complete")
     }
 
     private fun playTimeOffSound(){
         SoundHelper.turnOnSound(context!!)
         val mediaPlayer = MediaPlayer.create(context, R.raw.time_off_test_sound)
         mediaPlayer.setOnCompletionListener {
-            LoggerHelper.writeToLog(context!!, "$logFragment: Time Off Sound Played")
+            LoggerHelper.writeToLog("$logFragment: Time Off Sound Played")
             mediaPlayer.release()
         }
         mediaPlayer.start()
@@ -249,7 +249,7 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
 
     override fun onResume() {
         super.onResume()
-        LoggerHelper.writeToLog(context!!, "Live Meter onResume hit")
+        LoggerHelper.writeToLog("Live Meter onResume hit")
     }
 
     override fun onPause() {

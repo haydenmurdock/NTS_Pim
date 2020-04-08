@@ -26,7 +26,7 @@ class SafetyWarningFragment : Fragment() {
 
         override fun onFinish() {
             if(view != null){
-                LoggerHelper.writeToLog(context!!, "$logFragment: Did not play safety message")
+                LoggerHelper.writeToLog("$logFragment: Did not play safety message")
                 navigate()
             }
         }
@@ -45,7 +45,7 @@ class SafetyWarningFragment : Fragment() {
     }
 
     private fun toNextScreen(){
-        LoggerHelper.writeToLog(context!!, "$logFragment: Going to Live Meter Screen")
+        LoggerHelper.writeToLog("$logFragment: Going to Live Meter Screen")
         Timer().schedule(timerTask {
             navigate()
         }, 5000)
@@ -80,11 +80,11 @@ class SafetyWarningFragment : Fragment() {
             if(view != null){
                 navigate()
             }
-            LoggerHelper.writeToLog(context!!, "$logFragment: Finished Safety Message")
+            LoggerHelper.writeToLog("$logFragment: Finished Safety Message")
             mediaPlayer.release()
         }
         mediaPlayer.start()
-        LoggerHelper.writeToLog(context!!, "$logFragment: Started Safety Message")
+        LoggerHelper.writeToLog("$logFragment: Started Safety Message")
     }
 
     override fun onResume() {

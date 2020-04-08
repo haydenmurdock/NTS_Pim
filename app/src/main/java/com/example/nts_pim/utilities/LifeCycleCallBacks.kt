@@ -3,6 +3,12 @@ package com.example.nts_pim.utilities
 import android.app.Activity
 import android.app.Application
 import android.os.Bundle
+import android.text.Layout
+import android.util.Log
+import android.view.View
+import android.view.ViewGroup
+import androidx.core.view.isVisible
+import com.example.nts_pim.R
 import com.example.nts_pim.utilities.Square_Service.SquareService
 import com.example.nts_pim.utilities.sound_helper.SoundHelper
 
@@ -16,6 +22,9 @@ class LifeCycleCallBacks : Application.ActivityLifecycleCallbacks {
        val name = activity?.localClassName
         if (name == "com.squareup.ui.main.ApiMainActivity"){
                 SoundHelper.turnOnSound(activity.applicationContext)
+                val squareViewGroup = activity.findViewById<View>(android.R.id.content) as ViewGroup
+                Log.i("Square", "Activity was destroyed, removing all views on Square Activity")
+                squareViewGroup.removeAllViews()
         }
     }
 

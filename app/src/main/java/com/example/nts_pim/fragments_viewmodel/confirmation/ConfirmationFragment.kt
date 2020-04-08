@@ -13,7 +13,6 @@ import androidx.navigation.Navigation
 import com.amazonaws.mobileconnectors.appsync.AWSAppSyncClient
 import com.example.nts_pim.R
 import com.example.nts_pim.data.repository.TripDetails
-import com.example.nts_pim.data.repository.VehicleTripArrayHolder
 import com.example.nts_pim.data.repository.model_objects.CurrentTrip
 import com.example.nts_pim.data.repository.providers.ModelPreferences
 import com.example.nts_pim.fragments_viewmodel.InjectorUtiles
@@ -238,7 +237,7 @@ class ConfirmationFragment: ScopedFragment(), KodeinAware {
             CurrentTrip::class.java)
         currentTrip?.isActive = false
         ModelPreferences(context!!).putObject(SharedPrefEnum.CURRENT_TRIP.key, currentTrip)
-        LoggerHelper.writeToLog(context!!, "$logFragment, internal trip status changed. Trip Active ${currentTrip?.isActive}")
+        LoggerHelper.writeToLog("$logFragment, internal trip status changed. Trip Active ${currentTrip?.isActive}")
         TripDetails.textToSpeechActivated = false
 
     }

@@ -1,7 +1,7 @@
 package com.example.nts_pim.utilities.enums
 
 enum class PIMStatusEnum(val status: String) {
-    START_SCREEN("WELCOME_SCREEN|Passenger is viewing welcome screen"),
+    WELCOME_SCREEN("WELCOME_SCREEN|Passenger is viewing welcome screen"),
     METER_SCREEN("METER_SCREEN|Passenger is viewing meter screen"),
     PAYMENT_SCREEN("PAYMENT_SCREEN|Passenger is viewing payment details"),
     TIP_SCREEN("TIP_SCREEN|Passenger is viewing tip screen"),

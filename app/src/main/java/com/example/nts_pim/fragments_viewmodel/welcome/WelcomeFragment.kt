@@ -18,14 +18,7 @@ import android.widget.Toast
 import androidx.core.view.isVisible
 import androidx.lifecycle.ViewModelProviders
 import androidx.navigation.Navigation
-import com.amazonaws.amplify.generated.graphql.GetSettingsQuery
-import com.amazonaws.amplify.generated.graphql.GetStatusQuery
-import com.amazonaws.amplify.generated.graphql.GetVehicleEventsQuery
-import com.amazonaws.amplify.generated.graphql.UpdatePimStatusMutation
 import com.amazonaws.mobileconnectors.appsync.AWSAppSyncClient
-import com.apollographql.apollo.GraphQLCall
-import com.apollographql.apollo.api.Response
-import com.apollographql.apollo.exception.ApolloException
 import com.example.nts_pim.BuildConfig
 import com.example.nts_pim.R
 import com.example.nts_pim.data.repository.TripDetails
@@ -43,6 +36,7 @@ import com.example.nts_pim.utilities.enums.SharedPrefEnum
 import com.example.nts_pim.utilities.enums.VehicleStatusEnum
 import com.example.nts_pim.utilities.keyboards.PhoneKeyboard
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
+import com.example.nts_pim.utilities.mutation_helper.PIMMutationHelper
 import com.example.nts_pim.utilities.sound_helper.SoundHelper
 import com.example.nts_pim.utilities.view_helper.ViewHelper
 import com.squareup.sdk.reader.ReaderSdk
@@ -56,7 +50,6 @@ import kotlinx.coroutines.launch
 import org.kodein.di.KodeinAware
 import org.kodein.di.android.x.closestKodein
 import org.kodein.di.generic.instance
-import type.UpdatePimStatusInput
 import java.time.LocalDateTime
 import java.util.*
 import kotlin.concurrent.timerTask
@@ -160,6 +153,7 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
         batteryCheckTimer.start()
         dimScreenTimer.start()
         checkAppBuildVersion()
+        setUpSquare()
         //This is encase you have to restart the app during a trip or a trip
         keyboardViewModel.isPhoneKeyboardUp().observe(this.viewLifecycleOwner, androidx.lifecycle.Observer {
             if (it) {
@@ -170,18 +164,16 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
                 isPasswordEntered = false
             }
         })
-        view.setOnTouchListener(object : View.OnTouchListener {
-            override fun onTouch(v: View?, event: MotionEvent?): Boolean {
-                when (event?.action) {
-                    MotionEvent.ACTION_DOWN -> {
-                        dimScreenTimer.cancel()
-                        changeScreenBrightness(fullBrightness)
-                        dimScreenTimer.start()
-                    }
+        view.setOnTouchListener { v, event ->
+            when (event?.action) {
+                MotionEvent.ACTION_DOWN -> {
+                    dimScreenTimer.cancel()
+                    changeScreenBrightness(fullBrightness)
+                    dimScreenTimer.start()
                 }
-                return v?.onTouchEvent(event) ?: true
             }
-        })
+            v?.onTouchEvent(event) ?: true
+        }
         open_vehicle_settings_button.setOnClickListener {
             dimScreenTimer.cancel()
             changeScreenBrightness(fullBrightness)
@@ -218,17 +210,21 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
                         }
                 }
             })
-        callBackViewModel.getTripStatus().observe(this.viewLifecycleOwner, androidx.lifecycle.Observer {
-            if (it == VehicleStatusEnum.TRIP_PICKED_UP.status){
+        callBackViewModel.getTripStatus().observe(this.viewLifecycleOwner, androidx.lifecycle.Observer { vehicleStatus ->
+            if (vehicleStatus == VehicleStatusEnum.TRIP_PICKED_UP.status){
                 changeScreenBrightness(fullBrightness)
-                LoggerHelper.writeToLog(context!!, "$logFragment received Trip_Pick_Up_Status. Starting Animation")
+                LoggerHelper.writeToLog("$logFragment received Trip_Pick_Up_Status. Starting Animation")
                 checkAnimation()
             }
         })
 
-        welcome_screen_next_screen_button.setOnClickListener {
-//            callBackViewModel.setPimPayAmount(1.25)
-//            toCashOrCard()
+        PIMMutationHelper.updatePIMStatus(vehicleId, PIMStatusEnum.WELCOME_SCREEN.status, mAWSAppSyncClient!!)
+    }
+
+    private fun setUpSquare(){
+        if (!VehicleTripArrayHolder.squareHasBeenSetUp) {
+            Log.i("PimApplication", "started squareFlow since square trip Array holder has not been setup")
+            startSquareFlow()
         }
     }
     private fun checkAnimation() {
@@ -254,13 +250,13 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
     }
     private fun tripIsCurrentlyRunning(isTripActive: Boolean){
         if (!isTripActive){
-            LoggerHelper.writeToLog(context!!, "$logFragment. Trip Check: Last saved trip is not active")
+            LoggerHelper.writeToLog("$logFragment. Trip Check: Last saved trip is not active")
             return
         }
         val tripId = lastTrip.second
         changeScreenBrightness(fullBrightness)
         Log.i("Welcome Screen", "Trip Active: $isActive Trip Id: $tripId")
-        LoggerHelper.writeToLog(context!!, "$logFragment Trip Check: Last saved trip is active. To Meter Screen")
+        LoggerHelper.writeToLog("$logFragment Trip Check: Last saved trip is active. To Meter Screen")
         toLiveMeterScreen()
     }
     private fun updateUI(companyName: String) {
@@ -277,7 +273,7 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
     private fun markPimStartTime(){
         val time = LocalDateTime.now()
         TripDetails.tripStartTime = time
-        LoggerHelper.writeToLog(context!!, "$logFragment: PimMarkStartTime")
+        LoggerHelper.writeToLog("$logFragment: PimMarkStartTime")
 
     }
     private fun checkPassword() {
@@ -305,15 +301,15 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
     }
 
     private fun batteryStatusCheck() {
-        val batteryStatus: Intent? = IntentFilter(Intent.ACTION_BATTERY_CHANGED).let({ ifilter ->
-            context?.registerReceiver(null, ifilter)
-        })
+        val batteryStatus: Intent? = IntentFilter(Intent.ACTION_BATTERY_CHANGED).let { filter ->
+            context?.registerReceiver(null, filter)
+        }
         val status: Int = batteryStatus?.getIntExtra(BatteryManager.EXTRA_STATUS, -1) ?: -1
         val isCharging: Boolean = status == BatteryManager.BATTERY_STATUS_CHARGING
                 || status == BatteryManager.BATTERY_STATUS_FULL
         val batteryPowerPermission = callBackViewModel.batteryPowerStatePermission()
         if (!isCharging && !batteryPowerPermission) {
-            LoggerHelper.writeToLog(context!!, "$logFragment: Battery Check: is charging: $isCharging, sending request for shutdown")
+            LoggerHelper.writeToLog("$logFragment: Battery Check: is charging: $isCharging, sending request for shutdown")
             val action =  "com.claren.tablet_control.shutdown"
             val p = "com.claren.tablet_control"
             val intent = Intent()
@@ -324,7 +320,7 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
         }
 
         if (isCharging) {
-            LoggerHelper.writeToLog(context!!, "$logFragment: Battery Check: is charging: $isCharging")
+            LoggerHelper.writeToLog("$logFragment: Battery Check: is charging: $isCharging")
             batteryCheckTimer.cancel()
             batteryCheckTimer.start()
         }
@@ -348,7 +344,7 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
         val lp = activity?.window?.attributes
         lp?.screenBrightness = br.toFloat() / 255
         activity?.window?.attributes = lp
-        LoggerHelper.writeToLog(context!!, "$logFragment: Screen set to Max Brightness")
+        LoggerHelper.writeToLog("$logFragment: Screen set to Max Brightness")
     }
 
     private fun checkSquareMode(){
@@ -380,37 +376,18 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
         return Pair(false, "")
     }
 
-    private fun updatePIMStatus(vehicleId: String, pimStatusUpdate: String, appSyncClient: AWSAppSyncClient) = launch(Dispatchers.IO){
-        val updatePimStatusInput = UpdatePimStatusInput.builder()?.vehicleId(vehicleId)?.pimStatus(pimStatusUpdate)?.build()
-
-        appSyncClient.mutate(UpdatePimStatusMutation.builder().parameters(updatePimStatusInput).build())
-            ?.enqueue(mutationCallbackOnPIM)
-        // We are setting the internal PIM Status
-        VehicleTripArrayHolder.updateInternalPIMStatus(pimStatusUpdate)
-    }
-
-    private val mutationCallbackOnPIM = object : GraphQLCall.Callback<UpdatePimStatusMutation.Data>() {
-        override fun onResponse(response: Response<UpdatePimStatusMutation.Data>) {
-            Log.i("Results", "PIM Status Updated ${response.data()}")
-            if(!response.hasErrors()){
-                pimIsReadyToTakeTrip = true
-            }
-        }
-
-        override fun onFailure(e: ApolloException) {
-            Log.e("Error", "There was an issue updating the pimStatus: $e")
-        }
-    }
     private fun startSquareFlow(){
-            LoggerHelper.writeToLog(context!!, "$logFragment, Started Square Checkout flow")
-            SoundHelper.turnOffSound(context!!)
-        val p = 100.00
-        val checkOutTotal = p.toLong()
-        val amountMoney = Money(checkOutTotal, CurrencyCode.current())
-        val parametersBuilder = CheckoutParameters.newBuilder(amountMoney)
-        parametersBuilder.skipReceipt(false)
-        val checkoutManager = ReaderSdk.checkoutManager()
-        checkoutManager.startCheckoutActivity(context!!, parametersBuilder.build())
+        LoggerHelper.writeToLog("$logFragment, Started Square Checkout flow")
+        SoundHelper.turnOffSound(context!!)
+        if(ReaderSdk.authorizationManager().authorizationState.isAuthorized){
+            val p = 100.00
+            val checkOutTotal = p.toLong()
+            val amountMoney = Money(checkOutTotal, CurrencyCode.current())
+            val parametersBuilder = CheckoutParameters.newBuilder(amountMoney)
+            parametersBuilder.skipReceipt(false)
+            val checkoutManager = ReaderSdk.checkoutManager()
+            checkoutManager.startCheckoutActivity(context!!, parametersBuilder.build())
+        }
     }
     private fun updateVehicleInfoUI(){
         val vehicleSettings = viewModel.getvehicleSettings()
@@ -431,12 +408,12 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
             Log.i("VERSION", "Build Version is different. Updating ${lastSavedAppVersion.version} to $currentBuildVersion")
             lastSavedAppVersion.version = currentBuildVersion
             ModelPreferences(context!!.applicationContext).putObject(SharedPrefEnum.BUILD_VERSION.key, lastSavedAppVersion)
-            LoggerHelper.writeToLog(context!!, "${logFragment}: Build Version is different. Updating ${lastSavedAppVersion.version} to $currentBuildVersion. Restarting Tablet")
+            LoggerHelper.writeToLog("${logFragment}: Build Version is different. Updating ${lastSavedAppVersion.version} to $currentBuildVersion. Restarting Tablet")
             // if we wanted to restart PIM this is where we would write that code.
             restartAppTimer.start()
         } else {
             Log.i("VERSION", "Build Version is the same as last saved amount")
-            LoggerHelper.writeToLog(context!!, "${logFragment}: Build Version is the same from last startup. Build version $currentBuildVersion")
+            LoggerHelper.writeToLog("${logFragment}: Build Version is the same from last startup. Build version $currentBuildVersion")
         }
     }
     private fun saveAppBuildVersion(){
@@ -490,17 +467,10 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
         super.onResume()
         ViewHelper.hideSystemUI(activity!!)
         vehicleId = viewModel.getVehicleId()
-        updatePIMStatus(vehicleId,
-            PIMStatusEnum.START_SCREEN.status,
-            mAWSAppSyncClient!!)
         batteryCheckTimer.cancel()
         batteryCheckTimer.start()
         dimScreenTimer.cancel()
         dimScreenTimer.start()
-        if (!VehicleTripArrayHolder.squareHasBeenSetUp) {
-            Log.i("PimApplication", "started squareFlow")
-            startSquareFlow()
-        }
     }
 
     override fun onDestroy() {

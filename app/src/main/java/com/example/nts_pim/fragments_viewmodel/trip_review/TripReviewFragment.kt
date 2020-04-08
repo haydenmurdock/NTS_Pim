@@ -187,14 +187,14 @@ class TripReviewFragment : ScopedFragment(), KodeinAware {
             if (tripTotal > 1.00) {
                 VehicleTripArrayHolder.paymentTypeSelected = "card"
                 toTipScreen()
-                LoggerHelper.writeToLog(context!!, "$logFragment: Customer Picked Card")
+                LoggerHelper.writeToLog("$logFragment: Customer Picked Card")
             } else {
                 showLessThanDollarToast()
             }
         }
         //To the Email or Text Screen
         cash_btn.setOnClickListener {
-            LoggerHelper.writeToLog(context!!, "$logFragment: Customer Picked Cash")
+            LoggerHelper.writeToLog("$logFragment: Customer Picked Cash")
             VehicleTripArrayHolder.paymentTypeSelected = "cash"
             launch {
                 toEmailOrTextWithPayment()
@@ -206,14 +206,14 @@ class TripReviewFragment : ScopedFragment(), KodeinAware {
         callbackViewModel.getIsTransactionComplete()
             .observe(this.viewLifecycleOwner, Observer { transactionIsComplete ->
                 if (transactionIsComplete) {
-                    LoggerHelper.writeToLog(context!!, "$logFragment: Square Transaction Complete: Going to Email Or Text")
+                    LoggerHelper.writeToLog("$logFragment: Square Transaction Complete: Going to Email Or Text")
                     toEmailOrTextForSquareTransactionComplete()
                 }
             })
 
         callbackViewModel.getMeterState().observe(this.viewLifecycleOwner, Observer { meterState ->
             if (meterState == MeterEnum.METER_ON.state) {
-                LoggerHelper.writeToLog(context!!, "$logFragment: Meter State Change: $meterState. Going Back to Live Meter")
+                LoggerHelper.writeToLog("$logFragment: Meter State Change: $meterState. Going Back to Live Meter")
                 backToLiveMeter()
             }
         })
@@ -265,7 +265,7 @@ class TripReviewFragment : ScopedFragment(), KodeinAware {
         if (args != null) {
             Log.i("TripReview", "The meterValue passed along was$args")
         }
-        LoggerHelper.writeToLog(context!!, "$logFragment,  Customer is seeing $tripTotal")
+        LoggerHelper.writeToLog("$logFragment,  Customer is seeing $tripTotal")
     }
 
     private fun checkIfPIMNeedsToTakePayment(enteredPimPayAmount: Double, enteredPimPaidAmount: Double) {
@@ -274,7 +274,7 @@ class TripReviewFragment : ScopedFragment(), KodeinAware {
             enteredPimPayAmount == 00.00 ||
             enteredPimPaidAmount > 0.toDouble()) {
             Log.i("Trip Review: Trip didn't need payment","Pim Pay amount: $enteredPimPayAmount, Pim paid Amount: $enteredPimPaidAmount")
-            LoggerHelper.writeToLog(context!!, "$logFragment, Trip Review: Trip didn't need payment - Pim Pay amount: $enteredPimPayAmount, Pim paid Amount: $enteredPimPaidAmount")
+            LoggerHelper.writeToLog("$logFragment, Trip Review: Trip didn't need payment - Pim Pay amount: $enteredPimPayAmount, Pim paid Amount: $enteredPimPaidAmount")
             doesPimNeedToTakePayment = false
             pimPayAmount = enteredPimPaidAmount
             toEmailOrTextWithoutPayment()
@@ -331,7 +331,7 @@ class TripReviewFragment : ScopedFragment(), KodeinAware {
             TextToSpeech.QUEUE_FLUSH,
             null
         )
-        LoggerHelper.writeToLog(context!!, "$logFragment,  Pim Read $messageToSpeak to customer")
+        LoggerHelper.writeToLog("$logFragment,  Pim Read $messageToSpeak to customer")
     }
     private fun updateAWSWithCashButtonSelection() {
         val coroutineTwo =
@@ -424,14 +424,14 @@ class TripReviewFragment : ScopedFragment(), KodeinAware {
 
             override fun onTick(millisUntilFinished: Long) {
                 if (audioManager.isMicrophoneMute) {
-                    LoggerHelper.writeToLog(context!!, "$logFragment,  Removed Please wait screen early because microphone was muted")
+                    LoggerHelper.writeToLog("$logFragment,  Removed Please wait screen early because microphone was muted")
                     removeWaitScreenTimer?.onFinish()
                 }
             }
 
             override fun onFinish() {
                 removePleaseWaitScreen()
-                LoggerHelper.writeToLog(context!!, "$logFragment,  Removed Please wait screen")
+                LoggerHelper.writeToLog("$logFragment,  Removed Please wait screen")
                 checkIfPIMNeedsToTakePayment(pimPayAmount, pimPaidAmount)
             }
         }.start()

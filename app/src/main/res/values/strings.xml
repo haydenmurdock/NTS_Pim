@@ -65,8 +65,6 @@
     <string name="err_elm_ver_code_mismatch">ELM: Caller package version code mismatch</string>
     <string name="err_elm_null_params">ELM: NULL params</string>
     <string name="err_elm_user_disagrees_license_agreement">ELM: User disagrees EULA</string>
-
-    <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
     <string name="you_re_on_your_way">You\'re on your way!</string>
     <string name="image_of_taxi_cab">image of taxi cab</string>

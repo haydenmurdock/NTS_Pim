@@ -3,7 +3,6 @@ package com.example.nts_pim.activity
 import android.bluetooth.BluetoothAdapter
 import android.content.ContentValues
 import android.content.Context
-import android.content.Intent
 import android.content.IntentFilter
 import android.media.AudioAttributes
 import android.media.AudioFocusRequest
@@ -12,8 +11,6 @@ import android.media.MediaPlayer
 import android.net.ConnectivityManager
 import android.os.Bundle
 import android.os.CountDownTimer
-import android.os.PowerManager
-import android.provider.Settings
 import android.util.Log
 import android.view.View
 import android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
@@ -29,7 +26,6 @@ import com.amazonaws.amplify.generated.graphql.OnUpdateVehTripStatusSubscription
 import com.amazonaws.mobileconnectors.appsync.AWSAppSyncClient
 import com.amazonaws.mobileconnectors.appsync.AppSyncSubscriptionCall
 import com.amazonaws.mobileconnectors.appsync.fetcher.AppSyncResponseFetchers
-import com.amazonaws.mobileconnectors.appsync.subscription.AppSyncSubscription
 import com.apollographql.apollo.GraphQLCall
 import com.apollographql.apollo.api.Response
 import com.apollographql.apollo.exception.ApolloException
@@ -38,7 +34,6 @@ import com.example.nts_pim.R
 import com.example.nts_pim.UnlockScreenLock
 import com.example.nts_pim.data.repository.VehicleTripArrayHolder
 import com.example.nts_pim.data.repository.model_objects.CurrentTrip
-import com.example.nts_pim.data.repository.model_objects.JsonAuthCode
 import com.example.nts_pim.data.repository.providers.ModelPreferences
 import com.example.nts_pim.fragments_viewmodel.InjectorUtiles
 import com.example.nts_pim.fragments_viewmodel.base.ClientFactory
@@ -49,25 +44,15 @@ import com.example.nts_pim.utilities.enums.PIMStatusEnum
 import com.example.nts_pim.utilities.enums.SharedPrefEnum
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import com.example.nts_pim.utilities.mutation_helper.PIMMutationHelper
-import com.example.nts_pim.utilities.power_cycle.PowerAccessibilityService
 import com.example.nts_pim.utilities.sound_helper.SoundHelper
 import com.example.nts_pim.utilities.view_helper.ViewHelper
-import com.google.gson.Gson
-import com.squareup.sdk.reader.ReaderSdk
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
-import okhttp3.Call
-import okhttp3.Callback
-import okhttp3.OkHttpClient
-import okhttp3.Request
 import org.kodein.di.KodeinAware
 import org.kodein.di.android.closestKodein
 import org.kodein.di.generic.instance
-import java.io.IOException
-import java.lang.Error
-import java.util.jar.Manifest
 import kotlin.coroutines.CoroutineContext
 
 open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
@@ -119,9 +104,8 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                 vehicleId = viewModel.getVehicleID()
                 internetConnection = isOnline(this)
                 if (internetConnection && vehicleSubscriptionComplete) {
-//                    startOnStatusUpdateSubscription(vehicleId)
                     subscribeToUpdateVehTripStatus(vehicleId)
-                    LoggerHelper.writeToLog(this.applicationContext, "$logFragment, vehicle setup complete, started subscription to vehicle")
+                    LoggerHelper.writeToLog("$logFragment, vehicle setup complete, started subscription to vehicle")
                     Log.i("Results", "Tried to subscribe to $vehicleId because setup is complete")
                 } else {
                     recheckInternetConnection(this)
@@ -131,7 +115,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
         callbackViewModel.getTripHasEnded().observe(this, Observer { tripEnded ->
             if (tripEnded) {
                 meterStateQueryComplete = false
-                LoggerHelper.writeToLog(this.applicationContext, "$logFragment, Trip ended and meterStateQueryComplete is set to false")
+                LoggerHelper.writeToLog("$logFragment, Trip ended and meterStateQueryComplete is set to false")
             }
         })
         forceSpeaker()
@@ -168,12 +152,14 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                 val navController = findNavController(this, R.id.nav_host_fragment)
                 callbackViewModel.clearAllTripValues()
                 if (navController.currentDestination?.id != R.id.welcome_fragment ||
-                    navController.currentDestination?.id == R.id.taxi_number_fragment && !resync) {
+                    navController.currentDestination?.id != R.id.taxi_number_fragment ||
+                    navController.currentDestination?.id != R.id.bluetoothSetupFragment
+                    && !resync) {
                     Log.i(
                         "TripStart",
                         "This needs to work now. Old trip id: $tripId, new trip id: $currentTripId"
                     )
-                    LoggerHelper.writeToLog(this.applicationContext, "${logFragment}, New trip was started by the driver while the pim trip was not finished")
+                    LoggerHelper.writeToLog("${logFragment}, New trip was started by the driver while the pim trip was not finished")
                     getMeterOwedQuery(currentTripId)
                     navController.navigate(R.id.action_global_taxi_number_fragment)
                 } else {
@@ -181,7 +167,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                         "TripStart",
                         "current Nav destination is ${navController.currentDestination.toString()}"
                     )
-                    LoggerHelper.writeToLog(this.applicationContext, "${logFragment}, Driver tried to start new trip, but the Pim was on Welcome/taxi number screen")
+                    LoggerHelper.writeToLog("${logFragment}, Driver tried to start new trip, but the Pim was on Welcome/taxi number screen")
                 }
             }
         })
@@ -194,22 +180,23 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
             if(!onlineStatus){
                 vehicleSubscriptionComplete = false
             }
-            if(onlineStatus && !vehicleSubscriptionComplete && mSuccessfulSetup){
+            if(onlineStatus &&
+                !vehicleSubscriptionComplete &&
+                mSuccessfulSetup){
                 callbackViewModel.reSyncTrip()
                 watchingTripId = ""
                 getMeterOwedQuery(tripId)
-  //              startSubscriptionTripUpdate(tripId)
                 subscribeToUpdateVehTripStatus(vehicleId)
                 watchingTripId = ""
             }
         })
-        callbackViewModel.isDeviceBondedViaBT().observe(this, Observer { isBTBonded->
-            if(isBTBonded){
-                Log.i("Bluetooth", "device is bonded via bluetooth, turning off AWS subscriptions")
-//                subscriptionWatcherDoPimPayment?.cancel()
-//               subscriptionWatcherUpdateVehTripStatus?.cancel()
-            }
-        })
+//        callbackViewModel.isDeviceBondedViaBT().observe(this, Observer { isBTBonded->
+//            if(isBTBonded){
+//                Log.i("Bluetooth", "device is bonded via bluetooth, turning off AWS subscriptions")
+////                subscriptionWatcherDoPimPayment?.cancel()
+////               subscriptionWatcherUpdateVehTripStatus?.cancel()
+//            }
+//        })
     }
 
     //Coroutine to insert Trip Status
@@ -326,91 +313,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
 
         }
     }
-//    private fun subscribeToSquareReauth(deviceId: String){
-//        val subscription = OnPimSettingsUpdateSubscription.builder().deviceId(deviceId).build()
-//        if(subscriptionWatcherReauthorizeSquare == null){
-//            subscriptionWatcherReauthorizeSquare = mAWSAppSyncClient?.subscribe(subscription)
-//        } else {
-//            subscriptionWatcherReauthorizeSquare.cancel()
-//            subscriptionWatcherReauthorizeSquare = mAWSAppSyncClient?.subscribe(subscription)
-//        }
-//        subscriptionWatcherReauthorizeSquare?.execute(reAuthSquareCallback)
-//    }
 
-//    private var reAuthSquareCallback = object: AppSyncSubscriptionCall.Callback<OnPimSettingsUpdateSubscription.Data>{
-//        override fun onResponse(response: Response<OnPimSettingsUpdateSubscription.Data>) {
-//            val reauthSquare = response.data()?.onPIMSettingsUpdate()?.reAuthSquare()
-//                if(reauthSquare){
-//                    reauthSquare
-//                }
-//        }
-//
-//        override fun onFailure(e: ApolloException) {
-//            subscriptionWatcherReauthorizeSquare.cancel()
-//            subscriptionWatcherReauthorizeSquare = null
-//        }
-//
-//        override fun onCompleted() {}
-//
-//    }
-//    private fun reauthorizeSquare() = launch(Dispatchers.Main.immediate){
-//        if(ReaderSdk.authorizationManager().authorizationState.canDeauthorize()){
-//            ReaderSdk.authorizationManager().deauthorize()
-//            Log.i("LOGGER", "$vehicleId successfully de-authorized")
-//        }
-//        if(!vehicleId.isNullOrEmpty()){
-//            Log.i("LOGGER", "$vehicleId: Trying to reauthorize")
-//            getAuthorizationCode(vehicleId!!)
-//        }
-//    }
-//    private fun getAuthorizationCode(vehicleId: String) {
-//        val url = "https://i8xgdzdwk5.execute-api.us-east-2.amazonaws.com/prod/CheckOAuthToken?vehicleId=$vehicleId"
-//        val client = OkHttpClient()
-//        val request = Request.Builder()
-//            .url(url)
-//            .build()
-//        try {
-//            client.newCall(request).enqueue(object : Callback {
-//                override fun onResponse(call: Call, response: okhttp3.Response) {
-//                    if (response.code == 200) {
-//                        val gson = Gson()
-//                        val convertedObject =
-//                            gson.fromJson(response.body?.string(), JsonAuthCode::class.java)
-//                        val authCode = convertedObject.authCode
-//                        onAuthorizationCodeRetrieved(authCode, vehicleId)
-//                        Log.i("LOGGER", "$vehicleId successfully got AuthCode")
-//                    }
-//                    if (response.code == 404) {
-//                        launch(Dispatchers.Main.immediate) {
-//                            Toast.makeText(
-//                               this,
-//                                "Vehicle not found in fleet, check fleet management portal",
-//                                Toast.LENGTH_LONG
-//                            ).show()
-//                        }
-//                    }
-//                    if (response.code == 401) {
-//                        launch(Dispatchers.Main.immediate){
-//                            Toast.makeText(
-//                                this,
-//                                "Need to authorize fleet with log In",
-//                                Toast.LENGTH_LONG
-//                            ).show()
-//                        }
-//                    }
-//                }
-//                override fun onFailure(call: Call, e: IOException) {
-//                    println("failure")
-//                }
-//            })
-//        } catch (e: Error) {
-//            println(e)
-//        }
-//    }
-//    private fun onAuthorizationCodeRetrieved(authorizationCode: String, vehicleId: String)
-//            = launch(Dispatchers.Main.immediate) {
-//        ReaderSdk.authorizationManager().authorize(authorizationCode)
-//    }
     private fun getMeterOwedQuery(tripId: String) = launch(Dispatchers.IO){
         if (mAWSAppSyncClient == null) {
             mAWSAppSyncClient = ClientFactory.getInstance(this@MainActivity.applicationContext)
@@ -493,15 +396,15 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
     }
     private fun startTimerToSendLogsToAWS(vehicleId: String, context: Context){
         Log.i("LOGGER", "Log Timer Started")
-            loggingTimer = object: CountDownTimer(180000, 30000){
+            loggingTimer = object: CountDownTimer(3000, 1000){
             override fun onTick(millisUntilFinished: Long) {
                 val seconds = millisUntilFinished/1000
-                Log.i("LOGGER", "Log Timer: $seconds until logs are sent to AWS")
+  //              Log.i("LOGGER", "Log Timer: $seconds until logs are sent to AWS")
             }
             override fun onFinish() {
                 Log.i("LOGGER", "Log Timer: onFinish")
                 launch(Dispatchers.IO) {
-                    LoggerHelper.sendLogToAWS(vehicleId, context)
+                    LoggerHelper.sendLogToAWS(vehicleId)
                 }
                 startTimerToSendLogsToAWS(vehicleId, context)
             }
@@ -527,7 +430,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
         val request = audioManager.requestAudioFocus(focusRequest)
         when(request) {
             AudioManager.AUDIOFOCUS_REQUEST_GRANTED -> {
-                LoggerHelper.writeToLog(this@MainActivity, "${logFragment}, pim played start up sound")
+                LoggerHelper.writeToLog("${logFragment}, pim played start up sound")
                mediaPlayer.start()
              }
         }
@@ -552,25 +455,21 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
         }
         override fun onFinish() {
             if(!internetConnection){
-                LoggerHelper.writeToLog(applicationContext, "$logFragment, recheck internet connection timer finished. internet was not connected. retrying in 5 seconds")
+                LoggerHelper.writeToLog("$logFragment, recheck internet connection timer finished. internet was not connected. retrying in 5 seconds")
                 recheckInternetConnection(this@MainActivity)
                 // this is for a resync of trip
             } else if (resync) {
                 val currentTrip = ModelPreferences(applicationContext)
                     .getObject(SharedPrefEnum.CURRENT_TRIP.key, CurrentTrip::class.java)
-                LoggerHelper.writeToLog(applicationContext, "$logFragment, recheck internet connection timer finished. Internet is connected. Trying to start subscription on ${vehicleId} due to resync.")
-  //              startOnStatusUpdateSubscription(vehicleId)
+                LoggerHelper.writeToLog("$logFragment, recheck internet connection timer finished. Internet is connected. Trying to start subscription on ${vehicleId} due to resync.")
                 subscribeToUpdateVehTripStatus(vehicleId)
                 if (currentTrip != null && currentTrip.tripID != "" && internetConnection){
-                    LoggerHelper.writeToLog(applicationContext, "$logFragment, recheck internet connection timer finished.Internet is connected. Trying to start subscription on ${currentTrip.tripID} due to resync.")
-                    //
-//                    startSubscriptionTripUpdate(currentTrip.tripID)
+                    LoggerHelper.writeToLog("$logFragment, recheck internet connection timer finished.Internet is connected. Trying to start subscription on ${currentTrip.tripID} due to resync.")
                     resync = false
                 }
             } else {
                 // start subscription since the internet is connected.
-                LoggerHelper.writeToLog(applicationContext, "$logFragment, recheck internet connection timer finished. Internet is connected. Trying to start subscription on ${vehicleId}.")
-  //              startOnStatusUpdateSubscription(vehicleId)
+                LoggerHelper.writeToLog("$logFragment, recheck internet connection timer finished. Internet is connected. Trying to start subscription on ${vehicleId}.")
                 subscribeToUpdateVehTripStatus(vehicleId)
             }
          }
@@ -587,17 +486,17 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
         }))
     }
     override fun onBackPressed() {
-        LoggerHelper.writeToLog(this@MainActivity, "${logFragment}, back button on nav bar pressed")
+        LoggerHelper.writeToLog("${logFragment}, back button on nav bar pressed")
         Log.i("Back Button", "Back button was pressed")
     }
 
     private fun setUpBluetooth(){
         val mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
         if (!mBluetoothAdapter.isEnabled) {
-            LoggerHelper.writeToLog(this@MainActivity, "${logFragment}, bluetooth was off, turned on programmatically")
+            LoggerHelper.writeToLog("${logFragment}, bluetooth was off, turned on programmatically")
             mBluetoothAdapter.enable()
         } else {
-            LoggerHelper.writeToLog(this@MainActivity, "${logFragment}, bluetooth was on during start up")
+            LoggerHelper.writeToLog("${logFragment}, bluetooth was on during start up")
         }
     }
     private fun goToPowerCycleApp() {
@@ -618,15 +517,14 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
     override fun onDestroy() {
         Log.i("SubscriptionWatcher", "Subscription watcher canceled for $vehicleId")
         subscriptionWatcherUpdateVehTripStatus?.cancel()
-        LoggerHelper.writeToLog(this@MainActivity, "${logFragment}, Subscription watcher canceled for $vehicleId, onDestroy hit")
+        LoggerHelper.writeToLog("${logFragment}, Subscription watcher canceled for $vehicleId, onDestroy hit")
         viewModel.isSquareAuthorized().removeObservers(this)
         callbackViewModel.getTripHasEnded().removeObservers(this)
         callbackViewModel.getIsPimOnline().removeObservers(this)
         unregisterReceiver(mNetworkReceiver)
-        LoggerHelper.writeToLog(this, "$logFragment, MainActivity onDestroy hit")
+        LoggerHelper.writeToLog("$logFragment, MainActivity onDestroy hit")
         stopLogTimer()
         vehicleSubscriptionTimer?.cancel()
-
         super.onDestroy()
     }
 
@@ -642,7 +540,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
         if(mSuccessfulSetup){
             ViewHelper.hideSystemUI(this)
         }
-        LoggerHelper.writeToLog(this, "$logFragment, MainActivity onPause hit")
+        LoggerHelper.writeToLog("$logFragment, MainActivity onPause hit")
     }
 
     override fun onUserLeaveHint() {

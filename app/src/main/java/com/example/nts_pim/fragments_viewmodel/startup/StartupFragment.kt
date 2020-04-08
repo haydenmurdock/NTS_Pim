@@ -36,9 +36,6 @@ import com.example.nts_pim.utilities.power_cycle.PowerAccessibilityService
 import com.google.gson.Gson
 import com.squareup.sdk.reader.ReaderSdk
 import com.squareup.sdk.reader.authorization.DeauthorizeCallback
-import com.squareup.sdk.reader.authorization.DeauthorizeErrorCode
-import com.squareup.sdk.reader.core.Result
-import com.squareup.sdk.reader.core.ResultError
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import okhttp3.Call
@@ -225,18 +222,18 @@ class StartupFragment: ScopedFragment(), KodeinAware {
     private var reAuthCallback = object : GraphQLCall.Callback<ResetReAuthSquareMutation.Data>(){
         override fun onResponse(response: Response<ResetReAuthSquareMutation.Data>) {
             if(response.hasErrors()){
-                LoggerHelper.writeToLog(activity!!.applicationContext, "There was an error trying to reAuthorize square account for this vehicle. Suggest manuel ReAuth")
+                LoggerHelper.writeToLog("There was an error trying to reAuthorize square account for this vehicle. Suggest manuel ReAuth")
             }
 
             if(response.data()?.resetReAuthSquare()?.reAuthSquare() != null &&
                 response.data()?.resetReAuthSquare()?.reAuthSquare() == false){
                 Log.i("LOGGER", "$vehicleId was successfully re-authorized")
-                LoggerHelper.writeToLog(activity!!.applicationContext, "$vehicleId was successfully re-authorized")
+                LoggerHelper.writeToLog("$vehicleId was successfully re-authorized")
             }
         }
 
         override fun onFailure(e: ApolloException) {
-            LoggerHelper.writeToLog(activity!!.applicationContext, "There was an error trying to reAuthorize square account for this vehicle. Suggest manual ReAuth")
+            LoggerHelper.writeToLog("There was an error trying to reAuthorize square account for this vehicle. Suggest manual ReAuth")
         }
     }
 

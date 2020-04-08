@@ -103,7 +103,7 @@ class ReceiptInformationEmailFragment: ScopedFragment(), KodeinAware {
         startInactivityTimeout()
         email_editText.setOnFocusChangeListener { _, hasFocus ->
             if(!hasFocus){
-                LoggerHelper.writeToLog(context!!, "$logFragment, edit text does not have focus. Closing soft keyboard")
+                LoggerHelper.writeToLog("$logFragment, edit text does not have focus. Closing soft keyboard")
                 closeSoftKeyboard()
             }
         }
@@ -161,11 +161,11 @@ class ReceiptInformationEmailFragment: ScopedFragment(), KodeinAware {
         }
 
         back_btn_email_receipt.setOnClickListener {
-            LoggerHelper.writeToLog(context!!, "$logFragment, back button hit")
+            LoggerHelper.writeToLog("$logFragment, back button hit")
             backToEmailOrText()
         }
         no_receipt_btn_receipt_email.setOnClickListener {
-            LoggerHelper.writeToLog(context!!, "$logFragment, no receipt button hit")
+            LoggerHelper.writeToLog("$logFragment, no receipt button hit")
             toThankYou()
         }
     }
@@ -193,7 +193,7 @@ class ReceiptInformationEmailFragment: ScopedFragment(), KodeinAware {
         imm.showSoftInput(email_editText, InputMethodManager.SHOW_IMPLICIT)
         email_editText.requestFocus()
         ViewHelper.hideSystemUI(activity!!)
-        LoggerHelper.writeToLog(context!!, "$logFragment, Showing Keyboard")
+        LoggerHelper.writeToLog("$logFragment, Showing Keyboard")
     }
     private fun closeSoftKeyboard(){
         val imm =
@@ -211,7 +211,7 @@ class ReceiptInformationEmailFragment: ScopedFragment(), KodeinAware {
     private fun isOnline(context: Context): Boolean {
         val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
         val networkInfo = connectivityManager.activeNetworkInfo
-        LoggerHelper.writeToLog(context!!, "$logFragment, Checked internet Connection. Connection ${networkInfo.isConnected}")
+        LoggerHelper.writeToLog("$logFragment, Checked internet Connection. Connection ${networkInfo.isConnected}")
         return networkInfo != null && networkInfo.isConnected
 
     }
@@ -236,7 +236,7 @@ class ReceiptInformationEmailFragment: ScopedFragment(), KodeinAware {
     }
 
     private fun updateCustomerEmail(vehicleId: String, custEmail: String, appSyncClient: AWSAppSyncClient, tripId: String){
-        LoggerHelper.writeToLog(context!!, "$logFragment, entered email: $custEmail")
+        LoggerHelper.writeToLog("$logFragment, entered email: $custEmail")
         val updatePaymentTypeInput = UpdateTripInput.builder().vehicleId(vehicleId).tripId(tripId).custEmail(custEmail).build()
         if(isOnline(context!!)){
             appSyncClient.mutate(UpdateTripMutation.builder().parameters(updatePaymentTypeInput).build())
@@ -261,7 +261,7 @@ class ReceiptInformationEmailFragment: ScopedFragment(), KodeinAware {
                  {
                     launch(Dispatchers.IO) {
                         Log.i("Email Receipt", "updated custEmail successfully. Step 2: complete")
-                        LoggerHelper.writeToLog(context!!, "$logFragment, update custEmail successfully. Step 2: complete")
+                        LoggerHelper.writeToLog("$logFragment, update custEmail successfully. Step 2: complete")
                         EmailHelper.sendEmail(tripId, paymentType, transactionId)
                     }
                 }
@@ -286,7 +286,7 @@ class ReceiptInformationEmailFragment: ScopedFragment(), KodeinAware {
                 Log.i(
                     "Email Receipts",
                     "update payment Api successfully. Step 1: Complete")
-                LoggerHelper.writeToLog(context!!, "$logFragment, update payment Api successfully. Step 1: Complete")
+                LoggerHelper.writeToLog("$logFragment, update payment Api successfully. Step 1: Complete")
                 launch(Dispatchers.IO) {
                     sendEmail(email)
                 }
@@ -294,13 +294,13 @@ class ReceiptInformationEmailFragment: ScopedFragment(), KodeinAware {
                 Log.i(
                     "Email Receipts",
                     "update payment Api Unsuccessfully. Step 1: Incomplete")
-                LoggerHelper.writeToLog(context!!, "$logFragment, update payment unsuccessfully. Step 1: Incomplete")
+                LoggerHelper.writeToLog("$logFragment, update payment unsuccessfully. Step 1: Incomplete")
             }
         }
 
         override fun onFailure(e: ApolloException) {
             Log.e("Email Receipts", "There was an issue updating payment api: $e")
-            LoggerHelper.writeToLog(context!!, "$logFragment, update payment unsuccessfully. Step 1: Incomplete. There was an issue updating payment api: $e")
+            LoggerHelper.writeToLog("$logFragment, update payment unsuccessfully. Step 1: Incomplete. There was an issue updating payment api: $e")
         }
     }
 
@@ -313,7 +313,7 @@ class ReceiptInformationEmailFragment: ScopedFragment(), KodeinAware {
             override fun onFinish() {
                 if (!resources.getBoolean(R.bool.isSquareBuildOn) &&
                         no_receipt_btn_receipt_email != null) {
-                    LoggerHelper.writeToLog(context!!, "$logFragment, Inactivity Timer finished")
+                    LoggerHelper.writeToLog("$logFragment, Inactivity Timer finished")
                     no_receipt_btn_receipt_email.performClick()
                 }
             }
