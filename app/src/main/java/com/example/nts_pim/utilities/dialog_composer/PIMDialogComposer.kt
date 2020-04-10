@@ -27,7 +27,4 @@ object PIMDialogComposer: ScopedFragment() {
             .setPositiveButton("okay", null)
             .show()
     }
-
-
-
 }

@@ -18,6 +18,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProviders
+import androidx.navigation.NavController
 import androidx.navigation.Navigation.findNavController
 import com.amazonaws.amplify.generated.graphql.GetTripQuery
 import com.amazonaws.amplify.generated.graphql.OnDoPimPaymentSubscription
@@ -83,6 +84,11 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
     private val logFragment = "Background Activity"
     private var mNetworkReceiver: NetworkReceiver? = null
     private var watchingTripId = ""
+    companion object{
+        lateinit var mainActivity: MainActivity
+        lateinit var navigationController: NavController
+    }
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -91,7 +97,8 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
         window.addFlags(FLAG_KEEP_SCREEN_ON)
         UnlockScreenLock()
         mJob = Job()
-        findNavController(this, R.id.nav_host_fragment)
+        mainActivity = this
+        navigationController = findNavController(this, R.id.nav_host_fragment)
         mAWSAppSyncClient = ClientFactory.getInstance(applicationContext)
         val factory = InjectorUtiles.provideCallBackModelFactory()
         callbackViewModel = ViewModelProviders.of(this, factory)
@@ -151,8 +158,8 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                 val currentTripId = callbackViewModel.getTripId()
                 val navController = findNavController(this, R.id.nav_host_fragment)
                 callbackViewModel.clearAllTripValues()
-                if (navController.currentDestination?.id != R.id.welcome_fragment ||
-                    navController.currentDestination?.id != R.id.taxi_number_fragment ||
+                if (navController.currentDestination?.id != R.id.welcome_fragment &&
+                    navController.currentDestination?.id != R.id.taxi_number_fragment &&
                     navController.currentDestination?.id != R.id.bluetoothSetupFragment
                     && !resync) {
                     Log.i(

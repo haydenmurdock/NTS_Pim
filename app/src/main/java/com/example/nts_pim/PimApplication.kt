@@ -54,14 +54,18 @@ class PimApplication : Application(), KodeinAware{
         }
     companion object {
         lateinit var instance: PimApplication
-            private set
-        val pimContext: Context = instance.applicationContext
+        lateinit var pimContext: Context
     }
 
     val CHANNEL_ID = "powerservicechannel"
         override fun onCreate() {
             super.onCreate()
-            instance = this
+            try {
+                instance = this
+                pimContext = instance.applicationContext
+            } catch (e: Exception){
+
+            }
             AndroidThreeTen.init(this)
             registerActivityLifecycleCallbacks(LifeCycleCallBacks())
             createNotificationChannel()

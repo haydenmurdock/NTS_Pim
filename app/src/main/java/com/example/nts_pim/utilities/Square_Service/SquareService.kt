@@ -100,7 +100,7 @@ class SquareService : OnLayoutChangeListener,
 
             if (!VehicleTripArrayHolder.squareHasBeenSetUp &&
                 VehicleTripArrayHolder.cardReaderStatusHasBeenChecked){
-                val navController = Navigation.findNavController(activity, R.id.nav_host_fragment)
+                val navController = MainActivity.navigationController
                 if(navController.currentDestination?.id == R.id.welcome_fragment){
                     viewGroup!!.visibility = View.INVISIBLE
                     closeSquareForSoundCheck()
@@ -317,7 +317,8 @@ class SquareService : OnLayoutChangeListener,
                             squareActivity?.findViewById<TextView>(com.squareup.sdk.reader.api.R.id.reader_message_bar_current_text_view)
                         val squareReaderState = newViewGroup?.text
                         Log.i(tag, "Reader Message: $squareReaderState")
-                        if (squareReaderState == "Press Button on Reader to Connect – Learn More") {
+                        LoggerHelper.writeToLog("$tag, Reader Message: $squareReaderState")
+                        if (squareReaderState!!.contains("Press Button on Reader to Connect – Learn More") ) {
                             LoggerHelper.writeToLog("$tag, Square service is on card reader list in unavailable status")
                             Log.i(
                                 tag,
@@ -326,9 +327,8 @@ class SquareService : OnLayoutChangeListener,
                             VehicleTripArrayHolder.updateReaderStatus(ReaderStatusEnum.UNAVAILABLE.status)
                             stopReaderCheckTimeout()
                             startReaderCheckTimeout()
-
                         }
-                        if (squareReaderState == "Establishing Secure Connection") {
+                        if (squareReaderState.contains("Establishing Secure Connection")) {
                             LoggerHelper.writeToLog("$tag, Square service is on card reader list in establishing connection status")
                             Log.i(
                                 tag,
@@ -339,15 +339,7 @@ class SquareService : OnLayoutChangeListener,
                             startReaderCheckTimeout()
 
                         }
-                        if (squareReaderState == "Reader Ready") {
-                            LoggerHelper.writeToLog("$tag, Square service is on card reader list in Reader Ready status")
-                            stopReaderCheckTimeout()
-                            Log.i(tag, "Reader is connected and ready")
-                            VehicleTripArrayHolder.updateReaderStatus(ReaderStatusEnum.CONNECTED.status)
-                            removeSquareReaderView()
-
-                        }
-                        if (squareReaderState == "Reader Not Ready") {
+                        if (squareReaderState.contains("Reader Not Ready")) {
                             LoggerHelper.writeToLog("$tag, Square service is on Reader Not Ready- aka- failed status")
                             stopReaderCheckTimeout()
                             Log.i(tag, "Reader has failed to connect")
@@ -356,6 +348,14 @@ class SquareService : OnLayoutChangeListener,
                             viewGroup.removeView(cardReaderCheckView)
                             Log.i(tag, "Removed Square Card Reader View")
                             squareActivity?.finish()
+                        }
+
+                        if (squareReaderState.contains("Reader Ready") ) {
+                            LoggerHelper.writeToLog("$tag, Square service is on card reader list in Reader Ready status")
+                            stopReaderCheckTimeout()
+                            Log.i(tag, "Reader is connected and ready")
+                            VehicleTripArrayHolder.updateReaderStatus(ReaderStatusEnum.CONNECTED.status)
+                            removeSquareReaderView()
                         }
                     }
                 }
@@ -381,7 +381,13 @@ class SquareService : OnLayoutChangeListener,
                         squareActivity?.findViewById<TextView>(com.squareup.sdk.reader.api.R.id.reader_message_bar_current_text_view)
                     val squareReaderState = newViewGroup?.text
                     Log.i(tag, "Reader Check Timer: squareReaderState: $squareReaderState")
-                    if (squareReaderState!!.contains("Reader Ready")) {
+                    if (squareReaderState == null){
+                        Log.i(tag, "Reader checked via readerCheckTimer. Text view was null but timer was still going")
+                        LoggerHelper.writeToLog("$tag, Reader checked via readerCheckTimer. Text view was null but timer was still going")
+                        stopRemoveCardTimer()
+                        return
+                    }
+                    if (squareReaderState.contains("Reader Ready")) {
                         Log.i(tag, "Reader checked via readerCheckTimer. Reader is Connected")
                         LoggerHelper.writeToLog("$tag, Reader checked via readerCheckTimer. Reader is Connected")
                         VehicleTripArrayHolder.updateReaderStatus(ReaderStatusEnum.CONNECTED.status)
@@ -400,7 +406,12 @@ class SquareService : OnLayoutChangeListener,
                     val newViewGroup =
                         squareActivity?.findViewById<TextView>(com.squareup.sdk.reader.api.R.id.reader_message_bar_current_text_view)
                     val squareReaderState = newViewGroup?.text
-                    if(squareReaderState!!.contains("Establishing Secure Connection")){
+                    if (squareReaderState == null){
+                        Log.i(tag, "Reader checked via readerCheckTimer. Text view was null but timer was still going")
+                        LoggerHelper.writeToLog("$tag, Reader checked via readerCheckTimer. Text view was null but timer was still going")
+                        return
+                    }
+                    if(squareReaderState.contains("Establishing Secure Connection")){
                         Log.i(tag, "Reader checked via readerCheckTimer. Reader has failed")
                         LoggerHelper.writeToLog("$tag, Reader checked via readerCheckTimer. Reader is still establishing connection after 20 seconds. Reader Failed")
                         VehicleTripArrayHolder.updateReaderStatus(ReaderStatusEnum.FAILED.status)

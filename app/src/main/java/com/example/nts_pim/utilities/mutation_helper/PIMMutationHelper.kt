@@ -123,4 +123,8 @@ object PIMMutationHelper {
         }
     }
 
+    fun updateTabletPhoneNumber(phoneNumber: String, appSyncClient: AWSAppSyncClient, vehicleId: String){
+
+    }
+
 }
