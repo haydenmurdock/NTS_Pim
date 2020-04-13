@@ -402,14 +402,11 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
         }
     }
     private fun startTimerToSendLogsToAWS(vehicleId: String, context: Context){
-        Log.i("LOGGER", "Log Timer Started")
-            loggingTimer = object: CountDownTimer(3000, 1000){
-            override fun onTick(millisUntilFinished: Long) {
-                val seconds = millisUntilFinished/1000
-  //              Log.i("LOGGER", "Log Timer: $seconds until logs are sent to AWS")
-            }
+            val logTimerTime = LoggerHelper.loggingTime
+            loggingTimer = object: CountDownTimer(logTimerTime, 1000){
+            override fun onTick(millisUntilFinished: Long) {}
             override fun onFinish() {
-                Log.i("LOGGER", "Log Timer: onFinish")
+                Log.i("LOGGER", "Log Timer: onFinish, Logging time:$logTimerTime")
                 launch(Dispatchers.IO) {
                     LoggerHelper.sendLogToAWS(vehicleId)
                 }
@@ -507,7 +504,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
         }
     }
     private fun goToPowerCycleApp() {
-        //This function is for futhure use if we decide to use our own kiosk mode
+        //This function is for future use if we decide to use our own kiosk mode
         val launchIntent =
             packageManager.getLaunchIntentForPackage("com.claren.tablet_control")
         if (launchIntent != null) {

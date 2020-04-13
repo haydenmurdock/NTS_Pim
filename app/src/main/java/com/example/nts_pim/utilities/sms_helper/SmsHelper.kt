@@ -7,6 +7,7 @@ import java.util.concurrent.TimeUnit
 import org.json.JSONException
 import org.json.JSONObject
 import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.RequestBody.Companion.toRequestBody
 import java.net.URL
 
 object SmsHelper {
@@ -30,8 +31,8 @@ object SmsHelper {
                 Log.i("ERROR", "JSON error $e")
              }
 
-        val body = RequestBody.create(jSON, json.toString())
-        Log.i("URL","Json body :  ${json}")
+        val body = json.toString().toRequestBody(jSON)
+        Log.i("URL","Json body :  $json")
         val url = URL("https://5s27urxc78.execute-api.us-east-2.amazonaws.com/test/sendReceipt")
 
         val request = Request.Builder()

@@ -22,8 +22,8 @@ import java.util.concurrent.TimeUnit
 
 object LoggerHelper {
     var logging = false
+    var loggingTime:Long = 3000
     private val dateTimeStamp = SimpleDateFormat("yyyy_MM_dd").format(Date())
-    private val FILENAME = "Pim_log_$dateTimeStamp.txt"
     private val timeTimeStamp = SimpleDateFormat("HH:mm:ss")
     val charset = Charsets.UTF_8
     private var logToSend: String? = null
@@ -32,7 +32,6 @@ object LoggerHelper {
     private const val logFragmentEndStamp = "-LOG FRAGMENT END-"
     private const val permissionGranted = 0
     private val pimContext = PimApplication.pimContext
-
 
     internal fun writeToLog (log: String){
         val readPermission = ContextCompat.checkSelfPermission(pimContext, Manifest.permission.READ_EXTERNAL_STORAGE)

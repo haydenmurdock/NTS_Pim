@@ -87,12 +87,12 @@ class PowerAccessibilityService: AccessibilityService() {
                 }
 
             }
-            logViewHierarchy(rootInActiveWindow, 2)
+            logViewHierarchy()
         } catch (e: Exception) {
             e.printStackTrace()
         }
     }
-    private fun logViewHierarchy(nodeInfo: AccessibilityNodeInfo, depth: Int) {
+    private fun logViewHierarchy() {
         try {
         }catch (e: Exception) {
             e.printStackTrace()

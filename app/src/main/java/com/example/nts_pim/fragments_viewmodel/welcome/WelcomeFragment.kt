@@ -75,7 +75,6 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
     private var isOnActiveTrip = false
     private var lastTrip:Pair<Boolean?, String> = Pair(false, "")
     private val currentFragmentId = R.id.welcome_fragment
-    private var pimIsReadyToTakeTrip = false
     private val logFragment = "Welcome Screen"
 
     private val batteryCheckTimer = object : CountDownTimer( 3600000, 1000) {
@@ -219,8 +218,12 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
         })
 
         PIMMutationHelper.updatePIMStatus(vehicleId, PIMStatusEnum.WELCOME_SCREEN.status, mAWSAppSyncClient!!)
+        changeLoggingTimer()
     }
-
+    private fun changeLoggingTimer(){
+        LoggerHelper.loggingTime = 180000
+        Log.i(tag,"Logging time was set to ${LoggerHelper.loggingTime}")
+    }
     private fun setUpSquare(){
         if (!VehicleTripArrayHolder.squareHasBeenSetUp) {
             Log.i("PimApplication", "started squareFlow since square trip Array holder has not been setup")

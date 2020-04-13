@@ -158,15 +158,15 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
             ).show()
             updatePowerButtonUI(batteryPermission)
         }
-
-        show_bt_paired_devices_imageView.setOnClickListener{
-            val pairedDevices = bluetoothDeviceAdapter.bondedDevices
-             mArrayAdapter = ArrayAdapter(activity, R.layout.dialog_select_bluetooth_device)
-            pairedDevices.forEach {device->
-                devices.add(device.name)
-                mArrayAdapter!!.add((if (device.name != null) device.name else "Unknown") + "\n" + device.address+ "\nPaired")
-            }
-        }
+//      This is for future bluetooth use 
+//        show_bt_paired_devices_imageView.setOnClickListener{
+//            val pairedDevices = bluetoothDeviceAdapter.bondedDevices
+//             mArrayAdapter = ArrayAdapter(activity, R.layout.dialog_select_bluetooth_device)
+//            pairedDevices.forEach {device->
+//                devices.add(device.name)
+//                mArrayAdapter!!.add((if (device.name != null) device.name else "Unknown") + "\n" + device.address+ "\nPaired")
+//            }
+//        }
     }
 
     private fun getAuthorizationCode(vehicleId: String) {

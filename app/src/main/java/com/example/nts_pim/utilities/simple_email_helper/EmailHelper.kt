@@ -7,6 +7,7 @@ import org.json.JSONException
 import org.json.JSONObject
 import java.util.concurrent.TimeUnit
 import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.IOException
 
 
@@ -31,7 +32,7 @@ object EmailHelper {
         } catch (e: JSONException){
             Log.i("ERROR", "JSON error $e")
         }
-        val body = RequestBody.create(JSON, json.toString())
+        val body = json.toString().toRequestBody(JSON)
 
         val url = "https://5s27urxc78.execute-api.us-east-2.amazonaws.com/prod/sendReceipt"
         val request = Request.Builder()
