@@ -33,6 +33,7 @@ subscription OnSettingsUpdate($deviceId: String) {
     obdBtAddr
     obdBtName
     odometer
+    phoneNbr
     protocol
     receiptNbr
     recvPort
@@ -63,6 +64,7 @@ subscription OnStatusUpdate($vehicleId: String) {
     lat
     lng
     locationTimeStamp
+    signinStatusTimeStamp
     meterPaidDist
     meterRate1Set
     meterRate2Set
@@ -72,6 +74,7 @@ subscription OnStatusUpdate($vehicleId: String) {
     pimStatus
     postedStatus
     readerStatus
+    readerStatusTimeStamp
     tripId
     tripStatus
     vehicleId
@@ -158,6 +161,7 @@ subscription OnUpdatePimStatus($vehicleId: String) {
     lat
     lng
     locationTimeStamp
+    signinStatusTimeStamp
     meterPaidDist
     meterRate1Set
     meterRate2Set
@@ -167,6 +171,7 @@ subscription OnUpdatePimStatus($vehicleId: String) {
     pimStatus
     postedStatus
     readerStatus
+    readerStatusTimeStamp
     tripId
     tripStatus
     vehicleId
@@ -181,6 +186,7 @@ subscription OnUpdateVehTripStatus($vehicleId: String) {
     lat
     lng
     locationTimeStamp
+    signinStatusTimeStamp
     meterPaidDist
     meterRate1Set
     meterRate2Set
@@ -190,6 +196,7 @@ subscription OnUpdateVehTripStatus($vehicleId: String) {
     pimStatus
     postedStatus
     readerStatus
+    readerStatusTimeStamp
     tripId
     tripStatus
     vehicleId
@@ -350,5 +357,6 @@ subscription OnPimSettingsUpdate($deviceId: String) {
     appVersion
     reAuthSquare
     useBluetooth
+    phoneNbr
   }
 }

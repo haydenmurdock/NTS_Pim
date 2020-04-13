@@ -91,6 +91,7 @@ mutation UpdateBluetooth($parameters: updateBluetoothInput) {
     obdBtAddr
     obdBtName
     odometer
+    phoneNbr
     protocol
     receiptNbr
     recvPort
@@ -121,6 +122,7 @@ mutation UpdatePimStatus($parameters: updatePimStatusInput) {
     lat
     lng
     locationTimeStamp
+    signinStatusTimeStamp
     meterPaidDist
     meterRate1Set
     meterRate2Set
@@ -130,6 +132,7 @@ mutation UpdatePimStatus($parameters: updatePimStatusInput) {
     pimStatus
     postedStatus
     readerStatus
+    readerStatusTimeStamp
     tripId
     tripStatus
     vehicleId
@@ -169,6 +172,7 @@ mutation UpdateSettings($parameters: updateSettingsInput) {
     obdBtAddr
     obdBtName
     odometer
+    phoneNbr
     protocol
     receiptNbr
     recvPort
@@ -199,6 +203,7 @@ mutation UpdateStatus($parameters: updateStatusInput) {
     lat
     lng
     locationTimeStamp
+    signinStatusTimeStamp
     meterPaidDist
     meterRate1Set
     meterRate2Set
@@ -208,6 +213,7 @@ mutation UpdateStatus($parameters: updateStatusInput) {
     pimStatus
     postedStatus
     readerStatus
+    readerStatusTimeStamp
     tripId
     tripStatus
     vehicleId
@@ -294,6 +300,7 @@ mutation UpdateTripStatus($parameters: updateTripStatusInput) {
     lat
     lng
     locationTimeStamp
+    signinStatusTimeStamp
     meterPaidDist
     meterRate1Set
     meterRate2Set
@@ -303,6 +310,7 @@ mutation UpdateTripStatus($parameters: updateTripStatusInput) {
     pimStatus
     postedStatus
     readerStatus
+    readerStatusTimeStamp
     tripId
     tripStatus
     vehicleId
@@ -342,6 +350,7 @@ mutation UploadSettings($parameters: updateSettingsInput) {
     obdBtAddr
     obdBtName
     odometer
+    phoneNbr
     protocol
     receiptNbr
     recvPort
@@ -387,6 +396,7 @@ mutation UpdateDeviceIdToImei($parameters: updateDeviceIdToIMEIInput) {
     appVersion
     reAuthSquare
     useBluetooth
+    phoneNbr
   }
 }
 mutation UpdateTripFare($parameters: updateTripFareInput) {
@@ -542,6 +552,7 @@ mutation UpdateVehTripStatus($parameters: updateVehTripStatusInput) {
     lat
     lng
     locationTimeStamp
+    signinStatusTimeStamp
     meterPaidDist
     meterRate1Set
     meterRate2Set
@@ -551,6 +562,7 @@ mutation UpdateVehTripStatus($parameters: updateVehTripStatusInput) {
     pimStatus
     postedStatus
     readerStatus
+    readerStatusTimeStamp
     tripId
     tripStatus
     vehicleId
@@ -711,6 +723,7 @@ mutation ResetReAuthSquare($parameters: resetReAuthSquareInput) {
     appVersion
     reAuthSquare
     useBluetooth
+    phoneNbr
   }
 }
 mutation UpdatePimSettings($parameters: updatePIMSettingsInput) {
@@ -724,6 +737,7 @@ mutation UpdatePimSettings($parameters: updatePIMSettingsInput) {
     appVersion
     reAuthSquare
     useBluetooth
+    phoneNbr
   }
 }
 mutation UpdatePimSettingsPortal($parameters: updatePIMSettingsPortalInput) {
@@ -737,5 +751,6 @@ mutation UpdatePimSettingsPortal($parameters: updatePIMSettingsPortalInput) {
     appVersion
     reAuthSquare
     useBluetooth
+    phoneNbr
   }
 }

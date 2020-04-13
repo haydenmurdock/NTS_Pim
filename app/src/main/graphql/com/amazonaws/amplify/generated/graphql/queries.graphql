@@ -82,12 +82,14 @@ query GetPimSettings(
   $pin: String
   $btAddress: String
   $appVersion: String
+  $phoneNbr: String
 ) {
   getPIMSettings(
     deviceId: $deviceId
     pin: $pin
     btAddress: $btAddress
     appVersion: $appVersion
+    phoneNbr: $phoneNbr
   ) {
     deviceId
     error
@@ -98,10 +100,21 @@ query GetPimSettings(
     appVersion
     reAuthSquare
     useBluetooth
+    phoneNbr
   }
 }
-query GetSettings($deviceId: String!, $pin: String, $appVersion: String) {
-  getSettings(deviceId: $deviceId, pin: $pin, appVersion: $appVersion) {
+query GetSettings(
+  $deviceId: String!
+  $pin: String
+  $appVersion: String
+  $phoneNbr: String
+) {
+  getSettings(
+    deviceId: $deviceId
+    pin: $pin
+    appVersion: $appVersion
+    phoneNbr: $phoneNbr
+  ) {
     airportControl
     appVersion
     autoPrint
@@ -134,6 +147,7 @@ query GetSettings($deviceId: String!, $pin: String, $appVersion: String) {
     obdBtAddr
     obdBtName
     odometer
+    phoneNbr
     protocol
     receiptNbr
     recvPort
@@ -164,6 +178,7 @@ query GetStatus($vehicleId: String!) {
     lat
     lng
     locationTimeStamp
+    signinStatusTimeStamp
     meterPaidDist
     meterRate1Set
     meterRate2Set
@@ -173,6 +188,7 @@ query GetStatus($vehicleId: String!) {
     pimStatus
     postedStatus
     readerStatus
+    readerStatusTimeStamp
     tripId
     tripStatus
     vehicleId
@@ -430,6 +446,7 @@ query GetLoggingSettings($deviceId: String!) {
     appVersion
     reAuthSquare
     useBluetooth
+    phoneNbr
   }
 }
 query GetPimInfo($vehicleId: String!) {
@@ -443,5 +460,6 @@ query GetPimInfo($vehicleId: String!) {
     appVersion
     reAuthSquare
     useBluetooth
+    phoneNbr
   }
 }
