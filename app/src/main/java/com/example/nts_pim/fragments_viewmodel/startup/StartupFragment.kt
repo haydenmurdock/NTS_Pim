@@ -1,15 +1,23 @@
 package com.example.nts_pim.fragments_viewmodel.startup
 
+import android.Manifest
+import android.annotation.SuppressLint
+import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
+import android.telephony.TelephonyManager
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
+import androidx.core.content.ContextCompat.getSystemService
 import androidx.lifecycle.ViewModelProviders
 import androidx.navigation.NavController
 import androidx.navigation.Navigation
@@ -67,6 +75,7 @@ class StartupFragment: ScopedFragment(), KodeinAware {
     private var blueToothAddress: String? = null
     private var deviceId: String? = null
     private var vehicleId: String? = null
+    private var phoneNumber: String? = null
     private val currentFragmentId = R.id.startupFragment
 
 
@@ -78,6 +87,7 @@ class StartupFragment: ScopedFragment(), KodeinAware {
 
     }
 
+    @SuppressLint("HardwareIds")
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
@@ -85,6 +95,22 @@ class StartupFragment: ScopedFragment(), KodeinAware {
             .get(VehicleSetupViewModel::class.java)
         navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
         mAWSAppSyncClient = ClientFactory.getInstance(activity!!.applicationContext)
+        val telephonyManager = context?.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
+        if (ActivityCompat.checkSelfPermission(
+                context!!,
+                Manifest.permission.READ_SMS
+            ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
+                context!!,
+                Manifest.permission.READ_PHONE_NUMBERS
+            ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
+                context!!,
+                Manifest.permission.READ_PHONE_STATE
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            getPhoneNumberPermissions()
+            return
+        }
+        phoneNumber = telephonyManager.line1Number
         val isSetupComplete = viewModel.isSetUpComplete()
         if(isSetupComplete){
             val deviceId = ModelPreferences(context!!).getObject(SharedPrefEnum.DEVICE_ID.key, DeviceID::class.java)
@@ -118,21 +144,26 @@ class StartupFragment: ScopedFragment(), KodeinAware {
                 val awsBluetoothAddress = response.data()?.pimSettings?.btAddress()
                 val appVersion = response.data()?.pimSettings?.appVersion()
                 val reAuth = response.data()?.pimSettings?.reAuthSquare()
+                val awsPhoneNumber = response.data()?.pimSettings?.phoneNbr()
 
                 if(isLoggingOn != null){
                     Log.i("LOGGER", "AWS Query callback: isLoggingOn = $isLoggingOn")
                     LoggerHelper.logging = isLoggingOn
                 }
                 if (awsBluetoothAddress.isNullOrEmpty() || awsBluetoothAddress != blueToothAddress){
-                PIMMutationHelper.updatePimSettings(blueToothAddress, appVersionNumber, mAWSAppSyncClient!!,deviceId!!)
+                PIMMutationHelper.updatePimSettings(blueToothAddress, appVersionNumber, phoneNumber, mAWSAppSyncClient!!,deviceId!!)
                 }
 
                 if(appVersion.isNullOrBlank() || appVersion.isNullOrEmpty() || appVersion != appVersionNumber){
-                    PIMMutationHelper.updatePimSettings(blueToothAddress, appVersionNumber, mAWSAppSyncClient!!, deviceId!!)
+                    PIMMutationHelper.updatePimSettings(blueToothAddress, appVersionNumber, phoneNumber, mAWSAppSyncClient!!, deviceId!!)
                 }
                 if(reAuth != null && reAuth){
                     Log.i("LOGGER", "$vehicleId ReAuth: $reAuth.  Trying to reauthorize")
                     reauthorizeSquare()
+                }
+                if(awsPhoneNumber != phoneNumber){
+                    Log.i("LOGGER", "updating aws with phone number. AWS number: $awsPhoneNumber, phone number: $phoneNumber")
+                    PIMMutationHelper.updatePimSettings(blueToothAddress, appVersionNumber, phoneNumber, mAWSAppSyncClient!!, deviceId!!)
                 }
             }
         }
@@ -208,7 +239,6 @@ class StartupFragment: ScopedFragment(), KodeinAware {
                 sendBackAuthMutation(vehicleId)
             }
         }
-        val isReaderSdkAuthorized = ReaderSdk.authorizationManager().authorizationState.isAuthorized
         ReaderSdk.authorizationManager().authorize(authorizationCode)
     }
 
@@ -238,7 +268,8 @@ class StartupFragment: ScopedFragment(), KodeinAware {
     }
 
     private fun checkAccessibilityPermission():Boolean {
-        val retVal = PowerAccessibilityService().isAccessibilitySettingsOn(context!!)
+//        val retVal = PowerAccessibilityService().isAccessibilitySettingsOn(context!!)
+        val retVal = true
         if(!retVal){
             startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
         }
@@ -300,6 +331,34 @@ class StartupFragment: ScopedFragment(), KodeinAware {
         i.setData(Uri.parse("package:" + context!!.getPackageName()))
         i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         startActivity(i)
+    }
+    private fun getPhoneNumberPermissions(){
+        val REQUEST_CODE_ASK_PERMISSIONS = 1
+        val REQUIRED_SDK_PERMISSIONS = arrayOf(
+            Manifest.permission.READ_SMS,
+            Manifest.permission.READ_PHONE_NUMBERS
+        )
+
+        val missingPermissions = ArrayList<String>()
+        // check all required dynamic permissions
+        for (permission in REQUIRED_SDK_PERMISSIONS) {
+            val result = ContextCompat.checkSelfPermission(context!!, permission)
+            if (result != PackageManager.PERMISSION_GRANTED) {
+                missingPermissions.add(permission)
+            }
+        }
+        if (missingPermissions.isNotEmpty()) {
+            // request all missing permissions
+            val permissions = missingPermissions
+                .toTypedArray()
+            ActivityCompat.requestPermissions(this.activity!!, permissions, REQUEST_CODE_ASK_PERMISSIONS)
+        } else {
+            val grantResults = IntArray(REQUIRED_SDK_PERMISSIONS.size)
+            Arrays.fill(grantResults, PackageManager.PERMISSION_GRANTED)
+            onRequestPermissionsResult(
+                REQUEST_CODE_ASK_PERMISSIONS, REQUIRED_SDK_PERMISSIONS,
+                grantResults)
+        }
     }
 
     private fun changeScreenBrightness(screenBrightness: Int) {

@@ -19,6 +19,7 @@ import com.apollographql.apollo.GraphQLCall
 import com.apollographql.apollo.api.Response
 import com.apollographql.apollo.exception.ApolloException
 import com.example.nts_pim.R
+import com.example.nts_pim.data.repository.VehicleTripArrayHolder
 import com.example.nts_pim.fragments_viewmodel.InjectorUtiles
 import com.example.nts_pim.fragments_viewmodel.base.ClientFactory
 import com.example.nts_pim.fragments_viewmodel.base.ScopedFragment
@@ -27,6 +28,8 @@ import com.example.nts_pim.fragments_viewmodel.live_meter.LiveMeterViewModel
 import com.example.nts_pim.fragments_viewmodel.live_meter.LiveMeterViewModelFactory
 import com.example.nts_pim.utilities.enums.MeterEnum
 import com.example.nts_pim.utilities.enums.PIMStatusEnum
+import com.example.nts_pim.utilities.enums.ReaderStatusEnum
+import com.example.nts_pim.utilities.enums.VehicleStatusEnum
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import com.example.nts_pim.utilities.mutation_helper.PIMMutationHelper
 import com.example.nts_pim.utilities.sound_helper.SoundHelper
@@ -620,7 +623,7 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
             }
             if (error.code ==  CheckoutErrorCode.USAGE_ERROR) {
                 Toast.makeText(context,
-                    "Usage ERROR: Checkout needs to be $1.00 or more",
+                    "Usage ERROR: ${error.message}, ErrorDebug Message: ${error.debugMessage}",
                     Toast.LENGTH_SHORT
                 ).show()
                 PIMMutationHelper.updatePIMStatus(vehicleId, PIMStatusEnum.PAYMENT_ERROR.status, mAWSAppSyncClient!!)
@@ -663,6 +666,16 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
                 mAWSAppSyncClient!!,
                 "card",
                 tripId)
+        }
+        if(cardInfo != ""){
+            if(VehicleTripArrayHolder.cardReaderStatus != ReaderStatusEnum.CONNECTED.status){
+                VehicleTripArrayHolder.cardReaderStatus = ReaderStatusEnum.CONNECTED.status
+                LoggerHelper.writeToLog("internal status was not connected, but processed a payment. updating to connected")
+                PIMMutationHelper.updateReaderStatus(
+                    vehicleId,
+                    VehicleTripArrayHolder.cardReaderStatus,
+                    mAWSAppSyncClient!!)
+            }
         }
     }
 

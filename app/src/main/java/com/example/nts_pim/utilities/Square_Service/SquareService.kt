@@ -17,6 +17,7 @@ import android.widget.Button
 import android.widget.ImageView
 import androidx.core.view.get
 import androidx.core.view.isVisible
+import androidx.navigation.NavController
 import androidx.navigation.Navigation
 import com.bumptech.glide.Glide
 import com.example.nts_pim.R
@@ -53,6 +54,7 @@ class SquareService : OnLayoutChangeListener,
     private var mSuccessPlayed = false
     private var userHasRemovedCard = false
     private var tag = "Square"
+    private var navController: NavController? = null
 
 
     private enum class SqUIState {
@@ -97,20 +99,9 @@ class SquareService : OnLayoutChangeListener,
             viewGroup?.setOnTouchListener(this)// Call this method each time the activity layout changes
             state = SqUIState.INIT_STATE
             mSuccessPlayed = true
-
-            if (!VehicleTripArrayHolder.squareHasBeenSetUp &&
-                VehicleTripArrayHolder.cardReaderStatusHasBeenChecked){
-                val navController = MainActivity.navigationController
-                if(navController.currentDestination?.id == R.id.welcome_fragment){
-                    viewGroup!!.visibility = View.INVISIBLE
-                    closeSquareForSoundCheck()
-                    LoggerHelper.writeToLog("$tag, Square call is on welcome screen, view should be invisible")
-                }
-                //I tried view.gone but it didn't change anything.
-            } else {
-                turnUpVolume()
-                stateMachine(viewGroup!!, squareActivity!!)
-            }
+            navController = MainActivity.navigationController
+            turnUpVolume()
+            stateMachine(viewGroup!!, squareActivity!!)
         }
     }
     // Os, for every layout change of the square activity we will look at what is on the screen to figure out what square is doing
@@ -200,7 +191,11 @@ class SquareService : OnLayoutChangeListener,
                     Log.i(tag, "Square is in swipe state")
                     turnUpVolume()
                     SoundHelper.turnOffSound(activity.applicationContext)
-                    insertCardView = View.inflate(activity, R.layout.insert_card, viewGroup)
+                    val navController = MainActivity.navigationController
+                    if(navController.currentDestination?.id == R.id.tipScreenFragment){
+                        insertCardView = View.inflate(activity, R.layout.insert_card, viewGroup)
+                    }
+
                     if (insertCardView != null){
                         val backButton = activity.findViewById<ImageView>(R.id.insert_card_back_btn)
                          backButton?.setOnClickListener{
@@ -340,21 +335,22 @@ class SquareService : OnLayoutChangeListener,
 
                         }
                         if (squareReaderState.contains("Reader Not Ready")) {
+                            //The card list showed the reader as not ready so we need to start the checking process.
                             LoggerHelper.writeToLog("$tag, Square service is on Reader Not Ready- aka- failed status")
-                            stopReaderCheckTimeout()
                             Log.i(tag, "Reader has failed to connect")
                             VehicleTripArrayHolder.updateReaderStatus(ReaderStatusEnum.FAILED.status)
-                            VehicleTripArrayHolder.needToReAuthorizeSquare()
-                            viewGroup.removeView(cardReaderCheckView)
                             Log.i(tag, "Removed Square Card Reader View")
-                            squareActivity?.finish()
+                            stopReaderCheckTimeout()
+                            startReaderCheckTimeout()
                         }
 
                         if (squareReaderState.contains("Reader Ready") ) {
+                            //The card list showed the reader as connected so no need to start the checking process.
                             LoggerHelper.writeToLog("$tag, Square service is on card reader list in Reader Ready status")
-                            stopReaderCheckTimeout()
                             Log.i(tag, "Reader is connected and ready")
+                            stopReaderCheckTimeout()
                             VehicleTripArrayHolder.updateReaderStatus(ReaderStatusEnum.CONNECTED.status)
+                            VehicleTripArrayHolder.squareHasBeenSetUp = true
                             removeSquareReaderView()
                         }
                     }
@@ -374,8 +370,9 @@ class SquareService : OnLayoutChangeListener,
     }
     // Swipe screen timeout and crude animation
     private fun startReaderCheckTimeout(){
+        //This is where we check the reader during the process of connecting. If the reader connects during the check we close down the checking process and move on.
         if(readerCheckTimer == null){
-            readerCheckTimer = object :CountDownTimer(20000, 2500){
+            readerCheckTimer = object :CountDownTimer(60000, 2500){
                 override fun onTick(millisUntilFinished: Long) {
                     val newViewGroup =
                         squareActivity?.findViewById<TextView>(com.squareup.sdk.reader.api.R.id.reader_message_bar_current_text_view)
@@ -384,7 +381,7 @@ class SquareService : OnLayoutChangeListener,
                     if (squareReaderState == null){
                         Log.i(tag, "Reader checked via readerCheckTimer. Text view was null but timer was still going")
                         LoggerHelper.writeToLog("$tag, Reader checked via readerCheckTimer. Text view was null but timer was still going")
-                        stopRemoveCardTimer()
+                        stopReaderCheckTimeout()
                         return
                     }
                     if (squareReaderState.contains("Reader Ready")) {
@@ -392,14 +389,6 @@ class SquareService : OnLayoutChangeListener,
                         LoggerHelper.writeToLog("$tag, Reader checked via readerCheckTimer. Reader is Connected")
                         VehicleTripArrayHolder.updateReaderStatus(ReaderStatusEnum.CONNECTED.status)
                         onFinish()
-                    }
-                    if(squareReaderState.contains("Reader Not Ready")){
-                        Log.i(tag, "Reader checked via readerCheckTimer. Reader has failed")
-                        LoggerHelper.writeToLog("$tag, Reader checked via readerCheckTimer. Reader has failed")
-                        VehicleTripArrayHolder.updateReaderStatus(ReaderStatusEnum.FAILED.status)
-                        VehicleTripArrayHolder.needToReAuthorizeSquare()
-                        stopReaderCheckTimeout()
-                        squareActivity!!.finish()
                     }
                 }
                 override fun onFinish() {
@@ -411,14 +400,26 @@ class SquareService : OnLayoutChangeListener,
                         LoggerHelper.writeToLog("$tag, Reader checked via readerCheckTimer. Text view was null but timer was still going")
                         return
                     }
-                    if(squareReaderState.contains("Establishing Secure Connection")){
+                    if(squareReaderState.contains("Reader Not Ready")){
                         Log.i(tag, "Reader checked via readerCheckTimer. Reader has failed")
-                        LoggerHelper.writeToLog("$tag, Reader checked via readerCheckTimer. Reader is still establishing connection after 20 seconds. Reader Failed")
+                        LoggerHelper.writeToLog("$tag, Reader checked via readerCheckTimer. Reader has failed")
                         VehicleTripArrayHolder.updateReaderStatus(ReaderStatusEnum.FAILED.status)
                         VehicleTripArrayHolder.needToReAuthorizeSquare()
-                        stopReaderCheckTimeout()
-                        squareActivity!!.finish()
+                        removeSquareReaderView()
+                    }
+                    if(squareReaderState.contains("Establishing Secure Connection")){
+                        Log.i(tag, "Reader checked via readerCheckTimer. Reader has failed")
+                        LoggerHelper.writeToLog("$tag, Reader checked via readerCheckTimer. Reader is still establishing connection after 60 seconds. Reader Failed")
+                        VehicleTripArrayHolder.updateReaderStatus(ReaderStatusEnum.FAILED.status)
+                        VehicleTripArrayHolder.needToReAuthorizeSquare()
+                        removeSquareReaderView()
+                    }
+                    if(squareReaderState.contains("Press Button on Reader to Connect – Learn More")){
+                        VehicleTripArrayHolder.updateReaderStatus(ReaderStatusEnum.UNAVAILABLE.status)
+                        removeSquareReaderView()
                     } else {
+                        Log.i(tag, "Reader check timer finished, but the square square was unknown. reader state == $squareReaderState")
+                        LoggerHelper.writeToLog("$tag Reader check timer finished, but the square square was unknown. reader state == $squareReaderState")
                         removeSquareReaderView()
                     }
                 }
@@ -437,11 +438,13 @@ class SquareService : OnLayoutChangeListener,
     private fun removeSquareReaderView(){
         if(cardReaderCheckView != null){
             VehicleTripArrayHolder.readerStatusHasBeenChecked()
-            viewGroup?.removeView(cardReaderCheckView)
-            Log.i(tag, "Removed Square Card Reader View")
-            Log.i(tag, "Reader checked via readerCheckTimer. Reader has failed")
-            LoggerHelper.writeToLog("$tag, Removed Square Reader Check View and activity.finished() was called")
-            squareActivity!!.finish()
+            viewGroup?.removeView(cardReaderCheckView).run {
+                Log.i(tag, "Removed Square Card Reader View")
+                LoggerHelper.writeToLog("$tag, Removed Square Reader Check View and activity.finished() was called")
+            }
+            squareActivity!!.finish().run {
+                VehicleTripArrayHolder.numberOfReaderChecks += 1
+            }
         }
     }
     private fun startTimeout() {

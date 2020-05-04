@@ -6,6 +6,7 @@ import android.os.Handler
 import android.view.WindowManager.LayoutParams
 import java.lang.Exception
 
+@Suppress("DEPRECATION")
 class UnlockScreenLock: Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

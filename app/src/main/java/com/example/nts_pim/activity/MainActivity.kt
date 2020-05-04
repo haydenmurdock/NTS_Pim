@@ -14,7 +14,6 @@ import android.os.CountDownTimer
 import android.util.Log
 import android.view.View
 import android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProviders
@@ -35,12 +34,15 @@ import com.example.nts_pim.R
 import com.example.nts_pim.UnlockScreenLock
 import com.example.nts_pim.data.repository.VehicleTripArrayHolder
 import com.example.nts_pim.data.repository.model_objects.CurrentTrip
+import com.example.nts_pim.data.repository.model_objects.DeviceID
 import com.example.nts_pim.data.repository.providers.ModelPreferences
+import com.example.nts_pim.data.repository.providers.PreferenceProvider
 import com.example.nts_pim.fragments_viewmodel.InjectorUtiles
 import com.example.nts_pim.fragments_viewmodel.base.ClientFactory
 import com.example.nts_pim.fragments_viewmodel.callback.CallBackViewModel
 import com.example.nts_pim.fragments_viewmodel.vehicle_setup.VehicleSetupModelFactory
 import com.example.nts_pim.fragments_viewmodel.vehicle_setup.VehicleSetupViewModel
+import com.example.nts_pim.utilities.bluetooth_helper.BlueToothHelper
 import com.example.nts_pim.utilities.enums.PIMStatusEnum
 import com.example.nts_pim.utilities.enums.SharedPrefEnum
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
@@ -77,7 +79,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
         null
     private var subscriptionWatcherUpdateVehTripStatus: AppSyncSubscriptionCall<OnUpdateVehTripStatusSubscription.Data>? =
         null
-    private var subscriptionWatcherReauthorizeSquare: AppSyncSubscriptionCall<OnPimSettingsUpdateSubscription.Data>? =
+    private var subscriptionWatcherUpdatePimSettings: AppSyncSubscriptionCall<OnPimSettingsUpdateSubscription.Data>? =
         null
     private var loggingTimer: CountDownTimer? = null
     private var vehicleSubscriptionTimer: CountDownTimer? = null
@@ -88,7 +90,6 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
         lateinit var mainActivity: MainActivity
         lateinit var navigationController: NavController
     }
-
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -114,6 +115,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                     subscribeToUpdateVehTripStatus(vehicleId)
                     LoggerHelper.writeToLog("$logFragment, vehicle setup complete, started subscription to vehicle")
                     Log.i("Results", "Tried to subscribe to $vehicleId because setup is complete")
+                    subscriptionWatcherUpdatePimSettings
                 } else {
                     recheckInternetConnection(this)
                 }
@@ -142,7 +144,6 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                 lastTrip = currentTrip
                 if (!vehicleSubscriptionComplete) {
                     Log.i("Results", "Vehicle subscription was started from re-sync")
-//                    startOnStatusUpdateSubscription(vehicleId)
                     subscribeToUpdateVehTripStatus(vehicleId)
 
                 }
@@ -174,7 +175,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                         "TripStart",
                         "current Nav destination is ${navController.currentDestination.toString()}"
                     )
-                    LoggerHelper.writeToLog("${logFragment}, Driver tried to start new trip, but the Pim was on Welcome/taxi number screen")
+                    LoggerHelper.writeToLog("${logFragment}, Driver tried to start new trip, but the Pim was on Welcome/taxi number/bluetoothsetup screen")
                 }
             }
         })
@@ -195,6 +196,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                 getMeterOwedQuery(tripId)
                 subscribeToUpdateVehTripStatus(vehicleId)
                 watchingTripId = ""
+                subscribeToUpdatePimSettings()
             }
         })
 //        callbackViewModel.isDeviceBondedViaBT().observe(this, Observer { isBTBonded->
@@ -278,7 +280,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
             val meterState = response.data()?.onDoPimPayment()?.meterState()
             val pimNoReceipt = response.data()?.onDoPimPayment()?.pimNoReceipt()
             val pimPaymentAmount = response.data()?.onDoPimPayment()?.pimPayAmt()
-            val owedPriceForMeter = response.data()?.onDoPimPayment()?.owedPrice()
+//            val owedPriceForMeter = response.data()?.onDoPimPayment()?.owedPrice()
             val tripNumber = response.data()?.onDoPimPayment()?.tripNbr()
             val transactionId = response.data()?.onDoPimPayment()?.pimTransId()
             val pimPaidAmount = response.data()?.onDoPimPayment()?.pimPaidAmt()
@@ -294,9 +296,9 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
             if (meterState != null) {
                 insertMeterState(meterState)
             }
-            if (owedPriceForMeter != null && owedPriceForMeter != 0.0){
-                insertMeterValue(owedPriceForMeter)
-            }
+//            if (owedPriceForMeter != null && owedPriceForMeter != 0.0){
+//                insertMeterValue(owedPriceForMeter)
+//            }
             if(pimPaymentAmount != null){
                 insertPimPayAmount(pimPaymentAmount)
             }
@@ -316,6 +318,39 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
             subscriptionWatcherDoPimPayment?.cancel()
             subscriptionWatcherDoPimPayment = null
         }
+        override fun onCompleted() {
+
+        }
+    }
+
+    private fun subscribeToUpdatePimSettings(){
+        val deviceId  = ModelPreferences(this).getObject(SharedPrefEnum.DEVICE_ID.key, DeviceID::class.java)
+
+      val subscription =  OnPimSettingsUpdateSubscription.builder().deviceId(deviceId?.number).build()
+        if (subscriptionWatcherUpdatePimSettings == null) {
+            subscriptionWatcherUpdatePimSettings = mAWSAppSyncClient?.subscribe(subscription)
+            subscriptionWatcherUpdatePimSettings?.execute(updatePimSettingsCallback)
+        } else {
+            subscriptionWatcherUpdatePimSettings?.cancel()
+            subscriptionWatcherUpdatePimSettings = mAWSAppSyncClient?.subscribe(subscription)
+            subscriptionWatcherUpdatePimSettings?.execute(updatePimSettingsCallback)
+        }
+
+    }
+
+    private var updatePimSettingsCallback = object : AppSyncSubscriptionCall.Callback<OnPimSettingsUpdateSubscription.Data>{
+        override fun onResponse(response: Response<OnPimSettingsUpdateSubscription.Data>) {
+            if(!response.hasErrors()){
+                val awsLog = response.data()?.onPIMSettingsUpdate()?.log()!!
+                LoggerHelper.logging = awsLog
+                Log.i("Logging", "Logging == $awsLog from updatePimSettingsCallBack")
+            }
+        }
+        override fun onFailure(e: ApolloException) {
+            subscriptionWatcherUpdatePimSettings?.cancel()
+            subscriptionWatcherUpdatePimSettings = null
+        }
+
         override fun onCompleted() {
 
         }
@@ -505,17 +540,17 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
     }
     private fun goToPowerCycleApp() {
         //This function is for future use if we decide to use our own kiosk mode
-        val launchIntent =
-            packageManager.getLaunchIntentForPackage("com.claren.tablet_control")
-        if (launchIntent != null) {
-            startActivity(launchIntent) //null pointer check in case package name was not found
-        } else {
-            Toast.makeText(
-                applicationContext,
-                "Auto Load of Pim failed, Please open PIM app",
-                Toast.LENGTH_LONG
-            ).show()
-        }
+//        val launchIntent =
+//            packageManager.getLaunchIntentForPackage("com.claren.tablet_control")
+//        if (launchIntent != null) {
+//            startActivity(launchIntent) //null pointer check in case package name was not found
+//        } else {
+//            Toast.makeText(
+//                applicationContext,
+//                "Auto Load of Pim failed, Please open PIM app",
+//                Toast.LENGTH_LONG
+//            ).show()
+//        }
     }
 
     override fun onDestroy() {
@@ -529,12 +564,13 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
         LoggerHelper.writeToLog("$logFragment, MainActivity onDestroy hit")
         stopLogTimer()
         vehicleSubscriptionTimer?.cancel()
+        BlueToothHelper.unregisterBlueToothReceiver(this)
         super.onDestroy()
     }
 
     override fun onStop() {
         Log.i("onStop", "onStop was hit")
-
+        goToPowerCycleApp()
         super.onStop()
     }
 

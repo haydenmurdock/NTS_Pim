@@ -17,14 +17,17 @@ import android.view.inputmethod.EditorInfo
 import android.widget.Toast
 import androidx.core.view.isVisible
 import androidx.lifecycle.ViewModelProviders
+import androidx.navigation.NavAction
 import androidx.navigation.Navigation
 import com.amazonaws.mobileconnectors.appsync.AWSAppSyncClient
 import com.example.nts_pim.BuildConfig
+import com.example.nts_pim.PimApplication
 import com.example.nts_pim.R
 import com.example.nts_pim.data.repository.TripDetails
 import com.example.nts_pim.data.repository.VehicleTripArrayHolder
 import com.example.nts_pim.data.repository.model_objects.AppVersion
 import com.example.nts_pim.data.repository.model_objects.CurrentTrip
+import com.example.nts_pim.data.repository.model_objects.JsonAuthCode
 import com.example.nts_pim.data.repository.providers.ModelPreferences
 import com.example.nts_pim.fragments_viewmodel.InjectorUtiles
 import com.example.nts_pim.fragments_viewmodel.base.ClientFactory
@@ -32,6 +35,7 @@ import com.example.nts_pim.fragments_viewmodel.base.ScopedFragment
 import com.example.nts_pim.fragments_viewmodel.callback.CallBackViewModel
 import com.example.nts_pim.fragments_viewmodel.vehicle_settings.setting_keyboard_viewModels.SettingsKeyboardViewModel
 import com.example.nts_pim.utilities.enums.PIMStatusEnum
+import com.example.nts_pim.utilities.enums.ReaderStatusEnum
 import com.example.nts_pim.utilities.enums.SharedPrefEnum
 import com.example.nts_pim.utilities.enums.VehicleStatusEnum
 import com.example.nts_pim.utilities.keyboards.PhoneKeyboard
@@ -39,6 +43,7 @@ import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import com.example.nts_pim.utilities.mutation_helper.PIMMutationHelper
 import com.example.nts_pim.utilities.sound_helper.SoundHelper
 import com.example.nts_pim.utilities.view_helper.ViewHelper
+import com.google.gson.Gson
 import com.squareup.sdk.reader.ReaderSdk
 import com.squareup.sdk.reader.checkout.CheckoutParameters
 import com.squareup.sdk.reader.checkout.CurrencyCode
@@ -47,11 +52,18 @@ import kotlinx.android.synthetic.main.welcome_screen.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import okhttp3.Call
+import okhttp3.Callback
+import okhttp3.OkHttpClient
+import okhttp3.Request
 import org.kodein.di.KodeinAware
 import org.kodein.di.android.x.closestKodein
 import org.kodein.di.generic.instance
+import java.io.IOException
+import java.lang.Error
 import java.time.LocalDateTime
 import java.util.*
+import java.util.logging.Logger
 import kotlin.concurrent.timerTask
 
 
@@ -64,6 +76,8 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
     private lateinit var viewModel: WelcomeViewModel
     private lateinit var callBackViewModel: CallBackViewModel
     private var mAWSAppSyncClient: AWSAppSyncClient? = null
+    private var failedReaderTimer: CountDownTimer? = null
+    private var readerSdk = ReaderSdk.authorizationManager()
     private var vehicleId = ""
     private var tripId = ""
     private var cabNumber = ""
@@ -73,6 +87,7 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
     private val fullBrightness = 255
     private val dimBrightness = 10
     private var isOnActiveTrip = false
+    private var lastReaderStatus:String? = null
     private var lastTrip:Pair<Boolean?, String> = Pair(false, "")
     private val currentFragmentId = R.id.welcome_fragment
     private val logFragment = "Welcome Screen"
@@ -123,18 +138,13 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         mAWSAppSyncClient = ClientFactory.getInstance(context)
-
         val callBackFactory = InjectorUtiles.provideCallBackModelFactory()
-
         val keyboardViewModelFactory = InjectorUtiles.provideSettingKeyboardModelFactory()
         ViewHelper.hideSystemUI(activity!!)
-
         callBackViewModel = ViewModelProviders.of(this, callBackFactory)
             .get(CallBackViewModel::class.java)
-
         viewModel = ViewModelProviders.of(this, viewModelFactory)
             .get(WelcomeViewModel::class.java)
-
         keyboardViewModel = ViewModelProviders.of(this, keyboardViewModelFactory)
             .get(SettingsKeyboardViewModel::class.java)
         // checks for animation and navigates to next Screen
@@ -152,7 +162,7 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
         batteryCheckTimer.start()
         dimScreenTimer.start()
         checkAppBuildVersion()
-        setUpSquare()
+
         //This is encase you have to restart the app during a trip or a trip
         keyboardViewModel.isPhoneKeyboardUp().observe(this.viewLifecycleOwner, androidx.lifecycle.Observer {
             if (it) {
@@ -219,15 +229,30 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
 
         PIMMutationHelper.updatePIMStatus(vehicleId, PIMStatusEnum.WELCOME_SCREEN.status, mAWSAppSyncClient!!)
         changeLoggingTimer()
+        checkInternalReaderStatus()
+        SoundHelper.turnOnSound(PimApplication.pimContext)
     }
     private fun changeLoggingTimer(){
         LoggerHelper.loggingTime = 180000
         Log.i(tag,"Logging time was set to ${LoggerHelper.loggingTime}")
     }
-    private fun setUpSquare(){
-        if (!VehicleTripArrayHolder.squareHasBeenSetUp) {
-            Log.i("PimApplication", "started squareFlow since square trip Array holder has not been setup")
-            startSquareFlow()
+    private fun checkInternalReaderStatus(){
+       lastReaderStatus = VehicleTripArrayHolder.cardReaderStatus
+        val numberOfReaderChecks = VehicleTripArrayHolder.numberOfReaderChecks
+        // 1 hour = 3600000
+        if(numberOfReaderChecks < 2){
+            failedReaderTimer = object: CountDownTimer(3600000, 6000){
+                override fun onTick(millisUntilFinished: Long) {
+                }
+                override fun onFinish() {
+                    Log.i(tag, "checking reader status again. Going back to bluetooth fragment to check reader status")
+                    VehicleTripArrayHolder.readerStatusNeedsToBeCheckedAgain()
+                    VehicleTripArrayHolder.squareHasBeenSetUp = false
+                    backToBlueToothCheck()
+                }
+            }.start()
+        } else{
+         Log.i("Square", "number of reader checks: $numberOfReaderChecks so didn't check reader again")
         }
     }
     private fun checkAnimation() {
@@ -379,19 +404,6 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
         return Pair(false, "")
     }
 
-    private fun startSquareFlow(){
-        LoggerHelper.writeToLog("$logFragment, Started Square Checkout flow")
-        SoundHelper.turnOffSound(context!!)
-        if(ReaderSdk.authorizationManager().authorizationState.isAuthorized){
-            val p = 100.00
-            val checkOutTotal = p.toLong()
-            val amountMoney = Money(checkOutTotal, CurrencyCode.current())
-            val parametersBuilder = CheckoutParameters.newBuilder(amountMoney)
-            parametersBuilder.skipReceipt(false)
-            val checkoutManager = ReaderSdk.checkoutManager()
-            checkoutManager.startCheckoutActivity(context!!, parametersBuilder.build())
-        }
-    }
     private fun updateVehicleInfoUI(){
         val vehicleSettings = viewModel.getvehicleSettings()
         if (vehicleSettings != null) {
@@ -442,19 +454,20 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
             navController.navigate(R.id.toTaxiNumber)
         }
     }
-    private fun toCashOrCard(){
+    private fun backToBlueToothCheck(){
         val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
-        if (navController.currentDestination?.id == currentFragmentId){
-            navController.navigate(R.id.trip_review_fragment)
+        if (navController.currentDestination?.id == currentFragmentId) {
+            val action = WelcomeFragmentDirections.actionWelcomeFragmentToBluetoothSetupFragment(lastReaderStatus).setLastCheckedStatus(lastReaderStatus)
+            navController.navigate(action)
         }
     }
-
     override fun onStop() {
         super.onStop()
         Log.i("PimApplication", "OnStop")
         keyboardViewModel.bothKeyboardsDown()
         batteryCheckTimer.cancel()
         dimScreenTimer.cancel()
+        failedReaderTimer?.cancel()
     }
 
     override fun onPause() {
@@ -463,6 +476,7 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
         ViewHelper.hideSystemUI(activity!!)
         batteryCheckTimer.cancel()
         dimScreenTimer.cancel()
+        failedReaderTimer?.cancel()
     }
 
     override fun onResume() {
@@ -480,6 +494,7 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
         super.onDestroy()
         callBackViewModel.getTripStatus().removeObservers(this)
         callBackViewModel.hasNewTripStarted().removeObservers(this)
+        failedReaderTimer?.cancel()
         restartAppTimer.cancel()
     }
 }

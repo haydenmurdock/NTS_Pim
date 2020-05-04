@@ -34,6 +34,8 @@ object VehicleTripArrayHolder {
 
     var cardReaderStatus = "default"
 
+    var numberOfReaderChecks = 0
+
     //Trip data
     private var tripStatus = "no status assigned"
     private var tripStatusMutableLiveData = MutableLiveData<String>()
@@ -89,6 +91,7 @@ object VehicleTripArrayHolder {
         tabletNeedsReySyncMutableLiveData.value = tabletNeedsReSync
         newTripHasStartedMutableLiveData.value = newTripHasStarted
         squareHasBeenSetUp = false
+        numberOfReaderChecks = 0
     }
 
    fun addStatus(appsyncTripStatus: String){
@@ -348,6 +351,13 @@ object VehicleTripArrayHolder {
         cardReaderStatusHasBeenCheckedMLD.postValue(cardReaderStatusHasBeenChecked)
         Log.i("Square", "Internal data: Reader Status has been checked: $cardReaderStatusHasBeenChecked")
         LoggerHelper.writeToLog("Square, Card Reader Status has been checked: $cardReaderStatusHasBeenChecked")
+    }
+
+    fun readerStatusNeedsToBeCheckedAgain(){
+        cardReaderStatusHasBeenChecked = false
+        cardReaderStatusHasBeenCheckedMLD.postValue(cardReaderStatusHasBeenChecked)
+        Log.i("Square", "Internal data: Needs to be checked again: readerStatusHasBeenChecked: $cardReaderStatusHasBeenChecked")
+        LoggerHelper.writeToLog("Square, needs to be checked again: readerStatusHasBeenChecked: $cardReaderStatusHasBeenChecked")
     }
 
     fun needToReAuthorizeSquare(){

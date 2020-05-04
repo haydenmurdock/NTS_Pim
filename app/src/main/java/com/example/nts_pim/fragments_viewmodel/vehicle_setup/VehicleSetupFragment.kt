@@ -28,7 +28,6 @@ import androidx.lifecycle.ViewModelProviders
 import androidx.navigation.Navigation
 import com.amazonaws.amplify.generated.graphql.GetPimSettingsQuery
 import com.amazonaws.amplify.generated.graphql.UpdateDeviceIdToImeiMutation
-import com.amazonaws.amplify.generated.graphql.UpdatePimSettingsMutation
 import com.amazonaws.mobileconnectors.appsync.AWSAppSyncClient
 import com.amazonaws.mobileconnectors.appsync.fetcher.AppSyncResponseFetchers
 import com.apollographql.apollo.GraphQLCall
@@ -71,17 +70,13 @@ import org.kodein.di.KodeinAware
 import org.kodein.di.android.x.closestKodein
 import org.kodein.di.generic.instance
 import type.UpdateDeviceIdToIMEIInput
-import type.UpdatePIMSettingsInput
 import java.io.IOException
 import java.lang.Error
 import java.net.NetworkInterface
 import java.util.*
 
-
 class VehicleSetupFragment:ScopedFragment(), KodeinAware {
-
     override val kodein by closestKodein()
-
     private val viewModelFactory: VehicleSetupModelFactory by instance()
     private lateinit var viewModel: VehicleSetupViewModel
     private lateinit var keyboardViewModel: SettingsKeyboardViewModel
@@ -305,7 +300,7 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
             override fun onFailure(e: ApolloException) {
             }
         }
-        mAWSAppSyncClient?.query(GetPimSettingsQuery.builder().deviceId(deviceID).pin(pin).build())
+        mAWSAppSyncClient!!.query(GetPimSettingsQuery.builder().deviceId(deviceID).pin(pin).build())
             ?.responseFetcher(AppSyncResponseFetchers.CACHE_AND_NETWORK)
             ?.enqueue(pimSettingsQueryCallBack)
     }
@@ -314,11 +309,11 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
             checkedIMEI = true
             val appVersion = BuildConfig.VERSION_NAME
             val blueToothAddress = getBluetoothAddress()
-            PIMMutationHelper.updatePimSettings(blueToothAddress, appVersion, mAWSAppSyncClient!!, imei)
+            PIMMutationHelper.updatePimSettings(blueToothAddress, appVersion, null, mAWSAppSyncClient!!, imei)
         } else {
             if (!checkedAndroidId){
                 checkedAndroidId = true
-                mAWSAppSyncClient?.query(GetPimSettingsQuery.builder().deviceId(deviceID).build())
+                mAWSAppSyncClient!!.query(GetPimSettingsQuery.builder().deviceId(deviceID).build())
                     ?.responseFetcher(AppSyncResponseFetchers.CACHE_AND_NETWORK)
                     ?.enqueue(vehicleIdQueryCallBack)
             }
@@ -703,7 +698,9 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
             Manifest.permission.ACCESS_NETWORK_STATE,
             Manifest.permission.RECEIVE_BOOT_COMPLETED,
             Manifest.permission.BLUETOOTH_ADMIN,
-            Manifest.permission.BLUETOOTH
+            Manifest.permission.BLUETOOTH,
+            Manifest.permission.READ_SMS,
+            Manifest.permission.READ_PHONE_NUMBERS
         )
 
         val missingPermissions = ArrayList<String>()

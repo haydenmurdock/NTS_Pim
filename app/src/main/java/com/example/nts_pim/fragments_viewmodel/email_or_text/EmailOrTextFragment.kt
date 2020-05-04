@@ -272,8 +272,8 @@ class EmailOrTextFragment : ScopedFragment(), KodeinAware {
                 LoggerHelper.writeToLog("$logFragment, checked AWS for custEmail. $previousEmail")
             }
 
-            if(!response.data()!!.trip.custPhoneNbr().isNullOrEmpty() ||
-                !response.data()!!.trip.custPhoneNbr().isNullOrBlank()) {
+            if(!response.data()?.trip?.custPhoneNbr().isNullOrEmpty() ||
+                !response.data()?.trip?.custPhoneNbr().isNullOrBlank()) {
                 val previousPhoneNumberAWS = response.data()?.trip?.custPhoneNbr() as String
                 previousPhoneNumber = previousPhoneNumberAWS
                 LoggerHelper.writeToLog("$logFragment, checked AWS for custEmail. $previousPhoneNumber")
@@ -336,9 +336,9 @@ class EmailOrTextFragment : ScopedFragment(), KodeinAware {
     }
 
     override fun onDestroy() {
-        super.onDestroy()
         callBackViewModel.getTripStatus().removeObservers(this)
         callBackViewModel.getIsTransactionComplete().removeObservers(this)
+        super.onDestroy()
     }
 }
 

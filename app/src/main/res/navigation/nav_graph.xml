@@ -21,6 +21,9 @@
         <action
                 android:id="@+id/action_welcome_fragment_to_trip_review_fragment"
                 app:destination="@id/trip_review_fragment" />
+        <action
+                android:id="@+id/action_welcome_fragment_to_bluetoothSetupFragment"
+                app:destination="@id/bluetoothSetupFragment" />
     </fragment>
 
     <fragment
@@ -61,7 +64,7 @@
 
     <fragment
             android:id="@+id/trip_review_fragment"
-            android:name="com.example.nts_pim.fragments_viewmodel.trip_review.TripReviewFragment"
+            android:name="com.example.nts_pim.fragments_viewmodel.trip_review.CashOrCardFragment"
             android:label="trip_review"
             tools:layout="@layout/trip_review_screen">
         <action android:id="@+id/toEmailOrText"
@@ -286,6 +289,10 @@
         <action
                 android:id="@+id/action_bluetoothSetupFragment_to_welcome_fragment"
                 app:destination="@id/welcome_fragment" />
+        <argument
+                android:name="lastCheckedStatus"
+                app:argType="string"
+                app:nullable="true" />
     </fragment>
 
 

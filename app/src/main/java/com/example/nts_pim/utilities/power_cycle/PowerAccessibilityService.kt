@@ -9,7 +9,6 @@ import android.content.pm.PackageManager
 import android.provider.Settings
 import android.util.Log
 import android.view.accessibility.AccessibilityEvent
-import android.view.accessibility.AccessibilityNodeInfo
 import android.widget.Toast
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
@@ -19,7 +18,7 @@ import com.example.nts_pim.utilities.logging_service.LoggerHelper
 class PowerAccessibilityService: AccessibilityService() {
 
     private var loggingEnabled = false
-    private var samsungVolumneWarning = false
+    private var volumeWarning = false
     private var bluetoothPairing = false
     private val clarenTablet = "com.claren.tablet_control.shutdown"
 //    private var serviceLooper: Looper? = null
@@ -76,7 +75,7 @@ class PowerAccessibilityService: AccessibilityService() {
     }
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         try{
-            samsungVolumneWarning = false
+            volumeWarning = false
             bluetoothPairing = false
 
             if (loggingEnabled) {

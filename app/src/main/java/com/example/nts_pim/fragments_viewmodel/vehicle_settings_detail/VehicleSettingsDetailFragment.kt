@@ -113,7 +113,6 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
         }
        updateUI(batteryStatus)
         check_bluetooth_btn.setOnClickListener {
-            //** Scott **
             screenDisabled()
             activity_indicator_vehicle_detail.animate()
             activity_indicator_vehicle_detail.visibility = View.VISIBLE

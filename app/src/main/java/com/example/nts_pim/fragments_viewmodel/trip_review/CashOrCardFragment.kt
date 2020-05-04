@@ -45,7 +45,7 @@ import org.kodein.di.generic.instance
 import java.text.DecimalFormat
 import java.util.*
 
-class TripReviewFragment : ScopedFragment(), KodeinAware {
+class CashOrCardFragment : ScopedFragment(), KodeinAware {
     override val kodein by closestKodein()
     private val viewModelFactory: TripReviewViewModelFactory by instance()
     private lateinit var viewModel: TripReviewViewModel
@@ -361,7 +361,7 @@ class TripReviewFragment : ScopedFragment(), KodeinAware {
             mAWSAppSyncClient!!
         )
         val tripTotalFloat = tripTotal.toFloat()
-        val actionComplete = TripReviewFragmentDirections.toEmailOrText(tripTotalFloat, "CARD")
+        val actionComplete = CashOrCardFragmentDirections.toEmailOrText(tripTotalFloat, "CARD")
             .setTripTotal(tripTotalFloat)
         val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
         navController.navigate(actionComplete)
@@ -370,14 +370,14 @@ class TripReviewFragment : ScopedFragment(), KodeinAware {
     private fun toTipScreen() {
         val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
         if (navController.currentDestination?.id == currentFragmentId) {
-            val action = TripReviewFragmentDirections.toTipScreen(tripTotal.toFloat(), 0.toFloat())
+            val action = CashOrCardFragmentDirections.toTipScreen(tripTotal.toFloat(), 0.toFloat())
                 .setTipScreenTripTotal(tripTotal.toFloat())
             navController.navigate(action)
         }
     }
 
     private fun toEmailOrTextWithPayment() {
-        val action = TripReviewFragmentDirections.toEmailOrText(tripTotal.toFloat(), "CASH")
+        val action = CashOrCardFragmentDirections.toEmailOrText(tripTotal.toFloat(), "CASH")
             .setTripTotal(tripTotal.toFloat())
         val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
         if (navController.currentDestination?.id == currentFragmentId) {
@@ -386,7 +386,7 @@ class TripReviewFragment : ScopedFragment(), KodeinAware {
     }
 
     private fun toEmailOrTextWithoutPayment() {
-        val action = TripReviewFragmentDirections.toEmailOrText(tripTotal.toFloat(), "NONE")
+        val action = CashOrCardFragmentDirections.toEmailOrText(tripTotal.toFloat(), "NONE")
             .setTripTotal(tripTotal.toFloat())
         val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
         if (navController.currentDestination?.id == currentFragmentId) {
@@ -409,7 +409,7 @@ class TripReviewFragment : ScopedFragment(), KodeinAware {
     private fun backToLiveMeter() {
         SquareService().pressCancelButtons()
         val tripTotalFloat = tripTotal.toFloat()
-        val action = TripReviewFragmentDirections.backToLiveMeter(tripTotalFloat)
+        val action = CashOrCardFragmentDirections.backToLiveMeter(tripTotalFloat)
             .setMeterTotal(tripTotalFloat)
         val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
         if (navController.currentDestination?.id == currentFragmentId) {

@@ -26,6 +26,7 @@ import com.example.nts_pim.fragments_viewmodel.vehicle_setup.VehicleSetupModelFa
 import com.example.nts_pim.fragments_viewmodel.vehicle_setup.VehicleSetupViewModel
 import com.example.nts_pim.utilities.bluetooth_helper.BlueToothHelper
 import com.example.nts_pim.utilities.bluetooth_helper.BlueToothServerController
+import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import com.example.nts_pim.utilities.mutation_helper.PIMMutationHelper
 import com.google.gson.Gson
 import com.squareup.sdk.reader.ReaderSdk
@@ -59,6 +60,7 @@ class BluetoothSetupFragment: ScopedFragment(), KodeinAware {
     private var readerSettingsCallbackRef: CallbackReference? = null
     private val logtag = "Square Reader Setup"
     private var mArrayAdapter: ArrayAdapter<String>? = null
+    private var lastCheckStatus: String? = null
     var message = ""
     private var devices = ArrayList<String>()
     private var navController: NavController? = null
@@ -113,9 +115,8 @@ class BluetoothSetupFragment: ScopedFragment(), KodeinAware {
         devices = ArrayList()
         mArrayAdapter = ArrayAdapter(this.context!!, R.layout.dialog_select_bluetooth_device)
         navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
-
+        getArgs()
         startSquareCardReaderCheck()
-
         callBackViewModel.doWeNeedToReAuthorizeSquare().observe(this.viewLifecycleOwner, Observer {needsAuthorization->
             if(needsAuthorization){
               reauthorizeSquare()
@@ -123,10 +124,15 @@ class BluetoothSetupFragment: ScopedFragment(), KodeinAware {
         })
         callBackViewModel.isReaderConnected().observe(this.viewLifecycleOwner, Observer {connected ->
             if(connected){
-                PIMMutationHelper.updateReaderStatus(
-                    vehicleId!!,
-                    VehicleTripArrayHolder.cardReaderStatus,
-                    mAWSAppSyncClient!!)
+                Log.i("Square", "last reader check == $lastCheckStatus. Internal status of reader is ${VehicleTripArrayHolder.cardReaderStatus}")
+                if(VehicleTripArrayHolder.cardReaderStatus != "default" || lastCheckStatus != VehicleTripArrayHolder.cardReaderStatus){
+                    PIMMutationHelper.updateReaderStatus(
+                        vehicleId!!,
+                        VehicleTripArrayHolder.cardReaderStatus,
+                        mAWSAppSyncClient!!)
+                } else { Log.i("Square", "last reader check == $lastCheckStatus. Internal status of reader is ${VehicleTripArrayHolder.cardReaderStatus}. Did Not update AWS for Second reader check.")
+                 LoggerHelper.writeToLog("last reader check == $lastCheckStatus. Internal status of reader is ${VehicleTripArrayHolder.cardReaderStatus}. Did Not update AWS for Second reader check.")
+                }
                 toWelcomeScreen()
             }
         })
@@ -153,6 +159,9 @@ class BluetoothSetupFragment: ScopedFragment(), KodeinAware {
 //       BluetoothDataCenter.getResponseMessage().observe(this.viewLifecycleOwner, Observer { tripStatus ->
 //            bluetoothFragment_messageReceivedTextView.text = tripStatus
 //        })
+    }
+    private fun getArgs(){
+        lastCheckStatus = arguments?.getString("lastCheckedStatus")
     }
     private fun setUpSquareAuthCallbacks(){
         readerSdk.addAuthorizeCallback(authCallback)
@@ -248,6 +257,16 @@ class BluetoothSetupFragment: ScopedFragment(), KodeinAware {
         if (navController?.currentDestination?.id == currentFragmentId) {
             navController?.navigate(R.id.action_bluetoothSetupFragment_to_welcome_fragment)
         }
+    }
+
+    override fun onStop() {
+        if(view != null){
+            callBackViewModel.getTripStatus().removeObservers(this.viewLifecycleOwner)
+            callBackViewModel.doWeNeedToReAuthorizeSquare().removeObservers(this.viewLifecycleOwner)
+            callBackViewModel.isReaderConnected().removeObservers(this.viewLifecycleOwner)
+            readerSettingsCallbackRef?.clear()
+        }
+        super.onStop()
     }
 
     override fun onDestroy() {
