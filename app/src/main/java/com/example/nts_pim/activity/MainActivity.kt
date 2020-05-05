@@ -115,7 +115,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                     subscribeToUpdateVehTripStatus(vehicleId)
                     LoggerHelper.writeToLog("$logFragment, vehicle setup complete, started subscription to vehicle")
                     Log.i("Results", "Tried to subscribe to $vehicleId because setup is complete")
-                    subscriptionWatcherUpdatePimSettings
+                    subscribeToUpdatePimSettings()
                 } else {
                     recheckInternetConnection(this)
                 }
@@ -199,13 +199,6 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                 subscribeToUpdatePimSettings()
             }
         })
-//        callbackViewModel.isDeviceBondedViaBT().observe(this, Observer { isBTBonded->
-//            if(isBTBonded){
-//                Log.i("Bluetooth", "device is bonded via bluetooth, turning off AWS subscriptions")
-////                subscriptionWatcherDoPimPayment?.cancel()
-////               subscriptionWatcherUpdateVehTripStatus?.cancel()
-//            }
-//        })
     }
 
     //Coroutine to insert Trip Status
@@ -325,25 +318,26 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
 
     private fun subscribeToUpdatePimSettings(){
         val deviceId  = ModelPreferences(this).getObject(SharedPrefEnum.DEVICE_ID.key, DeviceID::class.java)
-
-      val subscription =  OnPimSettingsUpdateSubscription.builder().deviceId(deviceId?.number).build()
-        if (subscriptionWatcherUpdatePimSettings == null) {
+        val subscription =  OnPimSettingsUpdateSubscription.builder().deviceId(deviceId?.number).build()
+        if (deviceId != null) {
             subscriptionWatcherUpdatePimSettings = mAWSAppSyncClient?.subscribe(subscription)
             subscriptionWatcherUpdatePimSettings?.execute(updatePimSettingsCallback)
-        } else {
-            subscriptionWatcherUpdatePimSettings?.cancel()
-            subscriptionWatcherUpdatePimSettings = mAWSAppSyncClient?.subscribe(subscription)
-            subscriptionWatcherUpdatePimSettings?.execute(updatePimSettingsCallback)
+            Log.i("LOGGER","Tried to subscribe to updatePIM with deviceID ${deviceId.number}")
+            LoggerHelper.writeToLog("Tried to subscribe to updatePIM with deviceID ${deviceId.number}")
         }
-
     }
 
     private var updatePimSettingsCallback = object : AppSyncSubscriptionCall.Callback<OnPimSettingsUpdateSubscription.Data>{
         override fun onResponse(response: Response<OnPimSettingsUpdateSubscription.Data>) {
+            val responseString = response.data().toString()
             if(!response.hasErrors()){
                 val awsLog = response.data()?.onPIMSettingsUpdate()?.log()!!
                 LoggerHelper.logging = awsLog
                 Log.i("Logging", "Logging == $awsLog from updatePimSettingsCallBack")
+            }
+            if(response.hasErrors()){
+                Log.i("LOGGER", "ERROR SUBSCRIBING TO UPDATING PIM SETTINGS ${response.errors()[0].message()}")
+                LoggerHelper.writeToLog("ERROR SUBSCRIBING TO UPDATING PIM SETTINGS ${response.errors()[0].message()}")
             }
         }
         override fun onFailure(e: ApolloException) {

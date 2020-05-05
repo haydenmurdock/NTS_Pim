@@ -668,14 +668,15 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
                 tripId)
         }
         if(cardInfo != ""){
-            if(VehicleTripArrayHolder.cardReaderStatus != ReaderStatusEnum.CONNECTED.status){
-                VehicleTripArrayHolder.cardReaderStatus = ReaderStatusEnum.CONNECTED.status
-                LoggerHelper.writeToLog("internal status was not connected, but processed a payment. updating to connected")
-                PIMMutationHelper.updateReaderStatus(
-                    vehicleId,
-                    VehicleTripArrayHolder.cardReaderStatus,
-                    mAWSAppSyncClient!!)
-            }
+            // This is where we would update the reader status in aws to connected if
+//            if(VehicleTripArrayHolder.cardReaderStatus != ReaderStatusEnum.CONNECTED.status){
+//                VehicleTripArrayHolder.cardReaderStatus = ReaderStatusEnum.CONNECTED.status
+//                LoggerHelper.writeToLog("internal status was not connected, but processed a payment. updating to connected")
+//                PIMMutationHelper.updateReaderStatus(
+//                    vehicleId,
+//                    VehicleTripArrayHolder.cardReaderStatus,
+//                    mAWSAppSyncClient!!)
+//            }
         }
     }
 
