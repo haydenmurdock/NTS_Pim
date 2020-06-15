@@ -152,13 +152,6 @@ class BluetoothSetupFragment: ScopedFragment(), KodeinAware {
                 }
             }
         }
-        //starting server
-//        launch(Dispatchers.Main.immediate){
-//            setUpBluetoothServer(activity!!)
-//        }
-//       BluetoothDataCenter.getResponseMessage().observe(this.viewLifecycleOwner, Observer { tripStatus ->
-//            bluetoothFragment_messageReceivedTextView.text = tripStatus
-//        })
     }
     private fun getArgs(){
         lastCheckStatus = arguments?.getString("lastCheckedStatus")
@@ -195,6 +188,7 @@ class BluetoothSetupFragment: ScopedFragment(), KodeinAware {
                 }
                 ReaderSettingsErrorCode.USAGE_ERROR -> {
                     Log.i(logtag, "Usage error: ${error.debugMessage}")
+                    reauthorizeSquare()
                 }
             }
         }

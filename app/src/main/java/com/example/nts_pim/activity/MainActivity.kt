@@ -90,7 +90,6 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
         lateinit var mainActivity: MainActivity
         lateinit var navigationController: NavController
     }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -212,7 +211,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
         callbackViewModel.addMeterState(string)
     }
     private fun subscribeToUpdateVehTripStatus(vehicleId: String){
-       if(!vehicleSubscriptionComplete && isOnline(applicationContext)) {
+        if(!vehicleSubscriptionComplete && isOnline(applicationContext)) {
             vehicleSubscriptionComplete = true
             val subscription =
                 OnUpdateVehTripStatusSubscription.builder().vehicleId(vehicleId).build()
@@ -241,7 +240,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
             }
             if (!awsTripId.isNullOrBlank()) {
                 insertTripId(awsTripId)
-               subscribeToDoPIMPayment(awsTripId)
+                subscribeToDoPIMPayment(awsTripId)
                 tripId = awsTripId
             }
         }
@@ -421,9 +420,9 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
     override fun onWindowFocusChanged(hasFocus:Boolean) {
         super.onWindowFocusChanged(hasFocus)
         if (hasFocus && mSuccessfulSetup) {
-           ViewHelper.hideSystemUI(this)
-            }
+            ViewHelper.hideSystemUI(this)
         }
+    }
     private fun forceSpeaker() {
         try {
             playTestSound()
@@ -432,8 +431,8 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
         }
     }
     private fun startTimerToSendLogsToAWS(vehicleId: String, context: Context){
-            val logTimerTime = LoggerHelper.loggingTime
-            loggingTimer = object: CountDownTimer(logTimerTime, 1000){
+        val logTimerTime = LoggerHelper.loggingTime
+        loggingTimer = object: CountDownTimer(logTimerTime, 1000){
             override fun onTick(millisUntilFinished: Long) {}
             override fun onFinish() {
                 Log.i("LOGGER", "Log Timer: onFinish, Logging time:$logTimerTime")
@@ -465,8 +464,8 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
         when(request) {
             AudioManager.AUDIOFOCUS_REQUEST_GRANTED -> {
                 LoggerHelper.writeToLog("${logFragment}, pim played start up sound")
-               mediaPlayer.start()
-             }
+                mediaPlayer.start()
+            }
         }
         mediaPlayer.setOnCompletionListener {
             it.release()
@@ -484,29 +483,29 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
     }
     private fun recheckInternetConnection(context: Context){
         object: CountDownTimer(5000, 1000){
-        override fun onTick(millisUntilFinished: Long) {
-            internetConnection = isOnline(context)
-        }
-        override fun onFinish() {
-            if(!internetConnection){
-                LoggerHelper.writeToLog("$logFragment, recheck internet connection timer finished. internet was not connected. retrying in 5 seconds")
-                recheckInternetConnection(this@MainActivity)
-                // this is for a resync of trip
-            } else if (resync) {
-                val currentTrip = ModelPreferences(applicationContext)
-                    .getObject(SharedPrefEnum.CURRENT_TRIP.key, CurrentTrip::class.java)
-                LoggerHelper.writeToLog("$logFragment, recheck internet connection timer finished. Internet is connected. Trying to start subscription on ${vehicleId} due to resync.")
-                subscribeToUpdateVehTripStatus(vehicleId)
-                if (currentTrip != null && currentTrip.tripID != "" && internetConnection){
-                    LoggerHelper.writeToLog("$logFragment, recheck internet connection timer finished.Internet is connected. Trying to start subscription on ${currentTrip.tripID} due to resync.")
-                    resync = false
-                }
-            } else {
-                // start subscription since the internet is connected.
-                LoggerHelper.writeToLog("$logFragment, recheck internet connection timer finished. Internet is connected. Trying to start subscription on ${vehicleId}.")
-                subscribeToUpdateVehTripStatus(vehicleId)
+            override fun onTick(millisUntilFinished: Long) {
+                internetConnection = isOnline(context)
             }
-         }
+            override fun onFinish() {
+                if(!internetConnection){
+                    LoggerHelper.writeToLog("$logFragment, recheck internet connection timer finished. internet was not connected. retrying in 5 seconds")
+                    recheckInternetConnection(this@MainActivity)
+                    // this is for a resync of trip
+                } else if (resync) {
+                    val currentTrip = ModelPreferences(applicationContext)
+                        .getObject(SharedPrefEnum.CURRENT_TRIP.key, CurrentTrip::class.java)
+                    LoggerHelper.writeToLog("$logFragment, recheck internet connection timer finished. Internet is connected. Trying to start subscription on ${vehicleId} due to resync.")
+                    subscribeToUpdateVehTripStatus(vehicleId)
+                    if (currentTrip != null && currentTrip.tripID != "" && internetConnection){
+                        LoggerHelper.writeToLog("$logFragment, recheck internet connection timer finished.Internet is connected. Trying to start subscription on ${currentTrip.tripID} due to resync.")
+                        resync = false
+                    }
+                } else {
+                    // start subscription since the internet is connected.
+                    LoggerHelper.writeToLog("$logFragment, recheck internet connection timer finished. Internet is connected. Trying to start subscription on ${vehicleId}.")
+                    subscribeToUpdateVehTripStatus(vehicleId)
+                }
+            }
         }.start()
     }
     private fun checkNavBar(){
@@ -590,5 +589,6 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
             ViewHelper.hideSystemUI(this)
         }
     }
+
 }
 

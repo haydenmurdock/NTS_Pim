@@ -324,14 +324,18 @@ class CashOrCardFragment : ScopedFragment(), KodeinAware {
         )
     }
     private fun playTripTotalAmount(messageToSpeak: String) {
-        Log.i("TTS", "play Trip Total amount")
-        textToSpeech?.setSpeechRate(0.8.toFloat())
-        textToSpeech!!.speak(
-            "Amount Owed $$messageToSpeak",
-            TextToSpeech.QUEUE_FLUSH,
-            null
-        )
-        LoggerHelper.writeToLog("$logFragment,  Pim Read $messageToSpeak to customer")
+        if (messageToSpeak != "0"){
+            Log.i("TTS", "play Trip Total amount")
+            textToSpeech?.setSpeechRate(0.8.toFloat())
+            textToSpeech!!.speak(
+                "Amount Owed $$messageToSpeak",
+                TextToSpeech.QUEUE_FLUSH,
+                null
+            )
+            LoggerHelper.writeToLog("$logFragment,  Pim Read $messageToSpeak to customer")
+        } else {
+            LoggerHelper.writeToLog("$logFragment,  Pim did not  read $messageToSpeak to customer, since it was still set to zero internally")
+        }
     }
     private fun updateAWSWithCashButtonSelection() {
         val coroutineTwo =
