@@ -101,6 +101,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
         mainActivity = this
         navigationController = findNavController(this, R.id.nav_host_fragment)
         mAWSAppSyncClient = ClientFactory.getInstance(applicationContext)
+
         val factory = InjectorUtiles.provideCallBackModelFactory()
         callbackViewModel = ViewModelProviders.of(this, factory)
             .get(CallBackViewModel::class.java)

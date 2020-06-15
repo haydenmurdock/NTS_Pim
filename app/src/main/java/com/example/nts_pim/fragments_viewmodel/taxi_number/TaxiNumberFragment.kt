@@ -22,8 +22,8 @@ class TaxiNumberFragment : ScopedFragment(), KodeinAware {
 
     //Kodein and viewModel/Factory
     override val kodein by closestKodein()
-    private val viewModelFactory: TaxiNumberViewModelFactory by instance()
-    private lateinit var viewModel: TaxiNumberViewModel
+    private val viewModelFactory: TaxiNumberViewModelFactory by instance<TaxiNumberViewModelFactory>()
+    lateinit var viewModel: TaxiNumberViewModel
     private var fullBrightness = 255
     private val currentFragmentId = R.id.taxi_number_fragment
     private val logFragment = "Taxi Number"

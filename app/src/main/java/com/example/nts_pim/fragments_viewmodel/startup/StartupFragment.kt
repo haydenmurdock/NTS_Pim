@@ -17,7 +17,6 @@ import android.view.ViewGroup
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import androidx.core.content.ContextCompat.getSystemService
 import androidx.lifecycle.ViewModelProviders
 import androidx.navigation.NavController
 import androidx.navigation.Navigation
@@ -40,7 +39,6 @@ import com.example.nts_pim.fragments_viewmodel.vehicle_setup.VehicleSetupViewMod
 import com.example.nts_pim.utilities.enums.SharedPrefEnum
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import com.example.nts_pim.utilities.mutation_helper.PIMMutationHelper
-import com.example.nts_pim.utilities.power_cycle.PowerAccessibilityService
 import com.google.gson.Gson
 import com.squareup.sdk.reader.ReaderSdk
 import com.squareup.sdk.reader.authorization.DeauthorizeCallback
@@ -59,13 +57,12 @@ import java.lang.Error
 import java.net.NetworkInterface
 import java.util.*
 
-
 class StartupFragment: ScopedFragment(), KodeinAware {
     override val kodein by closestKodein()
-    private val viewModelFactory: VehicleSetupModelFactory by instance()
+    private val viewModelFactory: VehicleSetupModelFactory by instance<VehicleSetupModelFactory>()
     private lateinit var viewModel: VehicleSetupViewModel
     private var mAWSAppSyncClient: AWSAppSyncClient? = null
-    private val fullBrightness = 255
+    private  val fullBrightness = 255
     private var permissionDraw = false
     private var permissionWrite = false
     private var permissionAccessibility = false
@@ -78,19 +75,16 @@ class StartupFragment: ScopedFragment(), KodeinAware {
     private var phoneNumber: String? = null
     private val currentFragmentId = R.id.startupFragment
 
-
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
         return inflater.inflate(R.layout.startup, container, false)
-
     }
 
     @SuppressLint("HardwareIds")
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-
         viewModel = ViewModelProviders.of(this, viewModelFactory)
             .get(VehicleSetupViewModel::class.java)
         navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
@@ -136,7 +130,6 @@ class StartupFragment: ScopedFragment(), KodeinAware {
 
     private var awsLoggingQueryCallBack = object: GraphQLCall.Callback<GetPimSettingsQuery.Data>() {
         override fun onResponse(response: Response<GetPimSettingsQuery.Data>) {
-
             if (response.data() != null &&
                 !response.hasErrors()
             ) {
@@ -172,7 +165,6 @@ class StartupFragment: ScopedFragment(), KodeinAware {
     }
 
     private fun reauthorizeSquare() = launch(Dispatchers.Main.immediate){
-
         if(ReaderSdk.authorizationManager().authorizationState.canDeauthorize()){
             ReaderSdk.authorizationManager().addDeauthorizeCallback(deauthorizeCallback)
             ReaderSdk.authorizationManager().deauthorize()

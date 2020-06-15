@@ -231,6 +231,7 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
         changeLoggingTimer()
         checkInternalReaderStatus()
         SoundHelper.turnOnSound(PimApplication.pimContext)
+        VehicleTripArrayHolder.squareHasBeenSetUp = true
     }
     private fun changeLoggingTimer(){
         LoggerHelper.loggingTime = 180000

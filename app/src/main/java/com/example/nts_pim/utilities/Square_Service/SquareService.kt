@@ -192,7 +192,8 @@ class SquareService : OnLayoutChangeListener,
                     turnUpVolume()
                     SoundHelper.turnOffSound(activity.applicationContext)
                     val navController = MainActivity.navigationController
-                    if(navController.currentDestination?.id == R.id.tipScreenFragment){
+                    if(navController.currentDestination?.id == R.id.tipScreenFragment ||
+                        navController.currentDestination?.id == R.id.vehicle_settings_detail_fragment){
                         insertCardView = View.inflate(activity, R.layout.insert_card, viewGroup)
                     }
 
