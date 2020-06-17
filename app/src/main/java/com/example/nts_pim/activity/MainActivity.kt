@@ -40,6 +40,7 @@ import com.example.nts_pim.data.repository.providers.PreferenceProvider
 import com.example.nts_pim.fragments_viewmodel.InjectorUtiles
 import com.example.nts_pim.fragments_viewmodel.base.ClientFactory
 import com.example.nts_pim.fragments_viewmodel.callback.CallBackViewModel
+import com.example.nts_pim.fragments_viewmodel.check_vehicle_info.CheckVehicleInfoFragmentDirections
 import com.example.nts_pim.fragments_viewmodel.vehicle_setup.VehicleSetupModelFactory
 import com.example.nts_pim.fragments_viewmodel.vehicle_setup.VehicleSetupViewModel
 import com.example.nts_pim.utilities.bluetooth_helper.BlueToothHelper
@@ -60,10 +61,11 @@ import kotlin.coroutines.CoroutineContext
 
 open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
     override val kodein by closestKodein()
-    private val viewModelFactory: VehicleSetupModelFactory by instance()
+    private val viewModelFactory: VehicleSetupModelFactory by instance<VehicleSetupModelFactory>()
     private lateinit var viewModel: VehicleSetupViewModel
     private var vehicleId = ""
     private var vehicleSubscriptionComplete = false
+    private var tripSubscriptionComplete = false
     private var mAWSAppSyncClient: AWSAppSyncClient? = null
     private lateinit var mJob: Job
     override val coroutineContext: CoroutineContext
@@ -82,6 +84,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
     private var subscriptionWatcherUpdatePimSettings: AppSyncSubscriptionCall<OnPimSettingsUpdateSubscription.Data>? =
         null
     private var loggingTimer: CountDownTimer? = null
+    private var internetConnectionTimer: CountDownTimer? = null
     private var vehicleSubscriptionTimer: CountDownTimer? = null
     private val logFragment = "Background Activity"
     private var mNetworkReceiver: NetworkReceiver? = null
@@ -111,14 +114,6 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                 mSuccessfulSetup = successfulSetup
                 vehicleId = viewModel.getVehicleID()
                 internetConnection = isOnline(this)
-                if (internetConnection && vehicleSubscriptionComplete) {
-                    subscribeToUpdateVehTripStatus(vehicleId)
-                    LoggerHelper.writeToLog("$logFragment, vehicle setup complete, started subscription to vehicle")
-                    Log.i("Results", "Tried to subscribe to $vehicleId because setup is complete")
-                    subscribeToUpdatePimSettings()
-                } else {
-                    recheckInternetConnection(this)
-                }
             }
         })
         callbackViewModel.getTripHasEnded().observe(this, Observer { tripEnded ->
@@ -185,17 +180,24 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
         }
 
         callbackViewModel.getIsPimOnline().observe(this, Observer { onlineStatus ->
-            if(!onlineStatus){
+            if(!onlineStatus && mSuccessfulSetup){
+                //This works.
                 vehicleSubscriptionComplete = false
+                tripSubscriptionComplete = false
+                subscriptionWatcherDoPimPayment?.cancel()
+                subscriptionWatcherDoPimPayment = null
+                subscriptionWatcherUpdatePimSettings?.cancel()
+                subscriptionWatcherUpdatePimSettings = null
+                subscriptionWatcherUpdateVehTripStatus?.cancel()
+                subscriptionWatcherUpdateVehTripStatus = null
+
             }
             if(onlineStatus &&
                 !vehicleSubscriptionComplete &&
                 mSuccessfulSetup){
-                callbackViewModel.reSyncTrip()
                 watchingTripId = ""
                 getMeterOwedQuery(tripId)
                 subscribeToUpdateVehTripStatus(vehicleId)
-                watchingTripId = ""
                 subscribeToUpdatePimSettings()
             }
         })
@@ -238,10 +240,25 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
             if (!tripStatus.isNullOrBlank()) {
                 insertTripStatus(tripStatus)
             }
-            if (!awsTripId.isNullOrBlank()) {
+            if (!awsTripId.isNullOrBlank() && !tripSubscriptionComplete) {
                 insertTripId(awsTripId)
                 subscribeToDoPIMPayment(awsTripId)
+
                 tripId = awsTripId
+                getMeterOwedQuery(tripId)
+            } else {
+                if(navigationController.currentDestination?.id != R.id.welcome_fragment &&
+                    navigationController.currentDestination?.id != R.id.bluetoothSetupFragment &&
+                    !tripSubscriptionComplete){
+                    val currentTrip = ModelPreferences(applicationContext)
+                        .getObject(SharedPrefEnum.CURRENT_TRIP.key, CurrentTrip::class.java)
+                    if(currentTrip != null){
+                        tripId = currentTrip.tripID
+                        insertTripId(currentTrip.tripID)
+                        subscribeToDoPIMPayment(currentTrip.tripID)
+                        Log.i("test", "trip subscription awsTripId was null so we needed to use the last trip Id to subscribe to")
+                    }
+                }
             }
         }
 
@@ -257,6 +274,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
 
     private fun subscribeToDoPIMPayment(tripId: String){
         if (tripId != watchingTripId && tripId != ""){
+            tripSubscriptionComplete = true
             val subscription = OnDoPimPaymentSubscription.builder().tripId(tripId).build()
             if(subscriptionWatcherDoPimPayment == null) {
                 subscriptionWatcherDoPimPayment = mAWSAppSyncClient?.subscribe(subscription)
@@ -266,6 +284,8 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                 subscriptionWatcherDoPimPayment = mAWSAppSyncClient?.subscribe(subscription)
                 subscriptionWatcherDoPimPayment?.execute(doPimPaymentCallback)
             }
+        } else {
+            Log.i("test", "couldn't subscribe to do pim payment since trip id: $tripId == $watchingTripId or tripId == empty string")
         }
     }
     private var doPimPaymentCallback = object: AppSyncSubscriptionCall.Callback<OnDoPimPaymentSubscription.Data>{
@@ -289,9 +309,6 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
             if (meterState != null) {
                 insertMeterState(meterState)
             }
-//            if (owedPriceForMeter != null && owedPriceForMeter != 0.0){
-//                insertMeterValue(owedPriceForMeter)
-//            }
             if(pimPaymentAmount != null){
                 insertPimPayAmount(pimPaymentAmount)
             }
@@ -308,6 +325,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
         }
 
         override fun onFailure(e: ApolloException) {
+            tripSubscriptionComplete = false
             subscriptionWatcherDoPimPayment?.cancel()
             subscriptionWatcherDoPimPayment = null
         }
@@ -482,32 +500,37 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
         registerReceiver(mNetworkReceiver, IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION))
     }
     private fun recheckInternetConnection(context: Context){
-        object: CountDownTimer(5000, 1000){
-            override fun onTick(millisUntilFinished: Long) {
-                internetConnection = isOnline(context)
-            }
-            override fun onFinish() {
-                if(!internetConnection){
-                    LoggerHelper.writeToLog("$logFragment, recheck internet connection timer finished. internet was not connected. retrying in 5 seconds")
-                    recheckInternetConnection(this@MainActivity)
-                    // this is for a resync of trip
-                } else if (resync) {
-                    val currentTrip = ModelPreferences(applicationContext)
-                        .getObject(SharedPrefEnum.CURRENT_TRIP.key, CurrentTrip::class.java)
-                    LoggerHelper.writeToLog("$logFragment, recheck internet connection timer finished. Internet is connected. Trying to start subscription on ${vehicleId} due to resync.")
-                    subscribeToUpdateVehTripStatus(vehicleId)
-                    if (currentTrip != null && currentTrip.tripID != "" && internetConnection){
-                        LoggerHelper.writeToLog("$logFragment, recheck internet connection timer finished.Internet is connected. Trying to start subscription on ${currentTrip.tripID} due to resync.")
-                        resync = false
-                    }
-                } else {
-                    // start subscription since the internet is connected.
-                    LoggerHelper.writeToLog("$logFragment, recheck internet connection timer finished. Internet is connected. Trying to start subscription on ${vehicleId}.")
-                    subscribeToUpdateVehTripStatus(vehicleId)
+        if(internetConnectionTimer == null){
+            internetConnectionTimer = object: CountDownTimer(5000, 1000){
+                override fun onTick(millisUntilFinished: Long) {
+                    internetConnection = isOnline(context)
+                    subscriptionWatcherDoPimPayment?.cancel()
+                    subscriptionWatcherDoPimPayment = null
+                    vehicleSubscriptionComplete = false
+                    subscriptionWatcherUpdateVehTripStatus?.cancel()
+                    subscriptionWatcherUpdateVehTripStatus = null
                 }
-            }
-        }.start()
+                override fun onFinish() {
+                    if(!internetConnection){
+                        LoggerHelper.writeToLog("$logFragment, recheck internet connection timer finished. internet was not connected. retrying in 5 seconds")
+                        recheckInternetConnection(this@MainActivity)
+                        // this is for a resync of trip
+                    } else if (resync) {
+                        val currentTrip = ModelPreferences(applicationContext)
+                            .getObject(SharedPrefEnum.CURRENT_TRIP.key, CurrentTrip::class.java)
+                        LoggerHelper.writeToLog("$logFragment, recheck internet connection timer finished. Internet is connected. Trying to start subscription on ${vehicleId} due to resync.")
+                        subscribeToUpdateVehTripStatus(vehicleId)
+                        if (currentTrip != null && currentTrip.tripID != "" && internetConnection){
+                            LoggerHelper.writeToLog("$logFragment, recheck internet connection timer finished.Internet is connected. Trying to start subscription on ${currentTrip.tripID} due to resync.")
+                            resync = false
+                        }
+                    }
+                    internetConnectionTimer = null
+                }
+            }.start()
+        }
     }
+
     private fun checkNavBar(){
         val decorView = window.decorView
         decorView.setOnSystemUiVisibilityChangeListener((object: View.OnSystemUiVisibilityChangeListener{
@@ -575,12 +598,6 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
             ViewHelper.hideSystemUI(this)
         }
         LoggerHelper.writeToLog("$logFragment, MainActivity onPause hit")
-    }
-
-    override fun onUserLeaveHint() {
-        Log.i("onStop", "onUserLeaveHint was hit")
-
-        super.onUserLeaveHint()
     }
 
     override fun onResume() {

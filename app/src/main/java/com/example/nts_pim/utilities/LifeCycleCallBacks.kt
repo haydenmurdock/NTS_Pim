@@ -9,6 +9,7 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.core.view.isVisible
 import com.example.nts_pim.R
+import com.example.nts_pim.activity.MainActivity
 import com.example.nts_pim.utilities.Square_Service.SquareService
 import com.example.nts_pim.utilities.sound_helper.SoundHelper
 
@@ -41,8 +42,13 @@ class LifeCycleCallBacks : Application.ActivityLifecycleCallbacks {
 
         val name = activity?.localClassName
         if (name == "com.squareup.ui.main.ApiMainActivity"){
-            SquareService().enableTransactionMode(true)
-            SquareService().processActivityResume(activity)
+            if(MainActivity.navigationController.currentDestination?.id != R.id.welcome_fragment){
+                SquareService().enableTransactionMode(true)
+                SquareService().processActivityResume(activity)
+            } else {
+                Log.i("Logger", "Closed square activity via on ActivityResumed since the welcome fragment was shown")
+                activity.finish()
+            }
         }
     }
 

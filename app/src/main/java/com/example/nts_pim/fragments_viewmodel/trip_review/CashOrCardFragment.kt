@@ -47,7 +47,7 @@ import java.util.*
 
 class CashOrCardFragment : ScopedFragment(), KodeinAware {
     override val kodein by closestKodein()
-    private val viewModelFactory: TripReviewViewModelFactory by instance()
+    private val viewModelFactory: TripReviewViewModelFactory by instance<TripReviewViewModelFactory>()
     private lateinit var viewModel: TripReviewViewModel
     private lateinit var callbackViewModel: CallBackViewModel
     private var mAWSAppSyncClient: AWSAppSyncClient? = null
@@ -324,7 +324,7 @@ class CashOrCardFragment : ScopedFragment(), KodeinAware {
         )
     }
     private fun playTripTotalAmount(messageToSpeak: String) {
-        if (messageToSpeak != "0"){
+        if (messageToSpeak != "0.0"){
             Log.i("TTS", "play Trip Total amount")
             textToSpeech?.setSpeechRate(0.8.toFloat())
             textToSpeech!!.speak(

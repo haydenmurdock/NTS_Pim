@@ -52,7 +52,7 @@ import java.lang.Error
 class BluetoothSetupFragment: ScopedFragment(), KodeinAware {
 
     override val kodein by closestKodein()
-    private val viewModelFactory: VehicleSetupModelFactory by instance()
+    private val viewModelFactory: VehicleSetupModelFactory by instance<VehicleSetupModelFactory>()
     private lateinit var viewModel: VehicleSetupViewModel
     private var readerSdk = ReaderSdk.authorizationManager()
     private val readerManager = ReaderSdk.readerManager()
