@@ -44,6 +44,7 @@ import com.example.nts_pim.fragments_viewmodel.check_vehicle_info.CheckVehicleIn
 import com.example.nts_pim.fragments_viewmodel.vehicle_setup.VehicleSetupModelFactory
 import com.example.nts_pim.fragments_viewmodel.vehicle_setup.VehicleSetupViewModel
 import com.example.nts_pim.utilities.bluetooth_helper.BlueToothHelper
+import com.example.nts_pim.utilities.enums.MeterEnum
 import com.example.nts_pim.utilities.enums.PIMStatusEnum
 import com.example.nts_pim.utilities.enums.SharedPrefEnum
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
@@ -89,6 +90,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
     private val logFragment = "Background Activity"
     private var mNetworkReceiver: NetworkReceiver? = null
     private var watchingTripId = ""
+    private var meterState: String? = null
     companion object{
         lateinit var mainActivity: MainActivity
         lateinit var navigationController: NavController
@@ -153,7 +155,6 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
             if (hasTripStarted) {
                 val currentTripId = callbackViewModel.getTripId()
                 val navController = findNavController(this, R.id.nav_host_fragment)
-                callbackViewModel.clearAllTripValues()
                 if (navController.currentDestination?.id != R.id.welcome_fragment &&
                     navController.currentDestination?.id != R.id.taxi_number_fragment &&
                     navController.currentDestination?.id != R.id.bluetoothSetupFragment &&
@@ -164,8 +165,12 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                         "This needs to work now. Old trip id: $tripId, new trip id: $currentTripId"
                     )
                     LoggerHelper.writeToLog("${logFragment}, New trip was started by the driver while the pim trip was not finished")
-                    getMeterOwedQuery(currentTripId)
-                    navController.navigate(R.id.action_global_taxi_number_fragment)
+                    if(meterState == MeterEnum.METER_ON.state){
+                        callbackViewModel.clearAllTripValues()
+                        callbackViewModel.tripWasPickedUp()
+                        getMeterOwedQuery(currentTripId)
+                        navController.navigate(R.id.action_global_taxi_number_fragment)
+                    }
                 } else {
                     Log.i(
                         "TripStart",
@@ -175,7 +180,9 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                 }
             }
         })
-
+        callbackViewModel.getMeterState().observe(this, Observer { value ->
+            meterState = value
+        })
         if (loggingTimer == null) {
             startTimerToSendLogsToAWS(vehicleId, this@MainActivity)
         }

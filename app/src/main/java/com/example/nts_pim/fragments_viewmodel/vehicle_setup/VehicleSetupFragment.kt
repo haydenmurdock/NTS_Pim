@@ -35,6 +35,7 @@ import com.apollographql.apollo.GraphQLCall
 import com.apollographql.apollo.api.Response
 import com.apollographql.apollo.exception.ApolloException
 import com.example.nts_pim.BuildConfig
+import com.example.nts_pim.PimApplication
 import com.example.nts_pim.R
 import com.example.nts_pim.data.repository.model_objects.*
 import com.example.nts_pim.data.repository.providers.ModelPreferences
@@ -45,6 +46,7 @@ import com.example.nts_pim.fragments_viewmodel.vehicle_settings.setting_keyboard
 import com.example.nts_pim.utilities.enums.LogEnums
 import com.example.nts_pim.utilities.enums.SharedPrefEnum
 import com.example.nts_pim.utilities.keyboards.QwertyKeyboard
+import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import com.example.nts_pim.utilities.mutation_helper.PIMMutationHelper
 import com.example.nts_pim.utilities.sound_helper.SoundHelper
 import com.example.nts_pim.utilities.view_helper.ViewHelper
@@ -349,9 +351,25 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
             Log.i("VehicleSetup", "Response for getting device ID has Apollo Exception. Error: ${e.message}")
         }
     }
-    private fun updateDeviceIdToIMEI(deviceID: String, vehicleId: String){
+    private fun updateDeviceIdToIMEI(deviceId: String, vehicleId: String){
+        val tabletImei: String
+        tabletImei = if(deviceId == ""){
+            val telephonyManager = PimApplication.instance.applicationContext.getSystemService(
+                Context.TELEPHONY_SERVICE) as TelephonyManager
+            if (ActivityCompat.checkSelfPermission(
+                    context!!,
+                    Manifest.permission.READ_PHONE_STATE
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                LoggerHelper.writeToLog("We could not update device id since the read phone state was not granted at vehicle setup")
+                return
+            }
+            telephonyManager.imei
+        } else {
+            deviceId
+        }
         val input = UpdateDeviceIdToIMEIInput.builder()
-            .deviceId(deviceID)
+            .deviceId(tabletImei)
             .vehicleId(vehicleId)
             .build()
         mAWSAppSyncClient?.mutate(UpdateDeviceIdToImeiMutation.builder().parameters(input).build())

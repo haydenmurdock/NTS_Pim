@@ -156,9 +156,11 @@ object VehicleTripArrayHolder {
             createCurrentTrip(false, enteredTripId, "none", context)
             tripEnded = false
             tripEndedMutableLiveData.value = tripEnded
-            newTripHasStarted = false
-            newTripHasStartedMutableLiveData.value = newTripHasStarted
         }
+    }
+    fun newTripWasPickedUp(){
+        newTripHasStarted = false
+        newTripHasStartedMutableLiveData.value = newTripHasStarted
     }
 
     fun getTripId() = tripId

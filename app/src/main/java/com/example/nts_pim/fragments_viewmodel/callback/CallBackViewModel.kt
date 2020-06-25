@@ -43,6 +43,8 @@ class CallBackViewModel(
 
     internal fun hasNewTripStarted() = vehicleTripArrayHolder.hasNewTripStarted()
 
+    internal fun tripWasPickedUp() = vehicleTripArrayHolder.newTripWasPickedUp()
+
     internal fun addTripNumber(enteredNumber: Int){
         vehicleTripArrayHolder.addTripNumber(enteredNumber)
     }

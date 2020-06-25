@@ -1,11 +1,15 @@
 package com.example.nts_pim.utilities.mutation_helper
 
+import android.annotation.SuppressLint
+import android.content.Context
+import android.telephony.TelephonyManager
 import android.util.Log
 import com.amazonaws.amplify.generated.graphql.*
 import com.amazonaws.mobileconnectors.appsync.AWSAppSyncClient
 import com.apollographql.apollo.GraphQLCall
 import com.apollographql.apollo.api.Response
 import com.apollographql.apollo.exception.ApolloException
+import com.example.nts_pim.PimApplication
 import com.example.nts_pim.data.repository.VehicleTripArrayHolder
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import org.threeten.bp.LocalDateTime
@@ -124,11 +128,20 @@ object PIMMutationHelper {
         }
     }
 
-    fun updatePimSettings(blueToothAddress: String?, appVersion: String?, phoneNumber: String?, appSyncClient: AWSAppSyncClient, deviceId: String){
 
+    @SuppressLint("MissingPermission")
+    fun updatePimSettings(blueToothAddress: String?, appVersion: String?, phoneNumber: String?, appSyncClient: AWSAppSyncClient, deviceId: String){
+        val tabletImei: String
+        tabletImei = if(deviceId == ""){
+            val telephonyManager = PimApplication.instance.applicationContext.getSystemService(
+                Context.TELEPHONY_SERVICE) as TelephonyManager
+            telephonyManager.imei
+        } else {
+            deviceId
+        }
         val updatePimSettings = UpdatePIMSettingsInput
             .builder()
-            .deviceId(deviceId)
+            .deviceId(tabletImei)
             .phoneNbr(phoneNumber)
             .appVersion(appVersion)
             .btAddress(blueToothAddress)
@@ -149,5 +162,4 @@ object PIMMutationHelper {
             Log.i("Response", "response: $e")
         }
     }
-
 }

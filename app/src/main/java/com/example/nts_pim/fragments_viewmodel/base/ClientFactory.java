@@ -15,6 +15,7 @@ public class ClientFactory {
             client = AWSAppSyncClient.builder()
                     .context(context)
                     .awsConfiguration(awsConfig)
+                    .useClientDatabasePrefix(true)
                     .build();
         }
         return client;
