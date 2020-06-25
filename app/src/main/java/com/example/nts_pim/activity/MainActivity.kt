@@ -156,7 +156,8 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                 callbackViewModel.clearAllTripValues()
                 if (navController.currentDestination?.id != R.id.welcome_fragment &&
                     navController.currentDestination?.id != R.id.taxi_number_fragment &&
-                    navController.currentDestination?.id != R.id.bluetoothSetupFragment
+                    navController.currentDestination?.id != R.id.bluetoothSetupFragment &&
+                    navController.currentDestination?.id != R.id.startupFragment
                     && !resync) {
                     Log.i(
                         "TripStart",
@@ -196,8 +197,12 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                 !vehicleSubscriptionComplete &&
                 mSuccessfulSetup){
                 watchingTripId = ""
-                getMeterOwedQuery(tripId)
+
                 subscribeToUpdateVehTripStatus(vehicleId)
+                if(navigationController.currentDestination?.id == R.id.live_meter_fragment ||
+                    navigationController.currentDestination?.id == R.id.trip_review_fragment){
+                    getMeterOwedQuery(tripId)
+                }
                 subscribeToUpdatePimSettings()
             }
         })
@@ -240,12 +245,10 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
             if (!tripStatus.isNullOrBlank()) {
                 insertTripStatus(tripStatus)
             }
-            if (!awsTripId.isNullOrBlank() && !tripSubscriptionComplete) {
+            if (!awsTripId.isNullOrBlank()) {
                 insertTripId(awsTripId)
                 subscribeToDoPIMPayment(awsTripId)
-
                 tripId = awsTripId
-                getMeterOwedQuery(tripId)
             } else {
                 if(navigationController.currentDestination?.id != R.id.welcome_fragment &&
                     navigationController.currentDestination?.id != R.id.bluetoothSetupFragment &&
@@ -255,6 +258,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                     if(currentTrip != null){
                         tripId = currentTrip.tripID
                         insertTripId(currentTrip.tripID)
+                        getMeterOwedQuery(tripId)
                         subscribeToDoPIMPayment(currentTrip.tripID)
                         Log.i("test", "trip subscription awsTripId was null so we needed to use the last trip Id to subscribe to")
                     }
@@ -293,7 +297,6 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
             val meterState = response.data()?.onDoPimPayment()?.meterState()
             val pimNoReceipt = response.data()?.onDoPimPayment()?.pimNoReceipt()
             val pimPaymentAmount = response.data()?.onDoPimPayment()?.pimPayAmt()
-//            val owedPriceForMeter = response.data()?.onDoPimPayment()?.owedPrice()
             val tripNumber = response.data()?.onDoPimPayment()?.tripNbr()
             val transactionId = response.data()?.onDoPimPayment()?.pimTransId()
             val pimPaidAmount = response.data()?.onDoPimPayment()?.pimPaidAmt()
@@ -306,14 +309,14 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                     insertTransactionID(transactionId)
                 }
             }
-            if (meterState != null) {
-                insertMeterState(meterState)
-            }
             if(pimPaymentAmount != null){
                 insertPimPayAmount(pimPaymentAmount)
             }
             if(pimPaidAmount != null){
                 insertPimPaidAmount(pimPaidAmount)
+            }
+            if (meterState != null) {
+                insertMeterState(meterState)
             }
             if(pimNoReceipt != null
                 && pimNoReceipt.trim() == "Y"){
@@ -381,17 +384,14 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
             if (response.data() != null &&
                 !response.hasErrors()
             ) {
-                val meterOwed = response.data()?.trip?.owedPrice()
+                val pimPayAmount = response.data()?.trip?.pimPayAmt()
                 val meterValue = response.data()?.trip?.meterState()
-                Log.i("PleaseWait", "meterOwed from Meter query = $meterOwed")
                 Log.i("PLeaseWait", "meterValue from Meter query = $meterValue")
-                if (meterOwed != null
-                    && meterOwed > 0
-                ) {
-                    insertMeterValue(meterOwed)
-                }
                 if (!meterValue.isNullOrBlank()) {
                     insertMeterState(meterValue)
+                }
+                if(pimPayAmount != null){
+                    insertPimPayAmount(pimPayAmount)
                 }
             }
         }

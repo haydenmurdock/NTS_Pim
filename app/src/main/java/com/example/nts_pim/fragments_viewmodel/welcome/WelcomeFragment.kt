@@ -71,7 +71,7 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
 
     // Kodein and ViewModel/Factory
     override val kodein by closestKodein()
-    private val viewModelFactory: WelcomeViewModelFactory by instance()
+    private val viewModelFactory: WelcomeViewModelFactory by instance<WelcomeViewModelFactory>()
     private lateinit var keyboardViewModel: SettingsKeyboardViewModel
     private lateinit var viewModel: WelcomeViewModel
     private lateinit var callBackViewModel: CallBackViewModel
@@ -493,8 +493,10 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
 
     override fun onDestroy() {
         super.onDestroy()
-        callBackViewModel.getTripStatus().removeObservers(this)
-        callBackViewModel.hasNewTripStarted().removeObservers(this)
+        if (callBackViewModel != null) {
+            callBackViewModel.getTripStatus().removeObservers(this)
+            callBackViewModel.hasNewTripStarted().removeObservers(this)
+        }
         failedReaderTimer?.cancel()
         restartAppTimer.cancel()
     }

@@ -89,8 +89,7 @@ object BlueToothHelper {
     }
 
     internal fun unregisterBlueToothReceiver(activity: Activity){
-        activity.unregisterReceiver(mPairReceiver)
-        Log.i("Bluetooth", "Unregistered bluetooth receiver on bluetoothHelper object")
+
     }
     //Intent discoverableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
     //                    discoverableIntent.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 300);

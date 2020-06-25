@@ -42,7 +42,7 @@ import kotlinx.coroutines.launch
 class LiveMeterFragment: ScopedFragment(), KodeinAware {
     //Kodein and ViewModel
     override val kodein by closestKodein()
-    private val viewModelFactory: LiveMeterViewModelFactory by instance()
+    private val viewModelFactory: LiveMeterViewModelFactory by instance<LiveMeterViewModelFactory>()
     private lateinit var viewModel: LiveMeterViewModel
     private lateinit var callbackViewModel: CallBackViewModel
     private var mAWSAppSyncClient: AWSAppSyncClient? = null

@@ -65,7 +65,7 @@ class StartupFragment: ScopedFragment(), KodeinAware {
     private  val fullBrightness = 255
     private var permissionDraw = false
     private var permissionWrite = false
-    private var permissionAccessibility = false
+    private var permissionAccessibility = true
     private var setupStatus = false
     private var navController: NavController? = null
     private var appVersionNumber: String? = null
@@ -116,7 +116,9 @@ class StartupFragment: ScopedFragment(), KodeinAware {
         }
         blueToothAddress = getBluetoothAddress()
         appVersionNumber = BuildConfig.VERSION_NAME
-        deviceId = ModelPreferences(this.requireContext()).getObject(SharedPrefEnum.DEVICE_ID.key, DeviceID::class.java)?.number
+        deviceId = ModelPreferences(this.requireContext())
+            .getObject(SharedPrefEnum.DEVICE_ID.key, DeviceID::class.java)
+            ?.number
     }
 
     private fun checkAWSForLogging(deviceId: String){
@@ -258,15 +260,6 @@ class StartupFragment: ScopedFragment(), KodeinAware {
             LoggerHelper.writeToLog("There was an error trying to reAuthorize square account for this vehicle. Suggest manual ReAuth")
         }
     }
-
-    private fun checkAccessibilityPermission():Boolean {
-//        val retVal = PowerAccessibilityService().isAccessibilitySettingsOn(context!!)
-        val retVal = true
-        if(!retVal){
-            startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
-        }
-        return retVal
-    }
     private fun checkDrawPermission(): Boolean {
         val retValue = Settings.canDrawOverlays(context)
         if(!retValue){
@@ -375,7 +368,6 @@ class StartupFragment: ScopedFragment(), KodeinAware {
     private fun checkPermissions() {
         permissionDraw = checkDrawPermission()
         permissionWrite = checkSystemWritePermission()
-        permissionAccessibility = checkAccessibilityPermission()
         setupStatus = viewModel.isSetUpComplete()
     }
 

@@ -36,7 +36,7 @@ import java.util.*
 
 class InteractionCompleteFragment : ScopedFragment(), KodeinAware {
     override val kodein by closestKodein()
-    private val viewModelFactory: InteractionCompleteViewModelFactory by instance()
+    private val viewModelFactory: InteractionCompleteViewModelFactory by instance<InteractionCompleteViewModelFactory>()
     private var vehicleId = ""
     private var tripId = ""
     private var tripNumber = 0
