@@ -128,6 +128,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
         setUpBluetooth()
         checkNavBar()
         registerNetworkReceiver()
+        LoggerHelper.twentyFourHourLoggingStart()
         callbackViewModel.getReSyncStatus().observe(this, Observer { reSync ->
             if (reSync) {
                 resync = reSync
@@ -214,7 +215,6 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
             }
         })
     }
-
     //Coroutine to insert Trip Status
     private fun insertTripStatus(string: String) = launch {
         callbackViewModel.addTripStatus(string)
