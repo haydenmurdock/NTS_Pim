@@ -90,7 +90,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
     private val logFragment = "Background Activity"
     private var mNetworkReceiver: NetworkReceiver? = null
     private var watchingTripId = ""
-    private var meterState: String? = null
+
     companion object{
         lateinit var mainActivity: MainActivity
         lateinit var navigationController: NavController
@@ -128,7 +128,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
         setUpBluetooth()
         checkNavBar()
         registerNetworkReceiver()
-        LoggerHelper.twentyFourHourLoggingStart()
+        LoggerHelper.getOrStartInternalLogs()
         callbackViewModel.getReSyncStatus().observe(this, Observer { reSync ->
             if (reSync) {
                 resync = reSync
@@ -156,6 +156,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
             if (hasTripStarted) {
                 val currentTripId = callbackViewModel.getTripId()
                 val navController = findNavController(this, R.id.nav_host_fragment)
+                callbackViewModel.clearAllTripValues()
                 if (navController.currentDestination?.id != R.id.welcome_fragment &&
                     navController.currentDestination?.id != R.id.taxi_number_fragment &&
                     navController.currentDestination?.id != R.id.bluetoothSetupFragment &&
@@ -166,12 +167,8 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                         "This needs to work now. Old trip id: $tripId, new trip id: $currentTripId"
                     )
                     LoggerHelper.writeToLog("${logFragment}, New trip was started by the driver while the pim trip was not finished")
-                    if(meterState == MeterEnum.METER_ON.state){
-                        callbackViewModel.clearAllTripValues()
-                        callbackViewModel.tripWasPickedUp()
-                        getMeterOwedQuery(currentTripId)
-                        navController.navigate(R.id.action_global_taxi_number_fragment)
-                    }
+                    getMeterOwedQuery(currentTripId)
+                    navController.navigate(R.id.action_global_taxi_number_fragment)
                 } else {
                     Log.i(
                         "TripStart",
@@ -181,9 +178,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                 }
             }
         })
-        callbackViewModel.getMeterState().observe(this, Observer { value ->
-            meterState = value
-        })
+
         if (loggingTimer == null) {
             startTimerToSendLogsToAWS(vehicleId, this@MainActivity)
         }
@@ -361,6 +356,11 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
             if(!response.hasErrors()){
                 val awsLog = response.data()?.onPIMSettingsUpdate()?.log()!!
                 LoggerHelper.logging = awsLog
+                if(awsLog){
+                    launch(Dispatchers.IO) {
+                        LoggerHelper.addInternalLogsToAWS(vehicleId)
+                    }
+                }
                 Log.i("Logging", "Logging == $awsLog from updatePimSettingsCallBack")
             }
             if(response.hasErrors()){
@@ -450,7 +450,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
     }
     private fun forceSpeaker() {
         try {
-            playTestSound()
+           // playTestSound()
         } catch (e: Exception) {
             Log.e(ContentValues.TAG, e.toString())
         }

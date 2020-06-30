@@ -111,7 +111,6 @@ object VehicleTripArrayHolder {
         Log.i("Results","METER STATE has changed from $meterStatePIM to $meterStateAWS")
         meterStatePIM = meterStateAWS
         meterStatePIMMutableLiveData.value = meterStatePIM
-
     }
 }
 // Returns the meter status as Live Data
@@ -133,7 +132,6 @@ object VehicleTripArrayHolder {
     internal fun squareTransactionChange(): Boolean{
         isSquareTransactionComplete = !isSquareTransactionComplete
         isSquareTransactionCompleteMutableLiveData.value = isSquareTransactionComplete
-
         return isSquareTransactionComplete
     }
 // Returns the square transaction status as a liveData Bool.

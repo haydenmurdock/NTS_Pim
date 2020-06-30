@@ -153,13 +153,12 @@
             android:id="@+id/vehicle_settings_unpair_button"
             android:layout_width="81dp"
             android:layout_height="51dp"
-            android:layout_marginEnd="14dp"
-            android:layout_marginBottom="32dp"
+            android:layout_marginTop="16dp"
             android:background="@null"
             android:src="@drawable/ic_broken_link"
             android:text="Unpair"
-            app:layout_constraintBottom_toTopOf="@+id/square_test_image_view"
-            app:layout_constraintEnd_toEndOf="parent" />
+            app:layout_constraintEnd_toEndOf="@+id/upload_logs_btn"
+            app:layout_constraintTop_toBottomOf="@+id/upload_logs_btn" />
 
     <TextView
             android:id="@+id/power_status_textView"
@@ -212,16 +211,27 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:srcCompat="@drawable/ic_square_icon" />
 
-    <Button
-            android:id="@+id/reauthorize_button"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+    <ImageButton
+            android:id="@+id/upload_logs_btn"
+            android:layout_width="81dp"
+            android:layout_height="51dp"
             android:layout_marginTop="16dp"
-            android:layout_marginEnd="16dp"
-            android:tooltipText="This will re-authorize square"
-            android:text="Re-Authorize"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/battery_btn" />
+            android:background="@null"
+            android:tooltipText="send logs"
+            app:layout_constraintEnd_toEndOf="@+id/reauth_btn"
+            app:layout_constraintTop_toBottomOf="@+id/reauth_btn"
+            app:srcCompat="@drawable/ic_upload_white" />
+
+    <ImageButton
+            android:id="@+id/reauth_btn"
+            android:layout_width="81dp"
+            android:layout_height="51dp"
+            android:layout_marginTop="16dp"
+            android:background="@null"
+            android:tooltipText="re-authorize square"
+            app:layout_constraintEnd_toEndOf="@+id/battery_btn"
+            app:layout_constraintTop_toBottomOf="@+id/battery_btn"
+            app:srcCompat="@drawable/ic_reauth_square" />
 
 
 </androidx.constraintlayout.widget.ConstraintLayout>

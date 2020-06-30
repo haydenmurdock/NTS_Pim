@@ -1,29 +1,27 @@
 package com.example.nts_pim.utilities.logging_service
 
 import android.Manifest
+import android.content.SharedPreferences
+import android.preference.PreferenceManager
 import android.util.Log
 import androidx.core.content.ContextCompat
-
 import com.example.nts_pim.PimApplication
-import com.example.nts_pim.data.repository.model_objects.InternalLog
 import com.example.nts_pim.data.repository.model_objects.VehicleID
 import com.example.nts_pim.data.repository.providers.ModelPreferences
 import com.example.nts_pim.utilities.enums.SharedPrefEnum
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody
 import org.json.JSONException
 import org.json.JSONObject
-import java.io.*
+import java.io.IOException
 import java.net.URL
 import java.text.SimpleDateFormat
-import java.time.Duration
-import java.time.LocalDate
-import java.time.LocalDateTime
 import java.util.*
 import java.util.concurrent.TimeUnit
-import kotlin.collections.ArrayList
 
 
 object LoggerHelper {
@@ -38,14 +36,14 @@ object LoggerHelper {
     private const val logFragmentEndStamp = "-LOG FRAGMENT END-"
     private const val permissionGranted = 0
     private val pimContext = PimApplication.pimContext
-    private var mInternalLog: InternalLog? = null
-    private var logArray: ArrayList<InternalLog>? = null
+    private var logArray: ArrayList<String?>? = null
+    private const val logLimit = 201
 
     internal fun writeToLog (log: String){
         val readPermission = ContextCompat.checkSelfPermission(pimContext, Manifest.permission.READ_EXTERNAL_STORAGE)
         val writePermission = ContextCompat.checkSelfPermission(pimContext, Manifest.permission.WRITE_EXTERNAL_STORAGE)
-
         val logTimeStamp = timeTimeStamp.format(Date())
+        addLogToInternalLogs(logTimeStamp + "_" + log + "\n")
         if(logging && writePermission == permissionGranted && readPermission == permissionGranted){
             if (vehicleId == null){
                 vehicleId = ModelPreferences(pimContext).getObject(SharedPrefEnum.VEHICLE_ID.key, VehicleID::class.java)?.vehicleID
@@ -122,21 +120,54 @@ object LoggerHelper {
         }
     }
 
-    private fun startArrayOfLogs(){
-        logArray = arrayListOf<InternalLog>()
-
+    internal fun getOrStartInternalLogs(){
+        logArray = getArrayList() ?: arrayListOf()
+        val isLogArrayExist = logArray.isNullOrEmpty()
+        saveArrayList(logArray!!)
+        Log.i("Logger", "Internal Log Started")
     }
 
     private fun addLogToInternalLogs(log:String){
-        val logPosition = logArray?.size ?: 0
-        val mInternalLog = InternalLog(logPosition, log)
-        logArray?.add(mInternalLog)
+        logArray?.add(log)
+        removeAndAddLog(logArray)
     }
 
-    private fun removeAndAddLog(array: ArrayList<InternalLog>){
-        if(array.count() == 101){
+    private fun removeAndAddLog(array: ArrayList<String?>?){
+        if(array?.count() == logLimit){
         array.removeAt(0)
+            Log.i("LOGGER", "Removing log from logging array. Log count is now ${array.count()}")
+        } else {
+            Log.i("LOGGER", "Internal Log hasn't hit $logLimit, Log count is now ${array?.count()}")
+        }
+        Log.i("LOGGER", "Last log entered: ${array?.last()}")
+        if(!array.isNullOrEmpty()){
+            saveArrayList(array)
         }
     }
 
+    private fun saveArrayList(list: ArrayList<String?>) {
+        val prefs: SharedPreferences = PreferenceManager.getDefaultSharedPreferences(PimApplication.pimContext)
+        val editor: SharedPreferences.Editor = prefs.edit()
+        val gson = Gson()
+        val json: String = gson.toJson(list)
+        editor.putString("InternalLogs", json)
+        editor.apply()
+    }
+
+    private fun getArrayList(): ArrayList<String?>? {
+        val prefs = PreferenceManager.getDefaultSharedPreferences(PimApplication.pimContext)
+        val gson = Gson()
+        val json = prefs.getString("InternalLogs", null)
+        val type =
+            object : TypeToken<ArrayList<String?>?>() {}.type
+        return gson.fromJson(json, type)
+    }
+
+    internal fun addInternalLogsToAWS(vehicleId: String) {
+        for (log in logArray!!.iterator()) {
+            logToSendAWS += log
+        }
+        logArray!!.clear()
+        sendLogToAWS(vehicleId)
+    }
 }

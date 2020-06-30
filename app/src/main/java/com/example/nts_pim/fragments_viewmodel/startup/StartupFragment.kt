@@ -22,6 +22,7 @@ import androidx.navigation.NavController
 import androidx.navigation.Navigation
 import com.amazonaws.amplify.generated.graphql.GetPimSettingsQuery
 import com.amazonaws.amplify.generated.graphql.ResetReAuthSquareMutation
+import com.amazonaws.amplify.generated.graphql.UpdateDeviceIdToImeiMutation
 import com.amazonaws.mobileconnectors.appsync.AWSAppSyncClient
 import com.amazonaws.mobileconnectors.appsync.fetcher.AppSyncResponseFetchers
 import com.apollographql.apollo.GraphQLCall
@@ -52,6 +53,7 @@ import org.kodein.di.KodeinAware
 import org.kodein.di.android.x.closestKodein
 import org.kodein.di.generic.instance
 import type.ResetReAuthSquareInput
+import type.UpdateDeviceIdToIMEIInput
 import java.io.IOException
 import java.lang.Error
 import java.net.NetworkInterface
@@ -140,6 +142,14 @@ class StartupFragment: ScopedFragment(), KodeinAware {
                 val appVersion = response.data()?.pimSettings?.appVersion()
                 val reAuth = response.data()?.pimSettings?.reAuthSquare()
                 val awsPhoneNumber = response.data()?.pimSettings?.phoneNbr()
+                val errorCode= response.data()?.pimSettings?.errorCode()
+
+                if(errorCode == "1014"){
+                    LoggerHelper.writeToLog("Device id wasn't found from query. Tried to send new device id")
+                    launch(Dispatchers.IO) {
+                        PIMMutationHelper.updateDeviceId(deviceId!!, mAWSAppSyncClient!!, vehicleId!!)
+                    }
+                }
 
                 if(isLoggingOn != null){
                     Log.i("LOGGER", "AWS Query callback: isLoggingOn = $isLoggingOn")
@@ -165,7 +175,6 @@ class StartupFragment: ScopedFragment(), KodeinAware {
         override fun onFailure(e: ApolloException) {
         }
     }
-
     private fun reauthorizeSquare() = launch(Dispatchers.Main.immediate){
         if(ReaderSdk.authorizationManager().authorizationState.canDeauthorize()){
             ReaderSdk.authorizationManager().addDeauthorizeCallback(deauthorizeCallback)

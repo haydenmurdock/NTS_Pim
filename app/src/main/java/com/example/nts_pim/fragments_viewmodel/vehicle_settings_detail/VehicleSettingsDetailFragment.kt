@@ -67,8 +67,6 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
     private lateinit var keyboardViewModel: SettingsKeyboardViewModel
     private var mAWSAppSyncClient: AWSAppSyncClient? = null
     private var readerSettingsCallbackRef: CallbackReference? = null
-    var mArrayAdapter: ArrayAdapter<String>? = null
-    var devices = ArrayList<String>()
     private val currentFragmentId = R.id.vehicle_settings_detail_fragment
     private var vehicleId = ""
     private var tripID = ""
@@ -144,8 +142,19 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
         square_test_image_view.setOnClickListener {
             startSquareFlow()
         }
-        reauthorize_button.setOnClickListener {
+        reauth_btn.setOnClickListener {
             showReauthorizeDialog(activity!!, vehicleId)
+        }
+
+        upload_logs_btn.setOnClickListener {
+            if(!LoggerHelper.logging){
+                launch(Dispatchers.IO) {
+                    LoggerHelper.addInternalLogsToAWS(vehicleId)
+                }
+                Toast.makeText(this.context, "Internal Logs sent to AWS", Toast.LENGTH_LONG).show()
+            } else {
+                Toast.makeText(this.context, "Logging is already on. Logs not sent", Toast.LENGTH_LONG).show()
+            }
         }
 
         battery_btn.setOnClickListener {
@@ -157,15 +166,6 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
             ).show()
             updatePowerButtonUI(batteryPermission)
         }
-//      This is for future bluetooth use 
-//        show_bt_paired_devices_imageView.setOnClickListener{
-//            val pairedDevices = bluetoothDeviceAdapter.bondedDevices
-//             mArrayAdapter = ArrayAdapter(activity, R.layout.dialog_select_bluetooth_device)
-//            pairedDevices.forEach {device->
-//                devices.add(device.name)
-//                mArrayAdapter!!.add((if (device.name != null) device.name else "Unknown") + "\n" + device.address+ "\nPaired")
-//            }
-//        }
     }
 
     private fun getAuthorizationCode(vehicleId: String) {
@@ -363,14 +363,6 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
             powerOffApplicationAlert.setTitle("Power Off Application")
             powerOffApplicationAlert.setMessage("Would you like to power off the application?")
                 .setPositiveButton("Yes"){ _, _->
-                    //This is for inside our own app.
-//                    val audioManager = context!!.getSystemService(Context.AUDIO_SERVICE) as AudioManager
-//                    audioManager.mode = (AudioManager.MODE_NORMAL)
-//                    val intent = Intent(activity, PowerAccessibilityService::class.java)
-//                    intent.action = "com.claren.tablet_control.shutdown"
-//                    intent.addFlags(Intent.FLAG_INCLUDE_STOPPED_PACKAGES)
-//                    activity!!.startService(intent)
-
                     val action =  "com.claren.tablet_control.shutdown"
                     val p = "com.claren.tablet_control"
                     val intent = Intent()
@@ -386,7 +378,7 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
     private fun showReauthorizeDialog(activity: Activity, vehicleId: String){
         val exitApplicationAlert = AlertDialog.Builder(activity)
         exitApplicationAlert.setTitle("Re-Authorize Square Account?")
-        exitApplicationAlert.setMessage("Note: If yes is picked, you will need to re-pair reader")
+        exitApplicationAlert.setMessage("Note: If yes is picked, you might need to re-pair reader")
             .setPositiveButton("Yes"){ _, _->
                 if(ReaderSdk.authorizationManager().authorizationState.canDeauthorize()){
                     ReaderSdk.authorizationManager().deauthorize()
