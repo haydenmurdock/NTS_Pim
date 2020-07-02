@@ -20,6 +20,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModelProviders
 import androidx.navigation.NavController
 import androidx.navigation.Navigation
+import com.amazonaws.amplify.generated.graphql.GetPimInfoQuery
 import com.amazonaws.amplify.generated.graphql.GetPimSettingsQuery
 import com.amazonaws.amplify.generated.graphql.ResetReAuthSquareMutation
 import com.amazonaws.amplify.generated.graphql.UpdateDeviceIdToImeiMutation
@@ -30,11 +31,14 @@ import com.apollographql.apollo.api.Response
 import com.apollographql.apollo.exception.ApolloException
 import com.example.nts_pim.BuildConfig
 import com.example.nts_pim.R
+import com.example.nts_pim.activity.MainActivity
 import com.example.nts_pim.data.repository.model_objects.DeviceID
 import com.example.nts_pim.data.repository.model_objects.JsonAuthCode
 import com.example.nts_pim.data.repository.providers.ModelPreferences
+import com.example.nts_pim.fragments_viewmodel.InjectorUtiles
 import com.example.nts_pim.fragments_viewmodel.base.ClientFactory
 import com.example.nts_pim.fragments_viewmodel.base.ScopedFragment
+import com.example.nts_pim.fragments_viewmodel.callback.CallBackViewModel
 import com.example.nts_pim.fragments_viewmodel.vehicle_setup.VehicleSetupModelFactory
 import com.example.nts_pim.fragments_viewmodel.vehicle_setup.VehicleSetupViewModel
 import com.example.nts_pim.utilities.enums.SharedPrefEnum
@@ -53,7 +57,6 @@ import org.kodein.di.KodeinAware
 import org.kodein.di.android.x.closestKodein
 import org.kodein.di.generic.instance
 import type.ResetReAuthSquareInput
-import type.UpdateDeviceIdToIMEIInput
 import java.io.IOException
 import java.lang.Error
 import java.net.NetworkInterface
@@ -63,6 +66,7 @@ class StartupFragment: ScopedFragment(), KodeinAware {
     override val kodein by closestKodein()
     private val viewModelFactory: VehicleSetupModelFactory by instance<VehicleSetupModelFactory>()
     private lateinit var viewModel: VehicleSetupViewModel
+    private lateinit var callBackViewModel: CallBackViewModel
     private var mAWSAppSyncClient: AWSAppSyncClient? = null
     private  val fullBrightness = 255
     private var permissionDraw = false
@@ -89,6 +93,9 @@ class StartupFragment: ScopedFragment(), KodeinAware {
         super.onViewCreated(view, savedInstanceState)
         viewModel = ViewModelProviders.of(this, viewModelFactory)
             .get(VehicleSetupViewModel::class.java)
+        val factory = InjectorUtiles.provideCallBackModelFactory()
+        callBackViewModel = ViewModelProviders.of(this, factory)
+            .get(CallBackViewModel::class.java)
         navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
         mAWSAppSyncClient = ClientFactory.getInstance(activity!!.applicationContext)
         val telephonyManager = context?.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
@@ -109,12 +116,8 @@ class StartupFragment: ScopedFragment(), KodeinAware {
         phoneNumber = telephonyManager.line1Number
         val isSetupComplete = viewModel.isSetUpComplete()
         if(isSetupComplete){
-            val deviceId = ModelPreferences(context!!).getObject(SharedPrefEnum.DEVICE_ID.key, DeviceID::class.java)
-            if(deviceId != null && deviceId.number.isNotBlank()){
-                Log.i("LOGGER", "Vehicle Setup complete and checking AWS For Logging. device Id: ${deviceId.number}")
-                checkAWSForLogging(deviceId.number)
                 vehicleId = viewModel.getVehicleID()
-            }
+                checkAWSForLogging(vehicleId!!)
         }
         blueToothAddress = getBluetoothAddress()
         appVersionNumber = BuildConfig.VERSION_NAME
@@ -127,25 +130,31 @@ class StartupFragment: ScopedFragment(), KodeinAware {
         if (mAWSAppSyncClient == null) {
             mAWSAppSyncClient = ClientFactory.getInstance(activity!!.applicationContext)
         }
-        mAWSAppSyncClient?.query(GetPimSettingsQuery.builder().deviceId(deviceId).build())
+        mAWSAppSyncClient?.query(GetPimInfoQuery.builder().vehicleId(deviceId).build())
             ?.responseFetcher(AppSyncResponseFetchers.NETWORK_ONLY)
             ?.enqueue(awsLoggingQueryCallBack)
     }
 
-    private var awsLoggingQueryCallBack = object: GraphQLCall.Callback<GetPimSettingsQuery.Data>() {
-        override fun onResponse(response: Response<GetPimSettingsQuery.Data>) {
+    private var awsLoggingQueryCallBack = object: GraphQLCall.Callback<GetPimInfoQuery.Data>() {
+        override fun onResponse(response: Response<GetPimInfoQuery.Data>) {
             if (response.data() != null &&
                 !response.hasErrors()
             ) {
-                val isLoggingOn = response.data()?.pimSettings?.log()
-                val awsBluetoothAddress = response.data()?.pimSettings?.btAddress()
-                val appVersion = response.data()?.pimSettings?.appVersion()
-                val reAuth = response.data()?.pimSettings?.reAuthSquare()
-                val awsPhoneNumber = response.data()?.pimSettings?.phoneNbr()
-                val errorCode= response.data()?.pimSettings?.errorCode()
+                val isLoggingOn = response.data()?.pimInfo?.log()
+                val awsBluetoothAddress = response.data()?.pimInfo?.btAddress()
+                val appVersion = response.data()?.pimInfo?.appVersion()
+                val reAuth = response.data()?.pimInfo?.reAuthSquare()
+                val awsPhoneNumber = response.data()?.pimInfo?.phoneNbr()
+                val pimPaired = response.data()?.pimInfo?.paired() ?: true
+                val awsDeviceId = response.data()?.pimInfo?.deviceId()
 
-                if(errorCode == "1014"){
-                    LoggerHelper.writeToLog("Device id wasn't found from query. Tried to send new device id")
+                if (!pimPaired){
+                launch {
+                    callBackViewModel.pimPairingValueChangedViaFMP(pimPaired)
+                     }
+                }
+                if(pimPaired && awsDeviceId != deviceId){
+                    LoggerHelper.writeToLog("Device id didn't match from the query. Is trying to update device for v")
                     launch(Dispatchers.IO) {
                         PIMMutationHelper.updateDeviceId(deviceId!!, mAWSAppSyncClient!!, vehicleId!!)
                     }
@@ -306,16 +315,14 @@ class StartupFragment: ScopedFragment(), KodeinAware {
 
     private fun checkSystemWritePermission(): Boolean {
         var retVal = true
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            retVal = Settings.System.canWrite(context)
-            if(retVal){
-                // when we have permission we manually set to brightness 255
-                changeScreenBrightness(fullBrightness)
+        retVal = Settings.System.canWrite(context)
+        if(retVal){
+            // when we have permission we manually set to brightness 255
+            changeScreenBrightness(fullBrightness)
 
-            }else{
-                //We don't have permissions so we push to grant permissions
-                openAndroidPermissionsMenu()
-            }
+        }else{
+            //We don't have permissions so we push to grant permissions
+            openAndroidPermissionsMenu()
         }
         return retVal
     }

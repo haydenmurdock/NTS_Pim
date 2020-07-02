@@ -129,4 +129,10 @@ class CallBackViewModel(
 
     internal fun isReaderConnected() = VehicleTripArrayHolder.isReaderStatusConnected()
 
+    internal fun pimPairingValueChangedViaFMP(change: Boolean){
+        VehicleTripArrayHolder.pimPairingViaFMPChanged(change)
+    }
+
+    internal fun isPimPaired() = VehicleTripArrayHolder.isPimPaired()
+
 }

@@ -101,6 +101,7 @@ query GetPimSettings(
     reAuthSquare
     useBluetooth
     phoneNbr
+    paired
   }
 }
 query GetSettings(
@@ -108,12 +109,14 @@ query GetSettings(
   $pin: String
   $appVersion: String
   $phoneNbr: String
+  $firmwareVersion: String
 ) {
   getSettings(
     deviceId: $deviceId
     pin: $pin
     appVersion: $appVersion
     phoneNbr: $phoneNbr
+    firmwareVersion: $firmwareVersion
   ) {
     airportControl
     appVersion
@@ -127,9 +130,11 @@ query GetSettings(
     deviceId
     error
     errorCode
+    firmwareVersion
     fleetGroup
     fleetNbr
     hideStartTrip
+    hideVehicle
     lisnr
     locReport
     log
@@ -189,6 +194,8 @@ query GetStatus($vehicleId: String!) {
     postedStatus
     readerStatus
     readerStatusTimeStamp
+    resetMeterStats
+    resetMeterStatsTimeStamp
     tripId
     tripStatus
     vehicleId
@@ -447,6 +454,7 @@ query GetLoggingSettings($deviceId: String!) {
     reAuthSquare
     useBluetooth
     phoneNbr
+    paired
   }
 }
 query GetPimInfo($vehicleId: String!) {
@@ -461,5 +469,6 @@ query GetPimInfo($vehicleId: String!) {
     reAuthSquare
     useBluetooth
     phoneNbr
+    paired
   }
 }

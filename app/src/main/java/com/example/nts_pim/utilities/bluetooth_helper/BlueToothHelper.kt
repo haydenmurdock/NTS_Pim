@@ -10,7 +10,10 @@ import android.content.IntentFilter
 import android.util.Log
 import android.widget.Toast
 import androidx.annotation.VisibleForTesting
+import com.example.nts_pim.utilities.logging_service.LoggerHelper
+import java.lang.IllegalArgumentException
 import java.util.*
+import java.util.logging.Logger
 import kotlin.collections.ArrayList
 
 
@@ -89,6 +92,11 @@ object BlueToothHelper {
     }
 
     internal fun unregisterBlueToothReceiver(activity: Activity){
-        activity.unregisterReceiver(mPairReceiver)
+        try{
+            activity.unregisterReceiver(mPairReceiver)
+        } catch (e: IllegalArgumentException){
+            Log.i("Bluetooth", "Issue unregistering bluetooth receiver")
+            LoggerHelper.writeToLog("Issue unregistering bluetooth receiver")
+        }
     }
 }

@@ -13,9 +13,11 @@ subscription OnSettingsUpdate($deviceId: String) {
     deviceId
     error
     errorCode
+    firmwareVersion
     fleetGroup
     fleetNbr
     hideStartTrip
+    hideVehicle
     lisnr
     locReport
     log
@@ -75,6 +77,8 @@ subscription OnStatusUpdate($vehicleId: String) {
     postedStatus
     readerStatus
     readerStatusTimeStamp
+    resetMeterStats
+    resetMeterStatsTimeStamp
     tripId
     tripStatus
     vehicleId
@@ -172,6 +176,8 @@ subscription OnUpdatePimStatus($vehicleId: String) {
     postedStatus
     readerStatus
     readerStatusTimeStamp
+    resetMeterStats
+    resetMeterStatsTimeStamp
     tripId
     tripStatus
     vehicleId
@@ -197,6 +203,8 @@ subscription OnUpdateVehTripStatus($vehicleId: String) {
     postedStatus
     readerStatus
     readerStatusTimeStamp
+    resetMeterStats
+    resetMeterStatsTimeStamp
     tripId
     tripStatus
     vehicleId
@@ -358,5 +366,21 @@ subscription OnPimSettingsUpdate($deviceId: String) {
     reAuthSquare
     useBluetooth
     phoneNbr
+    paired
+  }
+}
+subscription OnPimUnpair($vehicleId: String) {
+  onPIMUnpair(vehicleId: $vehicleId) {
+    deviceId
+    error
+    errorCode
+    vehicleId
+    log
+    btAddress
+    appVersion
+    reAuthSquare
+    useBluetooth
+    phoneNbr
+    paired
   }
 }

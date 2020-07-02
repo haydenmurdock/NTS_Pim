@@ -22,6 +22,7 @@ import java.net.URL
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.TimeUnit
+import kotlin.Error
 
 
 object LoggerHelper {
@@ -53,11 +54,6 @@ object LoggerHelper {
             } else {
                 logToSendAWS += logTimeStamp + "_" + log + "\n"
             }
-        } else {
-            Log.i("LOGGER", "Not logging information," +
-                    " logging == $logging, " +
-                    "Read permission == $readPermission," +
-                    " write permission == $writePermission ")
         }
     }
 
@@ -128,8 +124,12 @@ object LoggerHelper {
     }
 
     private fun addLogToInternalLogs(log:String){
-        logArray?.add(log)
-        removeAndAddLog(logArray)
+        try {
+            logArray?.add(log)
+            removeAndAddLog(logArray)
+        } catch (e: Error) {
+
+        }
     }
 
     private fun removeAndAddLog(array: ArrayList<String?>?){

@@ -184,6 +184,9 @@ class SquareService : OnLayoutChangeListener,
                 }
                 SqUIState.SUCCESSFUL_PAYMENT -> {
                 }
+                else -> {
+
+                }
             }
             // Entering newState
             when (newState) {
@@ -381,7 +384,7 @@ class SquareService : OnLayoutChangeListener,
                     Log.i(tag, "Reader Check Timer: squareReaderState: $squareReaderState")
                     if (squareReaderState == null){
                         Log.i(tag, "Reader checked via readerCheckTimer. Text view was null but timer was still going")
-                        LoggerHelper.writeToLog("$tag, Reader checked via readerCheckTimer. Text view was null but timer was still going")
+                        LoggerHelper.writeToLog("$tag, Reader checked via readerCheckTimer. Text view was null but timer is still going. Will check again in 2.5 seconds.")
                         stopReaderCheckTimeout()
                         return
                     }
@@ -398,19 +401,19 @@ class SquareService : OnLayoutChangeListener,
                     val squareReaderState = newViewGroup?.text
                     if (squareReaderState == null){
                         Log.i(tag, "Reader checked via readerCheckTimer. Text view was null but timer was still going")
-                        LoggerHelper.writeToLog("$tag, Reader checked via readerCheckTimer. Text view was null but timer was still going")
+                        LoggerHelper.writeToLog("$tag, Reader checked via readerCheckTimer. Timer has finished and there is no text view to read.")
                         return
                     }
                     if(squareReaderState.contains("Reader Not Ready")){
                         Log.i(tag, "Reader checked via readerCheckTimer. Reader has failed")
-                        LoggerHelper.writeToLog("$tag, Reader checked via readerCheckTimer. Reader has failed")
+                        LoggerHelper.writeToLog("$tag, Reader checked via readerCheckTimer. Timer has finished. Reader has failed")
                         VehicleTripArrayHolder.updateReaderStatus(ReaderStatusEnum.FAILED.status)
                         VehicleTripArrayHolder.needToReAuthorizeSquare()
                         removeSquareReaderView()
                     }
                     if(squareReaderState.contains("Establishing Secure Connection")){
                         Log.i(tag, "Reader checked via readerCheckTimer. Reader has failed")
-                        LoggerHelper.writeToLog("$tag, Reader checked via readerCheckTimer. Reader is still establishing connection after 60 seconds. Reader Failed")
+                        LoggerHelper.writeToLog("$tag, Reader checked via readerCheckTimer. Timer has finished. Reader is still establishing connection after 60 seconds. Reader Failed")
                         VehicleTripArrayHolder.updateReaderStatus(ReaderStatusEnum.FAILED.status)
                         VehicleTripArrayHolder.needToReAuthorizeSquare()
                         removeSquareReaderView()
