@@ -20,8 +20,10 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModelProviders
 import androidx.navigation.NavController
 import androidx.navigation.Navigation
+import com.amazonaws.amplify.generated.graphql.GetPimInfoQuery
 import com.amazonaws.amplify.generated.graphql.GetPimSettingsQuery
 import com.amazonaws.amplify.generated.graphql.ResetReAuthSquareMutation
+import com.amazonaws.amplify.generated.graphql.UpdateDeviceIdToImeiMutation
 import com.amazonaws.mobileconnectors.appsync.AWSAppSyncClient
 import com.amazonaws.mobileconnectors.appsync.fetcher.AppSyncResponseFetchers
 import com.apollographql.apollo.GraphQLCall
@@ -29,11 +31,14 @@ import com.apollographql.apollo.api.Response
 import com.apollographql.apollo.exception.ApolloException
 import com.example.nts_pim.BuildConfig
 import com.example.nts_pim.R
+import com.example.nts_pim.activity.MainActivity
 import com.example.nts_pim.data.repository.model_objects.DeviceID
 import com.example.nts_pim.data.repository.model_objects.JsonAuthCode
 import com.example.nts_pim.data.repository.providers.ModelPreferences
+import com.example.nts_pim.fragments_viewmodel.InjectorUtiles
 import com.example.nts_pim.fragments_viewmodel.base.ClientFactory
 import com.example.nts_pim.fragments_viewmodel.base.ScopedFragment
+import com.example.nts_pim.fragments_viewmodel.callback.CallBackViewModel
 import com.example.nts_pim.fragments_viewmodel.vehicle_setup.VehicleSetupModelFactory
 import com.example.nts_pim.fragments_viewmodel.vehicle_setup.VehicleSetupViewModel
 import com.example.nts_pim.utilities.enums.SharedPrefEnum
@@ -61,11 +66,12 @@ class StartupFragment: ScopedFragment(), KodeinAware {
     override val kodein by closestKodein()
     private val viewModelFactory: VehicleSetupModelFactory by instance<VehicleSetupModelFactory>()
     private lateinit var viewModel: VehicleSetupViewModel
+    private lateinit var callBackViewModel: CallBackViewModel
     private var mAWSAppSyncClient: AWSAppSyncClient? = null
     private  val fullBrightness = 255
     private var permissionDraw = false
     private var permissionWrite = false
-    private var permissionAccessibility = false
+    private var permissionAccessibility = true
     private var setupStatus = false
     private var navController: NavController? = null
     private var appVersionNumber: String? = null
@@ -87,6 +93,9 @@ class StartupFragment: ScopedFragment(), KodeinAware {
         super.onViewCreated(view, savedInstanceState)
         viewModel = ViewModelProviders.of(this, viewModelFactory)
             .get(VehicleSetupViewModel::class.java)
+        val factory = InjectorUtiles.provideCallBackModelFactory()
+        callBackViewModel = ViewModelProviders.of(this, factory)
+            .get(CallBackViewModel::class.java)
         navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
         mAWSAppSyncClient = ClientFactory.getInstance(activity!!.applicationContext)
         val telephonyManager = context?.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
@@ -106,37 +115,50 @@ class StartupFragment: ScopedFragment(), KodeinAware {
         }
         phoneNumber = telephonyManager.line1Number
         val isSetupComplete = viewModel.isSetUpComplete()
-        deviceId = ModelPreferences(this.requireContext()).getObject(SharedPrefEnum.DEVICE_ID.key, DeviceID::class.java)?.number
         if(isSetupComplete){
-            if(deviceId != null && deviceId != ""){
-                Log.i("LOGGER", "Vehicle Setup complete and checking AWS For Logging. device Id: $deviceId")
-                checkAWSForLogging(deviceId!!)
                 vehicleId = viewModel.getVehicleID()
-            }
+                checkAWSForLogging(vehicleId!!)
         }
         blueToothAddress = getBluetoothAddress()
         appVersionNumber = BuildConfig.VERSION_NAME
+        deviceId = ModelPreferences(this.requireContext())
+            .getObject(SharedPrefEnum.DEVICE_ID.key, DeviceID::class.java)
+            ?.number
     }
 
     private fun checkAWSForLogging(deviceId: String){
         if (mAWSAppSyncClient == null) {
             mAWSAppSyncClient = ClientFactory.getInstance(activity!!.applicationContext)
         }
-        mAWSAppSyncClient?.query(GetPimSettingsQuery.builder().deviceId(deviceId).build())
+        mAWSAppSyncClient?.query(GetPimInfoQuery.builder().vehicleId(deviceId).build())
             ?.responseFetcher(AppSyncResponseFetchers.NETWORK_ONLY)
             ?.enqueue(awsLoggingQueryCallBack)
     }
 
-    private var awsLoggingQueryCallBack = object: GraphQLCall.Callback<GetPimSettingsQuery.Data>() {
-        override fun onResponse(response: Response<GetPimSettingsQuery.Data>) {
+    private var awsLoggingQueryCallBack = object: GraphQLCall.Callback<GetPimInfoQuery.Data>() {
+        override fun onResponse(response: Response<GetPimInfoQuery.Data>) {
             if (response.data() != null &&
                 !response.hasErrors()
             ) {
-                val isLoggingOn = response.data()?.pimSettings?.log()
-                val awsBluetoothAddress = response.data()?.pimSettings?.btAddress()
-                val appVersion = response.data()?.pimSettings?.appVersion()
-                val reAuth = response.data()?.pimSettings?.reAuthSquare()
-                val awsPhoneNumber = response.data()?.pimSettings?.phoneNbr()
+                val isLoggingOn = response.data()?.pimInfo?.log()
+                val awsBluetoothAddress = response.data()?.pimInfo?.btAddress()
+                val appVersion = response.data()?.pimInfo?.appVersion()
+                val reAuth = response.data()?.pimInfo?.reAuthSquare()
+                val awsPhoneNumber = response.data()?.pimInfo?.phoneNbr()
+                val pimPaired = response.data()?.pimInfo?.paired() ?: true
+                val awsDeviceId = response.data()?.pimInfo?.deviceId()
+
+                if (!pimPaired){
+                launch {
+                    callBackViewModel.pimPairingValueChangedViaFMP(pimPaired)
+                     }
+                }
+                if(pimPaired && awsDeviceId != deviceId){
+                    LoggerHelper.writeToLog("Device id didn't match from the query. Is trying to update device for v")
+                    launch(Dispatchers.IO) {
+                        PIMMutationHelper.updateDeviceId(deviceId!!, mAWSAppSyncClient!!, vehicleId!!)
+                    }
+                }
 
                 if(isLoggingOn != null){
                     Log.i("LOGGER", "AWS Query callback: isLoggingOn = $isLoggingOn")
@@ -162,7 +184,6 @@ class StartupFragment: ScopedFragment(), KodeinAware {
         override fun onFailure(e: ApolloException) {
         }
     }
-
     private fun reauthorizeSquare() = launch(Dispatchers.Main.immediate){
         if(ReaderSdk.authorizationManager().authorizationState.canDeauthorize()){
             ReaderSdk.authorizationManager().addDeauthorizeCallback(deauthorizeCallback)
@@ -257,15 +278,6 @@ class StartupFragment: ScopedFragment(), KodeinAware {
             LoggerHelper.writeToLog("There was an error trying to reAuthorize square account for this vehicle. Suggest manual ReAuth")
         }
     }
-
-    private fun checkAccessibilityPermission():Boolean {
-//        val retVal = PowerAccessibilityService().isAccessibilitySettingsOn(context!!)
-        val retVal = true
-        if(!retVal){
-            startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
-        }
-        return retVal
-    }
     private fun checkDrawPermission(): Boolean {
         val retValue = Settings.canDrawOverlays(context)
         if(!retValue){
@@ -303,16 +315,14 @@ class StartupFragment: ScopedFragment(), KodeinAware {
 
     private fun checkSystemWritePermission(): Boolean {
         var retVal = true
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            retVal = Settings.System.canWrite(context)
-            if(retVal){
-                // when we have permission we manually set to brightness 255
-                changeScreenBrightness(fullBrightness)
+        retVal = Settings.System.canWrite(context)
+        if(retVal){
+            // when we have permission we manually set to brightness 255
+            changeScreenBrightness(fullBrightness)
 
-            }else{
-                //We don't have permissions so we push to grant permissions
-                openAndroidPermissionsMenu()
-            }
+        }else{
+            //We don't have permissions so we push to grant permissions
+            openAndroidPermissionsMenu()
         }
         return retVal
     }
@@ -374,7 +384,6 @@ class StartupFragment: ScopedFragment(), KodeinAware {
     private fun checkPermissions() {
         permissionDraw = checkDrawPermission()
         permissionWrite = checkSystemWritePermission()
-        permissionAccessibility = checkAccessibilityPermission()
         setupStatus = viewModel.isSetUpComplete()
     }
 

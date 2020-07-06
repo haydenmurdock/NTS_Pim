@@ -23,6 +23,7 @@ import com.amazonaws.mobileconnectors.appsync.AWSAppSyncClient
 import com.example.nts_pim.BuildConfig
 import com.example.nts_pim.PimApplication
 import com.example.nts_pim.R
+import com.example.nts_pim.activity.MainActivity
 import com.example.nts_pim.data.repository.TripDetails
 import com.example.nts_pim.data.repository.VehicleTripArrayHolder
 import com.example.nts_pim.data.repository.model_objects.AppVersion
@@ -210,19 +211,15 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
             }
         }
         tripIsCurrentlyRunning(isOnActiveTrip)
-        callBackViewModel.hasNewTripStarted().observe(this.viewLifecycleOwner, androidx.lifecycle.Observer { tripStarted ->
-            if(tripStarted){
-                val newTripId = callBackViewModel.getTripId()
-                if(newTripId != lastTrip.second &&
-                    newTripId != "") {
-                            Log.i("Welcome Screen", "new trip has started for trip Id: $newTripId")
-                        }
-                }
-            })
+        callBackViewModel.isPimPaired().observe(this.viewLifecycleOwner, androidx.lifecycle.Observer { isPaired ->
+            if(!isPaired){
+                toVehicleSettingsDetail()
+            }
+        })
         callBackViewModel.getTripStatus().observe(this.viewLifecycleOwner, androidx.lifecycle.Observer { vehicleStatus ->
             if (vehicleStatus == VehicleStatusEnum.TRIP_PICKED_UP.status){
                 changeScreenBrightness(fullBrightness)
-                LoggerHelper.writeToLog("$logFragment received Trip_Pick_Up_Status. Starting Animation")
+                LoggerHelper.writeToLog("$logFragment received Trip_Pick_Up_Status. Leaving welcome screen")
                 checkAnimation()
             }
         })
@@ -295,9 +292,11 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
     }
 
     private fun toNextScreen() {
-        Timer().schedule(timerTask {
-            toTaxiNumber()
-        }, 5000)
+        if(view != null && view!!.isVisible){
+            Timer().schedule(timerTask {
+                toTaxiNumber()
+            }, 5000)
+        }
     }
     private fun markPimStartTime(){
         val time = LocalDateTime.now()
@@ -308,7 +307,7 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
     private fun checkPassword() {
         if (password_editText.text.toString() == password) {
             changeScreenBrightness(255)
-            Navigation.findNavController(view!!).navigate(R.id.toVehicleSettingsDetail)
+            toVehicleSettingsDetail()
         }
     }
 
@@ -455,6 +454,12 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
             navController.navigate(R.id.toTaxiNumber)
         }
     }
+    private fun toVehicleSettingsDetail(){
+        val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
+        if (navController.currentDestination?.id == currentFragmentId){
+            navController.navigate(R.id.toVehicleSettingsDetail)
+        }
+    }
     private fun backToBlueToothCheck(){
         val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
         if (navController.currentDestination?.id == currentFragmentId) {
@@ -496,6 +501,7 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
         if (callBackViewModel != null) {
             callBackViewModel.getTripStatus().removeObservers(this)
             callBackViewModel.hasNewTripStarted().removeObservers(this)
+            callBackViewModel.isPimPaired().removeObservers(this)
         }
         failedReaderTimer?.cancel()
         restartAppTimer.cancel()

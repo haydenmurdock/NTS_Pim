@@ -80,6 +80,9 @@ object VehicleTripArrayHolder {
     private var deviceIsBondedBT = false
     private var deviceIsBondedBTMutableLiveData = MutableLiveData<Boolean>()
 
+    private var isPimPaired = true
+    private var isPimPairedMLD = MutableLiveData<Boolean>()
+
     //We use this for Pim Status Request
     private var internalPIMStatus = ""
 
@@ -98,6 +101,7 @@ object VehicleTripArrayHolder {
         if(appsyncTripStatus != tripStatus){
             tripStatus = appsyncTripStatus
             tripStatusMutableLiveData.value = tripStatus
+            LoggerHelper.writeToLog("Internal pim status was changed. Trip Status: $tripStatus")
         }
    }
 // Returns the trip status as Live Data
@@ -111,6 +115,7 @@ object VehicleTripArrayHolder {
         Log.i("Results","METER STATE has changed from $meterStatePIM to $meterStateAWS")
         meterStatePIM = meterStateAWS
         meterStatePIMMutableLiveData.value = meterStatePIM
+        LoggerHelper.writeToLog("Internal pim meter was changed. Meter Status: $meterStatePIM")
     }
 }
 // Returns the meter status as Live Data
@@ -154,6 +159,7 @@ object VehicleTripArrayHolder {
             createCurrentTrip(false, enteredTripId, "none", context)
             tripEnded = false
             tripEndedMutableLiveData.value = tripEnded
+            LoggerHelper.writeToLog("Internal Trip Id was changed. Trip Id: $tripId")
         }
     }
     fun newTripWasPickedUp(){
@@ -199,6 +205,7 @@ object VehicleTripArrayHolder {
         paymentTypeSelected = "none"
         driverId = 0
         Log.i("Results", "All Trip Information has been cleared")
+        LoggerHelper.writeToLog("All Trip Information has been cleared")
     }
 
     fun updateInternalPIMStatus(pimStatus: String){
@@ -370,5 +377,14 @@ object VehicleTripArrayHolder {
     fun doWeNeedToReAuthorizeSquare() = needToReAuthSquareMLD as LiveData<Boolean>
 
     fun isReaderStatusConnected() = cardReaderStatusHasBeenCheckedMLD as LiveData<Boolean>
+
+    fun pimPairingViaFMPChanged(change: Boolean){
+        if(change != isPimPaired){
+            isPimPaired = change
+            isPimPairedMLD.value = isPimPaired
+        }
+    }
+
+    fun isPimPaired() = isPimPairedMLD as LiveData<Boolean>
 }
 

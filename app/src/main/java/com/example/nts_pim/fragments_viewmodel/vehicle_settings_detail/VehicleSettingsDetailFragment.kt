@@ -33,7 +33,11 @@ import android.content.pm.PackageManager
 import android.telephony.TelephonyManager
 import android.util.Log
 import android.widget.ArrayAdapter
+import com.amazonaws.amplify.generated.graphql.UnpairPimMutation
 import com.amazonaws.mobileconnectors.appsync.AWSAppSyncClient
+import com.apollographql.apollo.GraphQLCall
+import com.apollographql.apollo.api.Response
+import com.apollographql.apollo.exception.ApolloException
 import com.example.nts_pim.BuildConfig
 import com.example.nts_pim.data.repository.VehicleTripArrayHolder
 import com.example.nts_pim.data.repository.model_objects.*
@@ -52,6 +56,7 @@ import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import type.UnpairPIMInput
 import java.io.IOException
 import java.lang.Exception
 import java.util.*
@@ -123,6 +128,7 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
             readerManager.startReaderSettingsActivity(context!!)
         }
 
+
         setting_detail_back_btn.setOnClickListener {
             Navigation.findNavController(view).navigate(R.id.back_to_welcome_fragment)
         }
@@ -146,6 +152,13 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
             showReauthorizeDialog(activity!!, vehicleId)
         }
 
+        callBackViewModel.isPimPaired().observe(this.viewLifecycleOwner, androidx.lifecycle.Observer { isPaired ->
+            if(!isPaired) {
+                readerSettingsCallbackRef?.clear()
+                unPairPim(vehicleId, mAWSAppSyncClient!!)
+            }
+        })
+
         upload_logs_btn.setOnClickListener {
             if(!LoggerHelper.logging){
                 launch(Dispatchers.IO) {
@@ -166,6 +179,7 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
             ).show()
             updatePowerButtonUI(batteryPermission)
         }
+
     }
 
     private fun getAuthorizationCode(vehicleId: String) {
@@ -225,7 +239,6 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
             val amountMoney = Money(checkOutTotal, CurrencyCode.current())
             val parametersBuilder = CheckoutParameters.newBuilder(amountMoney)
             parametersBuilder.skipReceipt(false)
-
             parametersBuilder.note("[$vehicleId][square test]")
             val checkoutManager = ReaderSdk.checkoutManager()
             checkoutManager.startCheckoutActivity(context!!, parametersBuilder.build())
@@ -239,7 +252,7 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
         powerOffApplicationAlert.setTitle("Unpair PIM")
         powerOffApplicationAlert.setMessage("Would you like to unpair from $vehicleId?")
             .setPositiveButton("Yes"){ _, _->
-                unPair()
+                unPairPim(vehicleId, mAWSAppSyncClient!!)
             }
             .setNegativeButton("Cancel",null)
             .show()
@@ -390,6 +403,29 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
             .setNegativeButton("Cancel",null)
             .show()
     }
+    private fun unPairPim(vehicleId: String, appSyncClient: AWSAppSyncClient){
+        val unpairPIMInput = UnpairPIMInput.builder().vehicleId(vehicleId).build()
+        appSyncClient.mutate(UnpairPimMutation.builder().parameters(unpairPIMInput).build()).enqueue(
+            mutationCallbackUnpairPim)
+    }
+    private val mutationCallbackUnpairPim = object : GraphQLCall.Callback<UnpairPimMutation.Data>() {
+        override fun onResponse(response: Response<UnpairPimMutation.Data>) {
+            if(!response.hasErrors()){
+                LoggerHelper.writeToLog("Successfully unpaired PIM")
+                launch(Dispatchers.Main.immediate) {
+                    unPair()
+                }
+            }
+            if(response.hasErrors()){
+                com.example.nts_pim.utilities.view_helper.ViewHelper.makeSnackbar(this@VehicleSettingsDetailFragment.view!!, "Unpair was unsuccessful. Error: ${response.errors()}")
+            }
+        }
+
+        override fun onFailure(e: ApolloException) {
+            Log.e("Error", "There was an issue updating the pimStatus: $e")
+            com.example.nts_pim.utilities.view_helper.ViewHelper.makeSnackbar(this@VehicleSettingsDetailFragment.view!!, "Unpair was unsuccessful. Failure due to ${e.message}}")
+        }
+    }
     private fun screenDisabled(){
         val lowerAlpha = 0.5f
         val notEnabled = false
@@ -453,5 +489,6 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
     override fun onDestroy() {
         super.onDestroy()
         readerSettingsCallbackRef?.clear()
+        callBackViewModel.isPimPaired().removeObservers(this)
     }
 }

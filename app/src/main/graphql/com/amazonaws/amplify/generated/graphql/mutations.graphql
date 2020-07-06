@@ -71,9 +71,11 @@ mutation UpdateBluetooth($parameters: updateBluetoothInput) {
     deviceId
     error
     errorCode
+    firmwareVersion
     fleetGroup
     fleetNbr
     hideStartTrip
+    hideVehicle
     lisnr
     locReport
     log
@@ -133,6 +135,8 @@ mutation UpdatePimStatus($parameters: updatePimStatusInput) {
     postedStatus
     readerStatus
     readerStatusTimeStamp
+    resetMeterStats
+    resetMeterStatsTimeStamp
     tripId
     tripStatus
     vehicleId
@@ -152,9 +156,11 @@ mutation UpdateSettings($parameters: updateSettingsInput) {
     deviceId
     error
     errorCode
+    firmwareVersion
     fleetGroup
     fleetNbr
     hideStartTrip
+    hideVehicle
     lisnr
     locReport
     log
@@ -214,6 +220,8 @@ mutation UpdateStatus($parameters: updateStatusInput) {
     postedStatus
     readerStatus
     readerStatusTimeStamp
+    resetMeterStats
+    resetMeterStatsTimeStamp
     tripId
     tripStatus
     vehicleId
@@ -311,6 +319,8 @@ mutation UpdateTripStatus($parameters: updateTripStatusInput) {
     postedStatus
     readerStatus
     readerStatusTimeStamp
+    resetMeterStats
+    resetMeterStatsTimeStamp
     tripId
     tripStatus
     vehicleId
@@ -330,9 +340,11 @@ mutation UploadSettings($parameters: updateSettingsInput) {
     deviceId
     error
     errorCode
+    firmwareVersion
     fleetGroup
     fleetNbr
     hideStartTrip
+    hideVehicle
     lisnr
     locReport
     log
@@ -397,6 +409,7 @@ mutation UpdateDeviceIdToImei($parameters: updateDeviceIdToIMEIInput) {
     reAuthSquare
     useBluetooth
     phoneNbr
+    paired
   }
 }
 mutation UpdateTripFare($parameters: updateTripFareInput) {
@@ -563,6 +576,8 @@ mutation UpdateVehTripStatus($parameters: updateVehTripStatusInput) {
     postedStatus
     readerStatus
     readerStatusTimeStamp
+    resetMeterStats
+    resetMeterStatsTimeStamp
     tripId
     tripStatus
     vehicleId
@@ -724,6 +739,7 @@ mutation ResetReAuthSquare($parameters: resetReAuthSquareInput) {
     reAuthSquare
     useBluetooth
     phoneNbr
+    paired
   }
 }
 mutation UpdatePimSettings($parameters: updatePIMSettingsInput) {
@@ -738,6 +754,7 @@ mutation UpdatePimSettings($parameters: updatePIMSettingsInput) {
     reAuthSquare
     useBluetooth
     phoneNbr
+    paired
   }
 }
 mutation UpdatePimSettingsPortal($parameters: updatePIMSettingsPortalInput) {
@@ -752,5 +769,27 @@ mutation UpdatePimSettingsPortal($parameters: updatePIMSettingsPortalInput) {
     reAuthSquare
     useBluetooth
     phoneNbr
+    paired
+  }
+}
+mutation SendMeterErrorEmail($parameters: sendMeterErrorEmailInput) {
+  sendMeterErrorEmail(parameters: $parameters) {
+    error
+    errorCode
+  }
+}
+mutation UnpairPim($parameters: unpairPIMInput) {
+  unpairPIM(parameters: $parameters) {
+    deviceId
+    error
+    errorCode
+    vehicleId
+    log
+    btAddress
+    appVersion
+    reAuthSquare
+    useBluetooth
+    phoneNbr
+    paired
   }
 }
