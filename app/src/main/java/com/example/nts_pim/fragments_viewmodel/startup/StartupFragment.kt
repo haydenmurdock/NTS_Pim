@@ -22,7 +22,6 @@ import androidx.navigation.NavController
 import androidx.navigation.Navigation
 import com.amazonaws.amplify.generated.graphql.GetPimSettingsQuery
 import com.amazonaws.amplify.generated.graphql.ResetReAuthSquareMutation
-import com.amazonaws.amplify.generated.graphql.UpdateDeviceIdToImeiMutation
 import com.amazonaws.mobileconnectors.appsync.AWSAppSyncClient
 import com.amazonaws.mobileconnectors.appsync.fetcher.AppSyncResponseFetchers
 import com.apollographql.apollo.GraphQLCall
@@ -53,7 +52,6 @@ import org.kodein.di.KodeinAware
 import org.kodein.di.android.x.closestKodein
 import org.kodein.di.generic.instance
 import type.ResetReAuthSquareInput
-import type.UpdateDeviceIdToIMEIInput
 import java.io.IOException
 import java.lang.Error
 import java.net.NetworkInterface
@@ -67,7 +65,7 @@ class StartupFragment: ScopedFragment(), KodeinAware {
     private  val fullBrightness = 255
     private var permissionDraw = false
     private var permissionWrite = false
-    private var permissionAccessibility = true
+    private var permissionAccessibility = false
     private var setupStatus = false
     private var navController: NavController? = null
     private var appVersionNumber: String? = null
@@ -108,19 +106,16 @@ class StartupFragment: ScopedFragment(), KodeinAware {
         }
         phoneNumber = telephonyManager.line1Number
         val isSetupComplete = viewModel.isSetUpComplete()
+        deviceId = ModelPreferences(this.requireContext()).getObject(SharedPrefEnum.DEVICE_ID.key, DeviceID::class.java)?.number
         if(isSetupComplete){
-            val deviceId = ModelPreferences(context!!).getObject(SharedPrefEnum.DEVICE_ID.key, DeviceID::class.java)
-            if(deviceId != null && deviceId.number.isNotBlank()){
-                Log.i("LOGGER", "Vehicle Setup complete and checking AWS For Logging. device Id: ${deviceId.number}")
-                checkAWSForLogging(deviceId.number)
+            if(deviceId != null && deviceId != ""){
+                Log.i("LOGGER", "Vehicle Setup complete and checking AWS For Logging. device Id: $deviceId")
+                checkAWSForLogging(deviceId!!)
                 vehicleId = viewModel.getVehicleID()
             }
         }
         blueToothAddress = getBluetoothAddress()
         appVersionNumber = BuildConfig.VERSION_NAME
-        deviceId = ModelPreferences(this.requireContext())
-            .getObject(SharedPrefEnum.DEVICE_ID.key, DeviceID::class.java)
-            ?.number
     }
 
     private fun checkAWSForLogging(deviceId: String){
@@ -142,14 +137,6 @@ class StartupFragment: ScopedFragment(), KodeinAware {
                 val appVersion = response.data()?.pimSettings?.appVersion()
                 val reAuth = response.data()?.pimSettings?.reAuthSquare()
                 val awsPhoneNumber = response.data()?.pimSettings?.phoneNbr()
-                val errorCode= response.data()?.pimSettings?.errorCode()
-
-                if(errorCode == "1014"){
-                    LoggerHelper.writeToLog("Device id wasn't found from query. Tried to send new device id")
-                    launch(Dispatchers.IO) {
-                        PIMMutationHelper.updateDeviceId(deviceId!!, mAWSAppSyncClient!!, vehicleId!!)
-                    }
-                }
 
                 if(isLoggingOn != null){
                     Log.i("LOGGER", "AWS Query callback: isLoggingOn = $isLoggingOn")
@@ -175,6 +162,7 @@ class StartupFragment: ScopedFragment(), KodeinAware {
         override fun onFailure(e: ApolloException) {
         }
     }
+
     private fun reauthorizeSquare() = launch(Dispatchers.Main.immediate){
         if(ReaderSdk.authorizationManager().authorizationState.canDeauthorize()){
             ReaderSdk.authorizationManager().addDeauthorizeCallback(deauthorizeCallback)
@@ -268,6 +256,15 @@ class StartupFragment: ScopedFragment(), KodeinAware {
         override fun onFailure(e: ApolloException) {
             LoggerHelper.writeToLog("There was an error trying to reAuthorize square account for this vehicle. Suggest manual ReAuth")
         }
+    }
+
+    private fun checkAccessibilityPermission():Boolean {
+//        val retVal = PowerAccessibilityService().isAccessibilitySettingsOn(context!!)
+        val retVal = true
+        if(!retVal){
+            startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+        }
+        return retVal
     }
     private fun checkDrawPermission(): Boolean {
         val retValue = Settings.canDrawOverlays(context)
@@ -377,6 +374,7 @@ class StartupFragment: ScopedFragment(), KodeinAware {
     private fun checkPermissions() {
         permissionDraw = checkDrawPermission()
         permissionWrite = checkSystemWritePermission()
+        permissionAccessibility = checkAccessibilityPermission()
         setupStatus = viewModel.isSetUpComplete()
     }
 

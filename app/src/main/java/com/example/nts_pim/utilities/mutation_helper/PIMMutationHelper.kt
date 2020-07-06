@@ -12,9 +12,6 @@ import com.apollographql.apollo.exception.ApolloException
 import com.example.nts_pim.PimApplication
 import com.example.nts_pim.data.repository.VehicleTripArrayHolder
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import org.threeten.bp.LocalDateTime
 import type.*
 import java.text.SimpleDateFormat
 import java.util.*
@@ -130,13 +127,11 @@ object PIMMutationHelper {
         }
     }
 
-
     @SuppressLint("MissingPermission")
     fun updatePimSettings(blueToothAddress: String?, appVersion: String?, phoneNumber: String?, appSyncClient: AWSAppSyncClient, deviceId: String){
         val tabletImei: String
         tabletImei = if(deviceId == ""){
-            val telephonyManager = PimApplication.instance.applicationContext.getSystemService(
-                Context.TELEPHONY_SERVICE) as TelephonyManager
+            val telephonyManager = PimApplication.instance.applicationContext.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
             telephonyManager.imei
         } else {
             deviceId
@@ -165,30 +160,4 @@ object PIMMutationHelper {
         }
     }
 
-    fun updateDeviceId(deviceId: String, appSyncClient: AWSAppSyncClient, vehicleId: String){
-        val input = UpdateDeviceIdToIMEIInput.builder()
-            .deviceId(deviceId)
-            .vehicleId(vehicleId)
-            .build()
-            appSyncClient.mutate(UpdateDeviceIdToImeiMutation.builder().parameters(input).build())?.enqueue(updateDeviceIdToIMEICallback)
-    }
-    private val updateDeviceIdToIMEICallback =  object : GraphQLCall.Callback<UpdateDeviceIdToImeiMutation.Data>() {
-        override fun onResponse(response: Response<UpdateDeviceIdToImeiMutation.Data>) {
-            if (!response.hasErrors()) {
-                Log.i(
-                    "VehicleSetup",
-                    "Updated device Id from blank to ${response.data().toString()}"
-                )
-            } else {
-                Log.i(
-                    "VehicleSetup",
-                    "Response for updating for device ID has errors. Error: ${response.errors()[0].message()}"
-                )
-            }
-        }
-
-        override fun onFailure(e: ApolloException) {
-            Log.i("VehicleSetup", "Error: $e")
-        }
-    }
 }
