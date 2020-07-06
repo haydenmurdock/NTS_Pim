@@ -22,6 +22,7 @@ import java.net.URL
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.TimeUnit
+import kotlin.ConcurrentModificationException
 import kotlin.Error
 
 
@@ -39,6 +40,7 @@ object LoggerHelper {
     private val pimContext = PimApplication.pimContext
     private var logArray: ArrayList<String?>? = null
     private const val logLimit = 201
+    private var logSaved = false
 
     internal fun writeToLog (log: String){
         val readPermission = ContextCompat.checkSelfPermission(pimContext, Manifest.permission.READ_EXTERNAL_STORAGE)
@@ -127,7 +129,7 @@ object LoggerHelper {
         try {
             logArray?.add(log)
             removeAndAddLog(logArray)
-        } catch (e: Error) {
+        } catch (e: ConcurrentModificationException) {
 
         }
     }
@@ -146,12 +148,16 @@ object LoggerHelper {
     }
 
     private fun saveArrayList(list: ArrayList<String?>) {
-        val prefs: SharedPreferences = PreferenceManager.getDefaultSharedPreferences(PimApplication.pimContext)
-        val editor: SharedPreferences.Editor = prefs.edit()
-        val gson = Gson()
-        val json: String = gson.toJson(list)
-        editor.putString("InternalLogs", json)
-        editor.apply()
+        try {
+            val prefs: SharedPreferences = PreferenceManager.getDefaultSharedPreferences(PimApplication.pimContext)
+            val editor: SharedPreferences.Editor = prefs.edit()
+            val gson = Gson()
+            val json: String = gson.toJson(list)
+            editor.putString("InternalLogs", json)
+            editor.apply()
+        } catch (e: ConcurrentModificationException){
+          Log.i("Error", "Concurrent modification exception: $e")
+        }
     }
 
     private fun getArrayList(): ArrayList<String?>? {

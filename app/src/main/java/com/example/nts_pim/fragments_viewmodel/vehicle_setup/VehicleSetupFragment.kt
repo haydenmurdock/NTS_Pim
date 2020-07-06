@@ -37,6 +37,7 @@ import com.apollographql.apollo.exception.ApolloException
 import com.example.nts_pim.BuildConfig
 import com.example.nts_pim.PimApplication
 import com.example.nts_pim.R
+import com.example.nts_pim.activity.MainActivity
 import com.example.nts_pim.data.repository.model_objects.*
 import com.example.nts_pim.data.repository.providers.ModelPreferences
 import com.example.nts_pim.fragments_viewmodel.InjectorUtiles
@@ -187,6 +188,7 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
             //This is for if there needs to be a check auth because its the first one in fleet.
             if (authorized) {
                 setUpComplete()
+
                 SoundHelper.turnOnSound(context!!)
                 toCheckVehicleInfo()
             } else {
@@ -275,8 +277,8 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
         val pimSettingsQueryCallBack = object : GraphQLCall.Callback<GetPimSettingsQuery.Data>() {
             override fun onResponse(response: Response<GetPimSettingsQuery.Data>) {
                 val callBackVehicleID = response.data()?.pimSettings?.vehicleId()
-                val errorCode = response.data()?.pimSettings?.errorCode()
-                when(errorCode) {
+                Log.i("VehicleIdQuery", "response: ${response.data()}" )
+                when(response.data()?.pimSettings?.errorCode()) {
                     "1004" -> {
                         launch(Dispatchers.Main) {
                             Toast.makeText(
@@ -797,18 +799,9 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
         requestPhoneState()
         ViewHelper.hideSystemUI(activity!!)
     }
-    override fun onDestroy() {
-        super.onDestroy()
-        keyboardViewModel.isQwertyKeyboardUp().removeObservers(this)
-        viewModel.isSquareAuthorized().removeObservers(this)
-        viewModel.isThereAuthCode().removeObservers(this)
 
-        if (auth_progressBar != null){
-            auth_progressBar.clearAnimation()
-        }
-        if (vehicle_id_progressBar != null){
-            vehicle_id_progressBar.clearAnimation()
-        }
+    @SuppressLint("HardwareIds")
+    override fun onPause() {
         if (ActivityCompat.checkSelfPermission(
                 context!!,
                 Manifest.permission.READ_SMS
@@ -823,6 +816,23 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
             return
         }
         PIMMutationHelper.updatePimSettings(blueToothAddress, appVersion, telephonyManager?.line1Number, mAWSAppSyncClient!!, imei)
+        super.onPause()
+    }
+    override fun onDestroy() {
+        super.onDestroy()
+        if(this::keyboardViewModel.isInitialized){
+            keyboardViewModel.isQwertyKeyboardUp().removeObservers(this)
+        }
+        if(this::viewModel.isInitialized){
+            viewModel.isSquareAuthorized().removeObservers(this)
+            viewModel.isThereAuthCode().removeObservers(this)
+        }
+        if (auth_progressBar != null){
+            auth_progressBar.clearAnimation()
+        }
+        if (vehicle_id_progressBar != null){
+            vehicle_id_progressBar.clearAnimation()
+        }
     }
 }
 

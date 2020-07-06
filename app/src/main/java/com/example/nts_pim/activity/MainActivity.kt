@@ -41,6 +41,7 @@ import com.example.nts_pim.fragments_viewmodel.callback.CallBackViewModel
 import com.example.nts_pim.fragments_viewmodel.vehicle_setup.VehicleSetupModelFactory
 import com.example.nts_pim.fragments_viewmodel.vehicle_setup.VehicleSetupViewModel
 import com.example.nts_pim.utilities.bluetooth_helper.BlueToothHelper
+import com.example.nts_pim.utilities.enums.MeterEnum
 import com.example.nts_pim.utilities.enums.PIMStatusEnum
 import com.example.nts_pim.utilities.enums.SharedPrefEnum
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
@@ -80,12 +81,14 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
         null
     private var subscriptionWatcherUpdatePimSettings: AppSyncSubscriptionCall<OnPimSettingsUpdateSubscription.Data>? =
         null
+    private var subscriptionWatcherUnPairPIM: AppSyncSubscriptionCall<OnPimUnpairSubscription.Data>? = null
     private var loggingTimer: CountDownTimer? = null
     private var internetConnectionTimer: CountDownTimer? = null
     private var vehicleSubscriptionTimer: CountDownTimer? = null
     private val logFragment = "Background Activity"
     private var mNetworkReceiver: NetworkReceiver? = null
     private var watchingTripId = ""
+    internal var unpairPIMSubscription = false
 
     companion object  {
         lateinit var mainActivity: MainActivity
@@ -151,8 +154,8 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
         callbackViewModel.hasNewTripStarted().observe(this, Observer { hasTripStarted ->
             if (hasTripStarted) {
                 val currentTripId = callbackViewModel.getTripId()
-                val navController = findNavController(this, R.id.nav_host_fragment)
                 callbackViewModel.clearAllTripValues()
+                val navController = findNavController(this, R.id.nav_host_fragment)
                 if (navController.currentDestination?.id != R.id.welcome_fragment &&
                     navController.currentDestination?.id != R.id.taxi_number_fragment &&
                     navController.currentDestination?.id != R.id.bluetoothSetupFragment &&
@@ -167,7 +170,13 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                     )
                     LoggerHelper.writeToLog("${logFragment}, New trip was started by the driver while the pim trip was not finished")
                     getMeterOwedQuery(currentTripId)
-                    navController.navigate(R.id.action_global_taxi_number_fragment)
+                    callbackViewModel.getMeterState().observe(this, Observer { meterValue ->
+                        if(meterValue == MeterEnum.METER_ON.state){
+                            navController.navigate(R.id.action_global_taxi_number_fragment)
+                            clearMeterOnObserver()
+                        }
+                    })
+
                 } else {
                     Log.i(
                         "TripStart",
@@ -184,16 +193,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
 
         callbackViewModel.getIsPimOnline().observe(this, Observer { onlineStatus ->
             if(!onlineStatus && mSuccessfulSetup){
-                //This works.
-                vehicleSubscriptionComplete = false
-                tripSubscriptionComplete = false
-                subscriptionWatcherDoPimPayment?.cancel()
-                subscriptionWatcherDoPimPayment = null
-                subscriptionWatcherUpdatePimSettings?.cancel()
-                subscriptionWatcherUpdatePimSettings = null
-                subscriptionWatcherUpdateVehTripStatus?.cancel()
-                subscriptionWatcherUpdateVehTripStatus = null
-                LoggerHelper.writeToLog("PIM is offline. Canceled vehicle subscription, doPimPayment,and PIM Settings")
+                clearAllSubscriptions()
             }
             if(onlineStatus &&
                 !vehicleSubscriptionComplete &&
@@ -209,6 +209,23 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
             }
         })
     }
+
+    private fun clearAllSubscriptions(){
+        vehicleSubscriptionComplete = false
+        tripSubscriptionComplete = false
+        subscriptionWatcherDoPimPayment?.cancel()
+        subscriptionWatcherDoPimPayment = null
+        subscriptionWatcherUpdatePimSettings?.cancel()
+        subscriptionWatcherUpdatePimSettings = null
+        subscriptionWatcherUpdateVehTripStatus?.cancel()
+        subscriptionWatcherUpdateVehTripStatus = null
+        subscriptionWatcherUnPairPIM?.cancel()
+        subscriptionWatcherUnPairPIM = null
+        LoggerHelper.writeToLog("PIM is offline. Canceled vehicle subscription, doPimPayment,and PIM Settings")
+    }
+    private fun clearMeterOnObserver(){
+        callbackViewModel.getMeterState().removeObservers(this)
+    }
     //Coroutine to insert Trip Status
     private fun insertTripStatus(string: String) = launch {
         callbackViewModel.addTripStatus(string)
@@ -219,11 +236,12 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
         callbackViewModel.addMeterState(string)
     }
     private fun subscribeToUpdateVehTripStatus(vehicleId: String){
+        val isVehicleSubscriptionComplete = vehicleSubscriptionComplete
+
         if(!vehicleSubscriptionComplete && isOnline(applicationContext)) {
             vehicleSubscriptionComplete = true
             val subscription =
                 OnUpdateVehTripStatusSubscription.builder().vehicleId(vehicleId).build()
-            val unPairSubscription = OnPimUnpairSubscription.builder().vehicleId(vehicleId).build()
             if (subscriptionWatcherUpdateVehTripStatus == null) {
                 subscriptionWatcherUpdateVehTripStatus = mAWSAppSyncClient?.subscribe(subscription)
                 subscriptionWatcherUpdateVehTripStatus?.execute(subscribeToUpdateVehCallback)
@@ -234,7 +252,18 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                 subscriptionWatcherUpdateVehTripStatus?.execute(subscribeToUpdateVehCallback)
                 LoggerHelper.writeToLog("subscription for vehicle subscription existed. Canceled prior subscription and subscribed to vehicle Id: $vehicleId")
             }
-            mAWSAppSyncClient?.subscribe(unPairSubscription)?.execute(subscribeToUnpairPimSubscriptionCallback)
+        }
+        if(!unpairPIMSubscription){
+            unpairPIMSubscription = true
+            val unPairSubscription = OnPimUnpairSubscription.builder().vehicleId(vehicleId).build()
+            if (subscriptionWatcherUnPairPIM == null){
+                subscriptionWatcherUnPairPIM = mAWSAppSyncClient?.subscribe(unPairSubscription)
+                subscriptionWatcherUnPairPIM?.execute(subscribeToUnpairPimSubscriptionCallback)
+            } else {
+                subscriptionWatcherUnPairPIM?.cancel()
+                subscriptionWatcherUnPairPIM = mAWSAppSyncClient?.subscribe(unPairSubscription)
+                subscriptionWatcherUnPairPIM?.execute(subscribeToUnpairPimSubscriptionCallback)
+            }
         }
     }
     private var subscribeToUpdateVehCallback = object: AppSyncSubscriptionCall.Callback<OnUpdateVehTripStatusSubscription.Data>{
@@ -288,9 +317,15 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                 if (!isPimPaired) {
                     insertPimPairedChange(isPimPaired)
                 }
+            } else {
+                Log.i("Errors", "${response.errors()}")
             }
+
         }
         override fun onFailure(e: ApolloException) {
+            unpairPIMSubscription = false
+            subscriptionWatcherUnPairPIM?.cancel()
+            subscriptionWatcherUnPairPIM = null
 
         }
         override fun onCompleted() {
@@ -377,19 +412,14 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
 
     private var updatePimSettingsCallback = object : AppSyncSubscriptionCall.Callback<OnPimSettingsUpdateSubscription.Data>{
         override fun onResponse(response: Response<OnPimSettingsUpdateSubscription.Data>) {
-            val responseString = response.data().toString()
             if(!response.hasErrors()){
                 val awsLog = response.data()?.onPIMSettingsUpdate()?.log()!!
-                val isPaired = response.data()?.onPIMSettingsUpdate()?.paired()
                 LoggerHelper.logging = awsLog
                 if(awsLog){
                     launch(Dispatchers.IO) {
                         LoggerHelper.addInternalLogsToAWS(vehicleId)
                     }
                 }
-               if(isPaired!= null){
-                   insertPimPairedChange(isPaired)
-               }
                 Log.i("Logging", "Logging == $awsLog from updatePimSettingsCallBack")
             }
             if(response.hasErrors()){
@@ -482,7 +512,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
     }
     private fun forceSpeaker() {
         try {
-            playTestSound()
+          //  playTestSound()
         } catch (e: Exception) {
             Log.e(ContentValues.TAG, e.toString())
         }
@@ -613,6 +643,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
         Log.i("SubscriptionWatcher", "Subscription watcher canceled for $vehicleId")
         subscriptionWatcherUpdateVehTripStatus?.cancel()
         viewModel.isSquareAuthorized().removeObservers(this)
+        viewModel.watchSetUpComplete().removeObservers(this)
         callbackViewModel.getTripHasEnded().removeObservers(this)
         callbackViewModel.getIsPimOnline().removeObservers(this)
         unregisterReceiver(mNetworkReceiver)

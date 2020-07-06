@@ -489,6 +489,8 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
     override fun onDestroy() {
         super.onDestroy()
         readerSettingsCallbackRef?.clear()
-        callBackViewModel.isPimPaired().removeObservers(this)
+        if(this::callBackViewModel.isInitialized){
+            callBackViewModel.isPimPaired().removeObservers(this)
+        }
     }
 }

@@ -498,7 +498,7 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
 
     override fun onDestroy() {
         super.onDestroy()
-        if (callBackViewModel != null) {
+        if(this::callBackViewModel.isInitialized){
             callBackViewModel.getTripStatus().removeObservers(this)
             callBackViewModel.hasNewTripStarted().removeObservers(this)
             callBackViewModel.isPimPaired().removeObservers(this)
