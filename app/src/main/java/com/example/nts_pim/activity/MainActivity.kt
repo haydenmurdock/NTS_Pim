@@ -153,8 +153,6 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
 
         callbackViewModel.hasNewTripStarted().observe(this, Observer { hasTripStarted ->
             if (hasTripStarted) {
-                val currentTripId = callbackViewModel.getTripId()
-                callbackViewModel.clearAllTripValues()
                 val navController = findNavController(this, R.id.nav_host_fragment)
                 if (navController.currentDestination?.id != R.id.welcome_fragment &&
                     navController.currentDestination?.id != R.id.taxi_number_fragment &&
@@ -164,19 +162,16 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                     navController.currentDestination?.id != R.id.vehicleSetupFragment &&
                     navController.currentDestination?.id != R.id.checkVehicleInfoFragment
                     && !resync) {
-                    Log.i(
-                        "TripStart",
-                        "This needs to work now. Old trip id: $tripId, new trip id: $currentTripId"
-                    )
-                    LoggerHelper.writeToLog("${logFragment}, New trip was started by the driver while the pim trip was not finished")
+                    val currentTripId = callbackViewModel.getTripId()
                     getMeterOwedQuery(currentTripId)
+                    LoggerHelper.writeToLog("${logFragment}, New trip was started by the driver while the pim trip was not finished")
                     callbackViewModel.getMeterState().observe(this, Observer { meterValue ->
                         if(meterValue == MeterEnum.METER_ON.state){
+                           callbackViewModel.clearAllTripValues()
                             navController.navigate(R.id.action_global_taxi_number_fragment)
-                            clearMeterOnObserver()
+                            clearObserverOnMeter()
                         }
                     })
-
                 } else {
                     Log.i(
                         "TripStart",
@@ -223,7 +218,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
         subscriptionWatcherUnPairPIM = null
         LoggerHelper.writeToLog("PIM is offline. Canceled vehicle subscription, doPimPayment,and PIM Settings")
     }
-    private fun clearMeterOnObserver(){
+    private fun clearObserverOnMeter(){
         callbackViewModel.getMeterState().removeObservers(this)
     }
     //Coroutine to insert Trip Status
@@ -451,12 +446,13 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
             if (response.data() != null &&
                 !response.hasErrors()
             ) {
+
                 val pimPayAmount = response.data()?.trip?.pimPayAmt()
-                val meterValue = response.data()?.trip?.meterState()
-                if (!meterValue.isNullOrBlank()) {
-                    insertMeterState(meterValue)
+                val meterState = response.data()?.trip?.meterState()
+                if (meterState != null || meterState != "") {
+                    insertMeterState(meterState!!)
                 }
-                if(pimPayAmount != null){
+                if(pimPayAmount != null || pimPayAmount == 0.0){
                     insertPimPayAmount(pimPayAmount)
                 }
             }
