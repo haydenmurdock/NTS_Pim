@@ -327,7 +327,7 @@ class SquareService : OnLayoutChangeListener,
                             stopReaderCheckTimeout()
                             startReaderCheckTimeout()
                         }
-                        if (squareReaderState.contains("Establishing Secure Connection")) {
+                        if (squareReaderState.contains("Establishing Secure Connection") || squareReaderState.contains("Connecting - Tap Here to Learn More")) {
                             LoggerHelper.writeToLog("$tag, Square service is on card reader list in establishing connection status")
                             Log.i(
                                 tag,
