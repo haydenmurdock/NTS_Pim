@@ -73,7 +73,12 @@ class InteractionCompleteFragment : ScopedFragment(), KodeinAware {
         val factory = InjectorUtiles.provideCallBackModelFactory()
         callbackViewModel = ViewModelProviders.of(this,factory).get(CallBackViewModel::class.java)
         viewModel = ViewModelProviders.of(this, viewModelFactory).get(InteractionCompleteViewModel::class.java)
-        tripId = callbackViewModel.getTripId()
+        val tripIdForPayment = VehicleTripArrayHolder.getTripIdForPayment()
+        tripId = if(tripIdForPayment != ""){
+            tripIdForPayment
+        } else {
+            callbackViewModel.getTripId()
+        }
         vehicleId = viewModel.getVehicleID()
         tripNumber = callbackViewModel.getTripNumber()
         transactionId = callbackViewModel.getTransactionId()

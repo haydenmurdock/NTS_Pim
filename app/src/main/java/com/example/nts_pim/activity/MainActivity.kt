@@ -452,8 +452,8 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                 if (meterState != null || meterState != "") {
                     insertMeterState(meterState!!)
                 }
-                if(pimPayAmount != null || pimPayAmount == 0.0){
-                    insertPimPayAmount(pimPayAmount)
+                if(pimPayAmount != null || pimPayAmount != 0.0){
+                    insertPimPayAmount(pimPayAmount!!)
                 }
             }
         }
@@ -508,7 +508,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
     }
     private fun forceSpeaker() {
         try {
-          //  playTestSound()
+            playTestSound()
         } catch (e: Exception) {
             Log.e(ContentValues.TAG, e.toString())
         }

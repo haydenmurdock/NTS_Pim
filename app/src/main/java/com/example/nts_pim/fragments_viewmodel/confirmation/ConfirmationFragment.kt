@@ -13,6 +13,7 @@ import androidx.navigation.Navigation
 import com.amazonaws.mobileconnectors.appsync.AWSAppSyncClient
 import com.example.nts_pim.R
 import com.example.nts_pim.data.repository.TripDetails
+import com.example.nts_pim.data.repository.VehicleTripArrayHolder
 import com.example.nts_pim.data.repository.model_objects.CurrentTrip
 import com.example.nts_pim.data.repository.providers.ModelPreferences
 import com.example.nts_pim.fragments_viewmodel.InjectorUtiles
@@ -81,7 +82,12 @@ class ConfirmationFragment: ScopedFragment(), KodeinAware {
         val factory = InjectorUtiles.provideCallBackModelFactory()
         callbackViewModel = ViewModelProviders.of(this,factory).get(CallBackViewModel::class.java)
         viewModel = ViewModelProviders.of(this, viewModelFactory).get(InteractionCompleteViewModel::class.java)
-        tripId = callbackViewModel.getTripId()
+        val tripIdForPayment = VehicleTripArrayHolder.getTripIdForPayment()
+        tripId = if(tripIdForPayment != ""){
+            tripIdForPayment
+        } else {
+            callbackViewModel.getTripId()
+        }
         vehicleId = viewModel.getVehicleID()
         tripStatus = callbackViewModel.getTripStatus().value
 

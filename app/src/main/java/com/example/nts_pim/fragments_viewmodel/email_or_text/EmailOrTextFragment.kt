@@ -23,6 +23,7 @@ import com.amazonaws.mobileconnectors.appsync.fetcher.AppSyncResponseFetchers
 import com.apollographql.apollo.GraphQLCall
 import com.apollographql.apollo.api.Response
 import com.apollographql.apollo.exception.ApolloException
+import com.example.nts_pim.data.repository.VehicleTripArrayHolder
 import com.example.nts_pim.fragments_viewmodel.InjectorUtiles
 import com.example.nts_pim.fragments_viewmodel.base.ClientFactory
 import com.example.nts_pim.fragments_viewmodel.callback.CallBackViewModel
@@ -87,25 +88,28 @@ class EmailOrTextFragment : ScopedFragment(), KodeinAware {
             .get(CallBackViewModel::class.java)
 
         vehicleId = viewModel.getVehicleID()
-        tripId = callBackViewModel.getTripId()
+        val tripIdForPayment = VehicleTripArrayHolder.getTripIdForPayment()
+        tripId = if(tripIdForPayment != ""){
+            tripIdForPayment
+        } else {
+            callBackViewModel.getTripId()
+        }
         tripNumber = callBackViewModel.getTripNumber()
         pimNoReceipt = callBackViewModel.getPimNoReceipt()
         receiptCheck(pimNoReceipt)
         checkCustomerDetailsAWS(tripId)
         CountryPhoneNumber.getCountryWithName("all")
-        view.setOnTouchListener(object : View.OnTouchListener {
-            override fun onTouch(v: View?, event: MotionEvent?): Boolean {
-                when (event?.action) {
-                    MotionEvent.ACTION_DOWN -> {
-                        if (tripHasEnded ){
-                            inactiveScreenTimer?.cancel()
-                            inactiveScreenTimer?.start()
-                        }
+        view.setOnTouchListener { v, event ->
+            when (event?.action) {
+                MotionEvent.ACTION_DOWN -> {
+                    if (tripHasEnded ){
+                        inactiveScreenTimer?.cancel()
+                        inactiveScreenTimer?.start()
                     }
                 }
-                return v?.onTouchEvent(event) ?: true
             }
-        })
+            v?.onTouchEvent(event) ?: true
+        }
         email_btn.setOnTouchListener((View.OnTouchListener { v, event ->
             when(event?.action) {
                 MotionEvent.ACTION_DOWN -> {

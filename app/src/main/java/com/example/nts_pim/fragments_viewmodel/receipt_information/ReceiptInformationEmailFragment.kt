@@ -24,6 +24,7 @@ import com.apollographql.apollo.GraphQLCall
 import com.apollographql.apollo.api.Response
 import com.apollographql.apollo.exception.ApolloException
 import com.example.nts_pim.data.repository.TripDetails
+import com.example.nts_pim.data.repository.VehicleTripArrayHolder
 import com.example.nts_pim.fragments_viewmodel.InjectorUtiles
 import com.example.nts_pim.fragments_viewmodel.base.ClientFactory
 import com.example.nts_pim.fragments_viewmodel.callback.CallBackViewModel
@@ -170,7 +171,12 @@ class ReceiptInformationEmailFragment: ScopedFragment(), KodeinAware {
         }
     }
     private fun getTripDetails(){
-        tripId = callBackViewModel.getTripId()
+        val tripIdForPayment = VehicleTripArrayHolder.getTripIdForPayment()
+        tripId = if(tripIdForPayment != ""){
+            tripIdForPayment
+        } else {
+            callBackViewModel.getTripId()
+        }
         tripNumber = callBackViewModel.getTripNumber()
         val tripPriceArgs = arguments?.getFloat("tripTotal")
         val paymentTypeArgs = arguments?.getString("paymentType")

@@ -110,7 +110,12 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
         viewModel = ViewModelProviders.of(this, viewModelFactory)
             .get(LiveMeterViewModel::class.java)
         vehicleId = viewModel.getVehicleID()
-        tripId = callbackViewModel.getTripId()
+        val tripIdForPayment = VehicleTripArrayHolder.getTripIdForPayment()
+        tripId = if(tripIdForPayment != ""){
+            tripIdForPayment
+        } else {
+            callbackViewModel.getTripId()
+        }
         tripNumber = callbackViewModel.getTripNumber()
         driverId = callbackViewModel.getDriverId()
         val checkoutManager = ReaderSdk.checkoutManager()

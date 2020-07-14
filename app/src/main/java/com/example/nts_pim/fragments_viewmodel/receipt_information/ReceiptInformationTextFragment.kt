@@ -45,6 +45,7 @@ import com.amazonaws.amplify.generated.graphql.SavePaymentDetailsMutation
 import com.amazonaws.amplify.generated.graphql.UpdateTripMutation
 import com.apollographql.apollo.GraphQLCall
 import com.apollographql.apollo.exception.ApolloException
+import com.example.nts_pim.data.repository.VehicleTripArrayHolder
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import type.SavePaymentDetailsInput
 import type.UpdateTripInput
@@ -100,6 +101,12 @@ class ReceiptInformationTextFragment: ScopedFragment(), KodeinAware {
         keyboardViewModel = ViewModelProviders.of(this, keyboardFactory)
             .get(SettingsKeyboardViewModel::class.java)
         transactionId = callBackViewModel.getTransactionId()
+        val tripIdForPayment = VehicleTripArrayHolder.getTripIdForPayment()
+        tripId = if(tripIdForPayment != ""){
+            tripIdForPayment
+        } else {
+            callBackViewModel.getTripId()
+        }
         getCountryWithName()
         getTripDetails()
         startInactivityTimeout()
@@ -499,17 +506,37 @@ class ReceiptInformationTextFragment: ScopedFragment(), KodeinAware {
             transactionId = UUID.randomUUID().toString()
         }
         if(!previousPhoneNumber.isNullOrBlank()){
-            val firstPart = previousPhoneNumber.substring(1, 4)
-            val middlePart = previousPhoneNumber.substring(4,7)
-            val lastPart = previousPhoneNumber.substring(7, previousPhoneNumber.lastIndex + 1)
-            val newFullNumber = firstPart + "-" + middlePart + "-" + lastPart
-            enteredPhoneNumber = newFullNumber
-            text_editText.setText(newFullNumber)
-            text_editText.setSelection(newFullNumber.length)
-            enableSendTextBtn()
-            text_receipt_screen_backspace_btn.isEnabled = true
-            keyboardViewModel.keyboardIsGoingForward()
+            val autoFillPhoneNumber = formatPreviousPhoneNumber(previousPhoneNumber)
+            if(autoFillPhoneNumber.length == 10){
+                val firstPart = autoFillPhoneNumber.substring(0, 3)
+                val middlePart = autoFillPhoneNumber.substring(3, 6)
+                val lastPart = autoFillPhoneNumber.substring(6, 10)
+                val newFullNumber = "$firstPart-$middlePart-$lastPart"
+                enteredPhoneNumber = newFullNumber
+                text_editText.setText(newFullNumber)
+                text_editText.setSelection(newFullNumber.length)
+                enableSendTextBtn()
+                text_receipt_screen_backspace_btn.isEnabled = true
+                keyboardViewModel.keyboardIsGoingForward()
+            }
         }
+    }
+    private fun formatPreviousPhoneNumber(phoneNumber: String): String {
+       val updatedNumber = if(phoneNumber[0].toString() == "1"){
+            phoneNumber.removePrefix("1")
+        } else {
+            phoneNumber
+        }
+        val onlyNumbers = updatedNumber.digitsOnly()
+        if(onlyNumbers.length == 10){
+            return onlyNumbers
+        }
+        val phoneNumberLength = onlyNumbers.length
+        return onlyNumbers.removeRange(10, phoneNumberLength)
+    }
+    private fun String.digitsOnly(): String{
+        val regex = Regex("[^0-9]")
+        return regex.replace(this, "")
     }
     private fun enableSendTextBtn(){
         if(send_text_btn_receipt != null){

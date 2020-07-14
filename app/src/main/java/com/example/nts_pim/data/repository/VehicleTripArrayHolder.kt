@@ -49,6 +49,7 @@ object VehicleTripArrayHolder {
     private var batteryPowerIsSafe = false
 
     private var tripId = ""
+    private var tripIdForPayment = ""
     private var tripNumber = 0
 
     private var tabletNeedsReSync = false
@@ -204,6 +205,7 @@ object VehicleTripArrayHolder {
         meterStatePIMMutableLiveData.value = meterStatePIM
         paymentTypeSelected = "none"
         driverId = 0
+        tripIdForPayment = ""
         Log.i("Results", "All Trip Information has been cleared")
         LoggerHelper.writeToLog("All Trip Information has been cleared")
     }
@@ -386,5 +388,13 @@ object VehicleTripArrayHolder {
     }
 
     fun isPimPaired() = isPimPairedMLD as LiveData<Boolean>
+
+   internal fun setTripIdForPayment(){
+        if(tripId != ""){
+            tripIdForPayment = tripId
+        }
+    }
+
+    internal fun getTripIdForPayment() = tripIdForPayment
 }
 
