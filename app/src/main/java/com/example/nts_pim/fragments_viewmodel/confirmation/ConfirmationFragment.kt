@@ -22,17 +22,20 @@ import com.example.nts_pim.fragments_viewmodel.base.ScopedFragment
 import com.example.nts_pim.fragments_viewmodel.callback.CallBackViewModel
 import com.example.nts_pim.fragments_viewmodel.interaction_complete.InteractionCompleteViewModel
 import com.example.nts_pim.fragments_viewmodel.interaction_complete.InteractionCompleteViewModelFactory
+import com.example.nts_pim.utilities.driver_receipt.DriverReceiptHelper
 import com.example.nts_pim.utilities.enums.SharedPrefEnum
 import com.example.nts_pim.utilities.enums.VehicleStatusEnum
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import com.example.nts_pim.utilities.mutation_helper.PIMMutationHelper
 import kotlinx.android.synthetic.main.confirmation_screen.*
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.kodein.di.KodeinAware
 import org.kodein.di.android.x.closestKodein
 import org.kodein.di.generic.instance
 import java.text.DecimalFormat
 import java.time.LocalDateTime
+import java.util.*
 
 class ConfirmationFragment: ScopedFragment(), KodeinAware {
     override val kodein by closestKodein()
@@ -63,6 +66,8 @@ class ConfirmationFragment: ScopedFragment(), KodeinAware {
 
     private val decimalFormatter = DecimalFormat("####00.00")
     private val tripTotalDFUnderTen = DecimalFormat("###0.00")
+    private var transactionType: String? = null
+    private var transactionId:String? = null
 
     private val visible = View.VISIBLE
     private val gone = View.GONE
@@ -90,9 +95,14 @@ class ConfirmationFragment: ScopedFragment(), KodeinAware {
         }
         vehicleId = viewModel.getVehicleID()
         tripStatus = callbackViewModel.getTripStatus().value
-
+        transactionType = VehicleTripArrayHolder.paymentTypeSelected
+        transactionId = callbackViewModel.getTransactionId()
+        if(transactionId == ""){
+            transactionId = UUID.randomUUID().toString()
+        }
         getTripDetails()
         checkIfTransactionIsComplete()
+        sendDriverReceipt()
         runEndTripMutation()
         setInternalCurrentTripStatus()
         changeEndTripInternalBool()
@@ -163,6 +173,14 @@ class ConfirmationFragment: ScopedFragment(), KodeinAware {
             }
 
         }
+    }
+
+    private fun sendDriverReceipt() = launch(Dispatchers.IO){
+        transactionType?.let { transactionId?.let { it1 ->
+            DriverReceiptHelper.sendReceipt(tripId, it,
+                it1
+            )
+        } }
     }
 
     private fun maskEmailType(message: String):String{

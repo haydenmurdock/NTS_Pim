@@ -41,6 +41,7 @@ import com.example.nts_pim.fragments_viewmodel.callback.CallBackViewModel
 import com.example.nts_pim.fragments_viewmodel.vehicle_setup.VehicleSetupModelFactory
 import com.example.nts_pim.fragments_viewmodel.vehicle_setup.VehicleSetupViewModel
 import com.example.nts_pim.utilities.bluetooth_helper.BlueToothHelper
+import com.example.nts_pim.utilities.driver_receipt.DriverReceiptHelper
 import com.example.nts_pim.utilities.enums.MeterEnum
 import com.example.nts_pim.utilities.enums.PIMStatusEnum
 import com.example.nts_pim.utilities.enums.SharedPrefEnum
@@ -55,6 +56,7 @@ import kotlinx.coroutines.launch
 import org.kodein.di.KodeinAware
 import org.kodein.di.android.closestKodein
 import org.kodein.di.generic.instance
+import java.util.*
 import kotlin.coroutines.CoroutineContext
 
 open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
@@ -167,7 +169,8 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                     LoggerHelper.writeToLog("${logFragment}, New trip was started by the driver while the pim trip was not finished")
                     callbackViewModel.getMeterState().observe(this, Observer { meterValue ->
                         if(meterValue == MeterEnum.METER_ON.state){
-                           callbackViewModel.clearAllTripValues()
+                            sendDriverReceipt()
+                            callbackViewModel.clearAllTripValues()
                             navController.navigate(R.id.action_global_taxi_number_fragment)
                             clearObserverOnMeter()
                         }
@@ -594,6 +597,21 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                 }
             }.start()
         }
+    }
+
+    private fun sendDriverReceipt() = launch(Dispatchers.IO){
+        val tripIdForPayment = VehicleTripArrayHolder.getTripIdForPayment()
+        val tripIdForReceipt = if(tripIdForPayment != ""){
+            tripIdForPayment
+        } else {
+            callbackViewModel.getTripId()
+        }
+        val  transactionType = VehicleTripArrayHolder.paymentTypeSelected
+        var transactionId = callbackViewModel.getTransactionId()
+        if(transactionId == ""){
+            transactionId = UUID.randomUUID().toString()
+        }
+        DriverReceiptHelper.sendReceipt(tripIdForReceipt,transactionType, transactionId)
     }
 
     private fun checkNavBar(){

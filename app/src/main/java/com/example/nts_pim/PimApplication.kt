@@ -68,7 +68,7 @@ class PimApplication : Application(), KodeinAware{
             }
             AndroidThreeTen.init(this)
             registerActivityLifecycleCallbacks(LifeCycleCallBacks())
-            createNotificationChannel()
+         //   createNotificationChannel()
             ReaderSdk.initialize(this)
             Log.i("LOGGER",   "initialized readerSDK")
         }

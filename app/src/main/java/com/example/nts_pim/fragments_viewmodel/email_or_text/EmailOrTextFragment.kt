@@ -165,7 +165,7 @@ class EmailOrTextFragment : ScopedFragment(), KodeinAware {
         setUpUI()
         startInactivityTimeout()
         pimStatusUpdate()
-        callBackViewModel.getTripStatus().observe(this, Observer {tripStatus ->
+        callBackViewModel.getTripStatus().observe(this.viewLifecycleOwner, Observer {tripStatus ->
             if(tripStatus == VehicleStatusEnum.TRIP_END.status ||
                 tripStatus == VehicleStatusEnum.Trip_Closed.status){
                 inactiveScreenTimer
@@ -280,7 +280,7 @@ class EmailOrTextFragment : ScopedFragment(), KodeinAware {
                 !response.data()?.trip?.custPhoneNbr().isNullOrBlank()) {
                 val previousPhoneNumberAWS = response.data()?.trip?.custPhoneNbr() as String
                 previousPhoneNumber = previousPhoneNumberAWS
-                LoggerHelper.writeToLog("$logFragment, checked AWS for custEmail. $previousPhoneNumber")
+                LoggerHelper.writeToLog("$logFragment, checked AWS for custPhone. $previousPhoneNumber")
             }
          }
         override fun onFailure(e: ApolloException) {
