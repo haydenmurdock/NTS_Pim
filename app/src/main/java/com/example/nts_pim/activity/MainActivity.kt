@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
 import android.content.ContentValues
 import android.content.Context
+import android.content.Intent
 import android.content.IntentFilter
 import android.media.AudioAttributes
 import android.media.AudioFocusRequest
@@ -28,6 +29,7 @@ import com.amazonaws.mobileconnectors.appsync.fetcher.AppSyncResponseFetchers
 import com.apollographql.apollo.GraphQLCall
 import com.apollographql.apollo.api.Response
 import com.apollographql.apollo.exception.ApolloException
+import com.example.nts_pim.BatteryPowerReceiver
 import com.example.nts_pim.NetworkReceiver
 import com.example.nts_pim.R
 import com.example.nts_pim.UnlockScreenLock
@@ -44,6 +46,7 @@ import com.example.nts_pim.utilities.bluetooth_helper.BlueToothHelper
 import com.example.nts_pim.utilities.driver_receipt.DriverReceiptHelper
 import com.example.nts_pim.utilities.enums.MeterEnum
 import com.example.nts_pim.utilities.enums.PIMStatusEnum
+import com.example.nts_pim.utilities.enums.PaymentTypeEnum
 import com.example.nts_pim.utilities.enums.SharedPrefEnum
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import com.example.nts_pim.utilities.mutation_helper.PIMMutationHelper
@@ -89,6 +92,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
     private var vehicleSubscriptionTimer: CountDownTimer? = null
     private val logFragment = "Background Activity"
     private var mNetworkReceiver: NetworkReceiver? = null
+    private var mBatteryReceiver: BatteryPowerReceiver? = null
     private var watchingTripId = ""
     internal var unpairPIMSubscription = false
 
@@ -128,7 +132,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
         forceSpeaker()
         setUpBluetooth()
         checkNavBar()
-        registerNetworkReceiver()
+        registerReceivers()
         LoggerHelper.getOrStartInternalLogs()
         callbackViewModel.getReSyncStatus().observe(this, Observer { reSync ->
             if (reSync) {
@@ -178,7 +182,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                 } else {
                     Log.i(
                         "TripStart",
-                        "current Nav destination is ${navController.currentDestination.toString()}"
+                        "current Nav destination is ${navController.currentDestination.toString()}. resync == $resync"
                     )
                     LoggerHelper.writeToLog("${logFragment}, Driver tried to start new trip, but the Pim was on Welcome/taxi number/bluetoothsetup screen")
                 }
@@ -464,9 +468,6 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
         }
     }
     //Coroutine to insert Meter Value
-    private fun insertMeterValue(double: Double) = launch {
-        callbackViewModel.addMeterValue(double)
-    }
     private fun insertTripId(tripId: String) = launch {
         callbackViewModel.addTripId(tripId, applicationContext)
     }
@@ -562,10 +563,13 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
         val networkInfo = connectivityManager.activeNetworkInfo
         return networkInfo != null && networkInfo.isConnected
     }
-    private fun registerNetworkReceiver(){
-        //This is for the Internet Receiver.
+    private fun registerReceivers(){
+        // Internet Receiver
         mNetworkReceiver = NetworkReceiver()
         registerReceiver(mNetworkReceiver, IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION))
+        //Battery receiver
+        mBatteryReceiver = BatteryPowerReceiver()
+        registerReceiver(mBatteryReceiver, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
     }
     private fun recheckInternetConnection(context: Context){
         if(internetConnectionTimer == null){
@@ -606,7 +610,10 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
         } else {
             callbackViewModel.getTripId()
         }
-        val  transactionType = VehicleTripArrayHolder.paymentTypeSelected
+        var transactionType = VehicleTripArrayHolder.paymentTypeSelected
+        if(transactionType == "none"){
+            transactionType = PaymentTypeEnum.CASH.paymentType
+        }
         var transactionId = callbackViewModel.getTransactionId()
         if(transactionId == ""){
             transactionId = UUID.randomUUID().toString()
@@ -638,21 +645,6 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
             LoggerHelper.writeToLog("${logFragment}, bluetooth was on during start up")
         }
     }
-    private fun goToPowerCycleApp() {
-        //This function is for future use if we decide to use our own kiosk mode
-//        val launchIntent =
-//            packageManager.getLaunchIntentForPackage("com.claren.tablet_control")
-//        if (launchIntent != null) {
-//            startActivity(launchIntent) //null pointer check in case package name was not found
-//        } else {
-//            Toast.makeText(
-//                applicationContext,
-//                "Auto Load of Pim failed, Please open PIM app",
-//                Toast.LENGTH_LONG
-//            ).show()
-//        }
-    }
-
     override fun onDestroy() {
         Log.i("SubscriptionWatcher", "Subscription watcher canceled for $vehicleId")
         subscriptionWatcherUpdateVehTripStatus?.cancel()
@@ -661,6 +653,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
         callbackViewModel.getTripHasEnded().removeObservers(this)
         callbackViewModel.getIsPimOnline().removeObservers(this)
         unregisterReceiver(mNetworkReceiver)
+        unregisterReceiver(mBatteryReceiver)
         stopLogTimer()
         vehicleSubscriptionTimer?.cancel()
         BlueToothHelper.unregisterBlueToothReceiver(this)
@@ -670,7 +663,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
 
     override fun onStop() {
         Log.i("onStop", "onStop was hit")
-        goToPowerCycleApp()
+        LoggerHelper.writeToLog("$logFragment, onStop was hit for main Activity.")
         super.onStop()
     }
 

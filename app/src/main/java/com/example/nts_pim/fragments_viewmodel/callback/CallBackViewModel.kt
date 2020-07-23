@@ -33,7 +33,6 @@ class CallBackViewModel(
 
     internal fun getIsTransactionComplete() = vehicleTripArrayHolder.getIsTransactionComplete()
 
-    internal fun getIsTransactionStarted() = vehicleTripArrayHolder.getIsTransactionStarted()
 
     internal fun addTripId(tripId: String, context: Context){
         vehicleTripArrayHolder.addTripId(tripId, context)

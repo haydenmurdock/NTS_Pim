@@ -65,6 +65,12 @@
             </intent-filter>
         </receiver>
 
+        <receiver android:name=".BatteryPowerReceiver">
+            <intent-filter>
+                <action android:name="android.intent.action.BATTERY_CHANGED"/>
+            </intent-filter>
+        </receiver>
+
         <service
                 android:name=".utilities.power_cycle.PowerAccessibilityService"
                 android:label="@string/app_name"

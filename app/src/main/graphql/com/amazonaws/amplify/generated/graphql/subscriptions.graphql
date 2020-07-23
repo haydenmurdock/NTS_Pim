@@ -14,10 +14,12 @@ subscription OnSettingsUpdate($deviceId: String) {
     error
     errorCode
     firmwareVersion
+    firmwareUpdates
     fleetGroup
     fleetNbr
     hideStartTrip
     hideVehicle
+    surrenderedVehicle
     lisnr
     locReport
     log
@@ -28,6 +30,7 @@ subscription OnSettingsUpdate($deviceId: String) {
     meterPing
     meterPrinter
     meterZap
+    flaggedVehicle
     mustSignIn
     noAuthLimit
     ntsPim
@@ -367,6 +370,8 @@ subscription OnPimSettingsUpdate($deviceId: String) {
     useBluetooth
     phoneNbr
     paired
+    pimStartedTimeStamp
+    overheatedTimeStamp
   }
 }
 subscription OnPimUnpair($vehicleId: String) {
@@ -382,5 +387,7 @@ subscription OnPimUnpair($vehicleId: String) {
     useBluetooth
     phoneNbr
     paired
+    pimStartedTimeStamp
+    overheatedTimeStamp
   }
 }

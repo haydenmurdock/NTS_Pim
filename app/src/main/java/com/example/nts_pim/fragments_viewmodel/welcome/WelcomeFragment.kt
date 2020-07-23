@@ -20,6 +20,7 @@ import androidx.lifecycle.ViewModelProviders
 import androidx.navigation.NavAction
 import androidx.navigation.Navigation
 import com.amazonaws.mobileconnectors.appsync.AWSAppSyncClient
+import com.example.nts_pim.BatteryPowerReceiver
 import com.example.nts_pim.BuildConfig
 import com.example.nts_pim.PimApplication
 import com.example.nts_pim.R
@@ -105,7 +106,7 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
         }
     }
     private val dimScreenTimer = object : CountDownTimer(120000, 1000) {
-        //after a status has changed to End we run a 2 min timer to dimScreen
+        //after a status has changed to end we run a 2 min timer to dimScreen
         override fun onTick(millisUntilFinished: Long) {
         }
 
@@ -150,7 +151,6 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
             .get(SettingsKeyboardViewModel::class.java)
         // checks for animation and navigates to next Screen
         setUpKeyboard()
-        ViewHelper.checkForNotifications(activity!!)
         lastTrip = checkToSeeIfOnTrip()
         if (lastTrip.first != null) {
             isOnActiveTrip = lastTrip.first!!
@@ -160,8 +160,6 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
         viewModel.isSetupComplete()
         vehicleId = viewModel.getVehicleId()
         updateVehicleInfoUI()
-        batteryCheckTimer.start()
-        dimScreenTimer.start()
         checkAppBuildVersion()
 
         //This is encase you have to restart the app during a trip or a trip
@@ -329,13 +327,8 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
     }
 
     private fun batteryStatusCheck() {
-        val batteryStatus: Intent? = IntentFilter(Intent.ACTION_BATTERY_CHANGED).let { filter ->
-            context?.registerReceiver(null, filter)
-        }
-        val status: Int = batteryStatus?.getIntExtra(BatteryManager.EXTRA_STATUS, -1) ?: -1
-        val isCharging: Boolean = status == BatteryManager.BATTERY_STATUS_CHARGING
-                || status == BatteryManager.BATTERY_STATUS_FULL
         val batteryPowerPermission = callBackViewModel.batteryPowerStatePermission()
+        val isCharging = BatteryPowerReceiver.isCharging
         if (!isCharging && !batteryPowerPermission) {
             LoggerHelper.writeToLog("$logFragment: Battery Check: is charging: $isCharging, sending request for shutdown")
             val action =  "com.claren.tablet_control.shutdown"

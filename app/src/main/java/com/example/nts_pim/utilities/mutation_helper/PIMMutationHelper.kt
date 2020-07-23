@@ -11,12 +11,25 @@ import com.apollographql.apollo.api.Response
 import com.apollographql.apollo.exception.ApolloException
 import com.example.nts_pim.PimApplication
 import com.example.nts_pim.data.repository.VehicleTripArrayHolder
+import com.example.nts_pim.data.repository.model_objects.DeviceID
+import com.example.nts_pim.data.repository.providers.ModelPreferences
+import com.example.nts_pim.fragments_viewmodel.base.ClientFactory
+import com.example.nts_pim.utilities.enums.SharedPrefEnum
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import type.*
 import java.text.SimpleDateFormat
+import java.time.Duration
+import java.time.LocalDate
 import java.util.*
 
 object PIMMutationHelper {
+
+   private var mAppSyncClient: AWSAppSyncClient? =  null
+    private var overHeatedTimeStamp: String? = null
+
+    init {
+        mAppSyncClient = ClientFactory.getInstance(PimApplication.pimContext)
+    }
 
     fun updatePIMStatus(vehicleId: String, pimStatusUpdate: String, appSyncClient: AWSAppSyncClient){
         val updatePimStatusInput = UpdateVehTripStatusInput.builder()?.vehicleId(vehicleId)?.pimStatus(pimStatusUpdate)?.build()
@@ -39,9 +52,7 @@ object PIMMutationHelper {
     }
 
     fun updateReaderStatus(vehicleId: String, readerStatus: String, appSyncClient: AWSAppSyncClient){
-        val calendarObject = Calendar.getInstance()
-        val formattedObject = formatDateUtcIso(calendarObject)
-        println(formattedObject)
+        val formattedObject = getCurrentDateFormattedDateUtcIso()
         val updatePimStatusInput = UpdateVehTripStatusInput.builder()
             ?.vehicleId(vehicleId)
             ?.readerStatus(readerStatus)
@@ -51,11 +62,11 @@ object PIMMutationHelper {
         appSyncClient.mutate(UpdateVehTripStatusMutation.builder().parameters(updatePimStatusInput).build())
             ?.enqueue(mutationCallbackOnReaderUpdate)
     }
-    private fun formatDateUtcIso(cal: Calendar?): String? {
-    if (cal == null) return ""
-    val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ", Locale.US)
-    sdf.setTimeZone(TimeZone.getTimeZone("UTC"))
-    return sdf.format(cal.getTime())
+    private fun getCurrentDateFormattedDateUtcIso(): String? {
+        val cal = Calendar.getInstance() ?: return ""
+        val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ", Locale.US)
+         sdf.setTimeZone(TimeZone.getTimeZone("UTC"))
+         return sdf.format(cal.getTime())
 }
 
 
@@ -183,6 +194,49 @@ object PIMMutationHelper {
 
         override fun onFailure(e: ApolloException) {
             Log.i("VehicleSetup", "Error: $e")
+        }
+    }
+    fun sendPIMStartTime(deviceId: String, appSyncClient: AWSAppSyncClient){
+        val currentTime = getCurrentDateFormattedDateUtcIso()
+        val input = UpdatePIMSettingsInput.builder().deviceId(deviceId).pimStartedTimeStamp(currentTime).build()
+        appSyncClient.mutate(UpdatePimSettingsMutation.builder().parameters(input).build())?.enqueue(
+            updatePIMStartTimeCallBack)
+    }
+
+    private val updatePIMStartTimeCallBack = object : GraphQLCall.Callback<UpdatePimSettingsMutation.Data>(){
+        override fun onResponse(response: Response<UpdatePimSettingsMutation.Data>) {
+            Log.i("PIMStartTime", "PIM Start up response: ${response.data()}")
+           if(!response.hasErrors()){
+               Log.i("PIMStartTime", "PIM Start up response successful")
+           }
+        }
+
+        override fun onFailure(e: ApolloException) {
+           Log.i("PIMStartTime", "error $e")
+        }
+    }
+
+    fun sendPIMOverheatTime(){
+        val currentTime = getCurrentDateFormattedDateUtcIso()
+        val deviceId = ModelPreferences(PimApplication.pimContext).getObject(SharedPrefEnum.DEVICE_ID.key, DeviceID::class.java)?.number
+        if(deviceId != null){
+            val input = UpdatePIMSettingsInput.builder().deviceId(deviceId).overheatedTimeStamp(currentTime).build()
+            mAppSyncClient?.mutate(UpdatePimSettingsMutation.builder().parameters(input).build())?.enqueue(
+                updatePIMOverheatTime)
+        }
+    }
+
+    private val updatePIMOverheatTime = object : GraphQLCall.Callback<UpdatePimSettingsMutation.Data>(){
+        override fun onResponse(response: Response<UpdatePimSettingsMutation.Data>) {
+            Log.i("PIMOverheat", "PIM over heat: ${response.data()}")
+            if(!response.hasErrors()){
+                Log.i("PIMOverheat", "PIM overheat response successful")
+                overHeatedTimeStamp = response.data()?.updatePIMSettings()?.overheatedTimeStamp()
+            }
+        }
+
+        override fun onFailure(e: ApolloException) {
+            Log.i("PimOverHeat", "error $e")
         }
     }
 }

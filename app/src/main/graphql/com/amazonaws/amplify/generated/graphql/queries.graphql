@@ -102,6 +102,8 @@ query GetPimSettings(
     useBluetooth
     phoneNbr
     paired
+    pimStartedTimeStamp
+    overheatedTimeStamp
   }
 }
 query GetSettings(
@@ -131,10 +133,12 @@ query GetSettings(
     error
     errorCode
     firmwareVersion
+    firmwareUpdates
     fleetGroup
     fleetNbr
     hideStartTrip
     hideVehicle
+    surrenderedVehicle
     lisnr
     locReport
     log
@@ -145,6 +149,7 @@ query GetSettings(
     meterPing
     meterPrinter
     meterZap
+    flaggedVehicle
     mustSignIn
     noAuthLimit
     ntsPim
@@ -455,6 +460,8 @@ query GetLoggingSettings($deviceId: String!) {
     useBluetooth
     phoneNbr
     paired
+    pimStartedTimeStamp
+    overheatedTimeStamp
   }
 }
 query GetPimInfo($vehicleId: String!) {
@@ -470,5 +477,7 @@ query GetPimInfo($vehicleId: String!) {
     useBluetooth
     phoneNbr
     paired
+    pimStartedTimeStamp
+    overheatedTimeStamp
   }
 }

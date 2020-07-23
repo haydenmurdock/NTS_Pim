@@ -42,7 +42,6 @@ object DriverReceiptHelper {
         try {
             client.newCall(request).execute().use { response ->
                 Log.i("URL","response code : ${response.code} response message: ${response.message}")
-
                 if (response.isSuccessful){
                     Log.i("Driver Receipt", "Sent Driver receipt successful.")
                     TripDetails.isReceiptSent = true

@@ -72,10 +72,12 @@ mutation UpdateBluetooth($parameters: updateBluetoothInput) {
     error
     errorCode
     firmwareVersion
+    firmwareUpdates
     fleetGroup
     fleetNbr
     hideStartTrip
     hideVehicle
+    surrenderedVehicle
     lisnr
     locReport
     log
@@ -86,6 +88,7 @@ mutation UpdateBluetooth($parameters: updateBluetoothInput) {
     meterPing
     meterPrinter
     meterZap
+    flaggedVehicle
     mustSignIn
     noAuthLimit
     ntsPim
@@ -157,10 +160,12 @@ mutation UpdateSettings($parameters: updateSettingsInput) {
     error
     errorCode
     firmwareVersion
+    firmwareUpdates
     fleetGroup
     fleetNbr
     hideStartTrip
     hideVehicle
+    surrenderedVehicle
     lisnr
     locReport
     log
@@ -171,6 +176,7 @@ mutation UpdateSettings($parameters: updateSettingsInput) {
     meterPing
     meterPrinter
     meterZap
+    flaggedVehicle
     mustSignIn
     noAuthLimit
     ntsPim
@@ -341,10 +347,12 @@ mutation UploadSettings($parameters: updateSettingsInput) {
     error
     errorCode
     firmwareVersion
+    firmwareUpdates
     fleetGroup
     fleetNbr
     hideStartTrip
     hideVehicle
+    surrenderedVehicle
     lisnr
     locReport
     log
@@ -355,6 +363,7 @@ mutation UploadSettings($parameters: updateSettingsInput) {
     meterPing
     meterPrinter
     meterZap
+    flaggedVehicle
     mustSignIn
     noAuthLimit
     ntsPim
@@ -410,6 +419,8 @@ mutation UpdateDeviceIdToImei($parameters: updateDeviceIdToIMEIInput) {
     useBluetooth
     phoneNbr
     paired
+    pimStartedTimeStamp
+    overheatedTimeStamp
   }
 }
 mutation UpdateTripFare($parameters: updateTripFareInput) {
@@ -740,6 +751,8 @@ mutation ResetReAuthSquare($parameters: resetReAuthSquareInput) {
     useBluetooth
     phoneNbr
     paired
+    pimStartedTimeStamp
+    overheatedTimeStamp
   }
 }
 mutation UpdatePimSettings($parameters: updatePIMSettingsInput) {
@@ -755,6 +768,8 @@ mutation UpdatePimSettings($parameters: updatePIMSettingsInput) {
     useBluetooth
     phoneNbr
     paired
+    pimStartedTimeStamp
+    overheatedTimeStamp
   }
 }
 mutation UpdatePimSettingsPortal($parameters: updatePIMSettingsPortalInput) {
@@ -770,6 +785,8 @@ mutation UpdatePimSettingsPortal($parameters: updatePIMSettingsPortalInput) {
     useBluetooth
     phoneNbr
     paired
+    pimStartedTimeStamp
+    overheatedTimeStamp
   }
 }
 mutation SendMeterErrorEmail($parameters: sendMeterErrorEmailInput) {
@@ -791,5 +808,7 @@ mutation UnpairPim($parameters: unpairPIMInput) {
     useBluetooth
     phoneNbr
     paired
+    pimStartedTimeStamp
+    overheatedTimeStamp
   }
 }

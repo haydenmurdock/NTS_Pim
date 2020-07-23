@@ -4,7 +4,10 @@ import android.app.Application
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
+import android.hardware.usb.UsbDevice.getDeviceId
 import android.util.Log
+import com.example.nts_pim.data.repository.model_objects.DeviceID
+import com.example.nts_pim.data.repository.providers.ModelPreferences
 import com.example.nts_pim.data.repository.trip_repository.TripRepository
 import com.example.nts_pim.data.repository.trip_repository.TripRepositoryImpl
 import com.example.nts_pim.fragments_viewmodel.check_vehicle_info.CheckVehicleInfoModelFactory
@@ -18,6 +21,8 @@ import com.example.nts_pim.fragments_viewmodel.vehicle_settings_detail.VehicleSe
 import com.example.nts_pim.fragments_viewmodel.vehicle_setup.VehicleSetupModelFactory
 import com.example.nts_pim.fragments_viewmodel.welcome.WelcomeViewModelFactory
 import com.example.nts_pim.utilities.LifeCycleCallBacks
+import com.example.nts_pim.utilities.enums.SharedPrefEnum
+import com.example.nts_pim.utilities.mutation_helper.PIMMutationHelper
 import com.jakewharton.threetenabp.AndroidThreeTen
 import com.squareup.sdk.reader.ReaderSdk
 import org.kodein.di.Kodein
@@ -32,9 +37,7 @@ import org.kodein.di.generic.singleton
 class PimApplication : Application(), KodeinAware{
     override val kodein = Kodein.lazy {
         import(androidXModule(this@PimApplication))
-
         //this connects the repo and the interface together
-
         bind<TripRepository>() with singleton {
             TripRepositoryImpl(
                 instance()
@@ -55,6 +58,7 @@ class PimApplication : Application(), KodeinAware{
     companion object {
         lateinit var instance: PimApplication
         lateinit var pimContext: Context
+        lateinit var deviceId: String
     }
 
     val CHANNEL_ID = "powerservicechannel"
@@ -68,7 +72,7 @@ class PimApplication : Application(), KodeinAware{
             }
             AndroidThreeTen.init(this)
             registerActivityLifecycleCallbacks(LifeCycleCallBacks())
-         //   createNotificationChannel()
+            //createNotificationChannel()
             ReaderSdk.initialize(this)
             Log.i("LOGGER",   "initialized readerSDK")
         }

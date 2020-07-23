@@ -233,5 +233,17 @@
             app:layout_constraintTop_toBottomOf="@+id/battery_btn"
             app:srcCompat="@drawable/ic_reauth_square" />
 
+    <TextView
+            android:id="@+id/battery_temp_textView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:fontFamily="@font/source_sans_pro"
+            android:text="Battery temp:"
+            android:textColor="#FFFFFF"
+            android:textSize="24sp"
+            app:layout_constraintStart_toStartOf="@+id/logging_textView"
+            app:layout_constraintTop_toBottomOf="@+id/logging_textView" />
+
 
 </androidx.constraintlayout.widget.ConstraintLayout>

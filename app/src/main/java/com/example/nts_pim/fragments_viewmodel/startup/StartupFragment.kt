@@ -114,16 +114,18 @@ class StartupFragment: ScopedFragment(), KodeinAware {
             return
         }
         phoneNumber = telephonyManager.line1Number
+        deviceId = ModelPreferences(this.requireContext())
+            .getObject(SharedPrefEnum.DEVICE_ID.key, DeviceID::class.java)
+            ?.number
         val isSetupComplete = viewModel.isSetUpComplete()
         if(isSetupComplete){
                 vehicleId = viewModel.getVehicleID()
+                PIMMutationHelper.sendPIMStartTime(deviceId!!, mAWSAppSyncClient!!)
                 checkAWSForLogging(vehicleId!!)
         }
         blueToothAddress = getBluetoothAddress()
         appVersionNumber = BuildConfig.VERSION_NAME
-        deviceId = ModelPreferences(this.requireContext())
-            .getObject(SharedPrefEnum.DEVICE_ID.key, DeviceID::class.java)
-            ?.number
+
     }
 
     private fun checkAWSForLogging(deviceId: String){

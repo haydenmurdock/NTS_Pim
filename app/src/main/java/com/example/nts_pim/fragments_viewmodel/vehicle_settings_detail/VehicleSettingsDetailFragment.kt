@@ -38,6 +38,7 @@ import com.amazonaws.mobileconnectors.appsync.AWSAppSyncClient
 import com.apollographql.apollo.GraphQLCall
 import com.apollographql.apollo.api.Response
 import com.apollographql.apollo.exception.ApolloException
+import com.example.nts_pim.BatteryPowerReceiver
 import com.example.nts_pim.BuildConfig
 import com.example.nts_pim.data.repository.VehicleTripArrayHolder
 import com.example.nts_pim.data.repository.model_objects.*
@@ -336,11 +337,13 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
         val c = context?.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
         val bucket = c.appStandbyBucket.toString()
         when(bucket){
-            "10" ->  power_status_textView.text = "Power Status: Active"
+            "10" -> power_status_textView.text = "Power Status: Active"
             "20" -> power_status_textView.text = "Power Status:Working Set"
             "30" -> power_status_textView.text = "Power Status:Frequent"
             "40" -> power_status_textView.text = "Power Status:Stand by"
         }
+        val currentBatteryTemp = BatteryPowerReceiver.temp
+        battery_temp_textView.text = "Battery Temp: $currentBatteryTemp F"
 
         if(tripID.isNotEmpty()){
             last_trip_id_textView.text = "Trip Id: $tripID"

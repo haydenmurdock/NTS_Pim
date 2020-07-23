@@ -190,6 +190,7 @@ object VehicleTripArrayHolder {
     }
 
     fun getBatteryPowerPermission() = batteryPowerIsSafe
+
     // clears arrays.
     fun clearAllNonPersistentData(){
         meterOwed = 00.00
