@@ -74,7 +74,7 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
     private var checkoutCallbackRef: CallbackReference? = null
     private lateinit var viewModel: LiveMeterViewModel
     private var vehicleId = ""
-    private var tripId = ""
+    private var tripId:String? = null
     private var tripNumber = 0
     var cardInfo = ""
     private var transactionDate: Date? = null
@@ -123,17 +123,15 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
         getArgsFromCustomTipScreen()
         PIMMutationHelper.updatePIMStatus(vehicleId, PIMStatusEnum.TIP_SCREEN.status, mAWSAppSyncClient!!)
 
-        view.setOnTouchListener(object : View.OnTouchListener {
-            override fun onTouch(v: View?, event: MotionEvent?): Boolean {
-                when (event?.action) {
-                    MotionEvent.ACTION_DOWN -> {
-                        screenTimeOutTimer.cancel()
-                        screenTimeOutTimer.start()
-                    }
+        view.setOnTouchListener { v, event ->
+            when (event?.action) {
+                MotionEvent.ACTION_DOWN -> {
+                    screenTimeOutTimer.cancel()
+                    screenTimeOutTimer.start()
                 }
-                return v?.onTouchEvent(event) ?: true
             }
-        })
+            v?.onTouchEvent(event) ?: true
+        }
         fifteen_percent_btn.setOnTouchListener((View.OnTouchListener { v, event ->
             when(event?.action) {
                 MotionEvent.ACTION_DOWN -> {
@@ -498,7 +496,7 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
         if (tripNumber != 0){
             parametersBuilder.note("[$tripNumber] [$vehicleId] [$driverId]")
         } else {
-            parametersBuilder.note("[${tripId.substring(tripId.length - 8)}] [$vehicleId] [$driverId]")
+            parametersBuilder.note("[${tripId?.length?.minus(8)?.let { tripId?.substring(it) }}] [$vehicleId] [$driverId]")
         }
         val checkoutManager = ReaderSdk.checkoutManager()
         checkoutManager.startCheckoutActivity(context!!, parametersBuilder.build())
@@ -640,6 +638,12 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
         val tenders = checkoutResult.tenders
         transactionDate = checkoutResult.createdAt
         val updatedTransactionDate = ViewHelper.formatDateUtcIso(transactionDate)
+        val tripIdForPaymentCheck = VehicleTripArrayHolder.getTripIdForPayment()
+         val tripIdForPayment = if(tripIdForPaymentCheck != ""){
+            tripIdForPaymentCheck
+        } else {
+            callbackViewModel.getTripId()
+        }
         for (i in tenders){
             transactionId = i.tenderId
             callbackViewModel.setTransactionId(transactionId)
@@ -649,9 +653,6 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
         }
         LoggerHelper.writeToLog("$logFragment,  transaction id: $transactionId, cardInfo: $cardInfo, trip total back from Square, $tripTotalBackFromSquare")
 
-        if(cardInfo != "") {
-           // updateLocalTripDetails()
-        }
         if(cardInfo != "" ) {
             val tipAmountToSendToAWS = callbackViewModel.getTipAmount()
             updateTransactionInfo(
@@ -660,7 +661,8 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
                 tipPercentPicked,
                 amountForSquare,
                 updatedTransactionDate,
-                transactionId)
+                transactionId,
+                tripIdForPayment)
         }
 
         if(cardInfo != "") {
@@ -670,19 +672,8 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
                 vehicleId,
                 mAWSAppSyncClient!!,
                 "card",
-                tripId)
-        }
-        if(cardInfo != ""){
-            // This is where we would update the reader status in aws to connected if
-//            if(VehicleTripArrayHolder.cardReaderStatus != ReaderStatusEnum.CONNECTED.status){
-//                VehicleTripArrayHolder.cardReaderStatus = ReaderStatusEnum.CONNECTED.status
-//                LoggerHelper.writeToLog("internal status was not connected, but processed a payment. updating to connected")
-//                PIMMutationHelper.updateReaderStatus(
-//                    vehicleId,
-//                    VehicleTripArrayHolder.cardReaderStatus,
-//                    mAWSAppSyncClient!!)
-//            }
-        }
+                tripIdForPayment)
+             }
     }
 
     private fun updatePaymentDetail(transactionId: String, tripNumber: Int, vehicleId: String, awsAppSyncClient: AWSAppSyncClient, paymentType: String, tripId: String) = launch(Dispatchers.IO){
@@ -724,11 +715,10 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
             }
         }
     }
-    private fun updateTransactionInfo(tipAmount: Double, cardInfo: String, tipPercent: Double, paidAmount: Double, transactionDate: String, transactionId: String) = launch(Dispatchers.IO) {
+    private fun updateTransactionInfo(tipAmount: Double, cardInfo: String, tipPercent: Double, paidAmount: Double, transactionDate: String, transactionId: String, tripId: String) = launch(Dispatchers.IO) {
     if(!paymentSentForSquare){
         paymentSentForSquare = true
-
-
+        LoggerHelper.writeToLog("Boolean for payment sent to square is true. No more payment attempts until ")
         val pimPaymentInput = PimPaymentMadeInput.builder()
             .vehicleId(vehicleId)
             .tripId(tripId)
@@ -746,31 +736,13 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
         }
     }
 
-
-    private val transactionInfoCallback = object : GraphQLCall.Callback<UpdateTripMutation.Data>() {
-        override fun onResponse(response: Response<UpdateTripMutation.Data>) {
-            Log.i("Results", "Trip Transaction was set for card and tip amount in AppSync")
-            LoggerHelper.writeToLog(
-                "$logFragment,  Updated aws meter trips table. transaction id:" +
-                        " ${response.data()?.updateTrip()?.pimTransId()}, tipAmt: ${response.data()?.updateTrip()?.tipAmt()}" +
-                        "payment type, ${response.data()?.updateTrip()?.paymentType()}" +
-                        ", TransactionDate: ${response.data()?.updateTrip()?.pimTransDate()}" +
-                        ", Card Info: ${response.data()?.updateTrip()?.cardInfo()}"
-            )
-        }
-
-        override fun onFailure(e: ApolloException) {
-            Log.e("Error", e.toString())
-        }
-    }
-
     private val pimPaymentMadeCallback = object : GraphQLCall.Callback<PimPaymentMadeMutation.Data>() {
         override fun onResponse(response: Response<PimPaymentMadeMutation.Data>) {
-
+            LoggerHelper.writeToLog("pimPaymentMade response. $response")
         }
 
         override fun onFailure(e: ApolloException) {
-            Log.e("Error", e.toString())
+           LoggerHelper.writeToLog("pimPaymentMade error. $e")
         }
     }
 
@@ -819,6 +791,7 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
     }
     override fun onDestroy() {
         super.onDestroy()
+        LoggerHelper.writeToLog("On destroy was hit for tip screen")
         callbackViewModel.getIsTransactionComplete().removeObservers(this)
         callbackViewModel.hasSquareTimedOut().removeObservers(this)
         checkoutCallbackRef?.clear()
