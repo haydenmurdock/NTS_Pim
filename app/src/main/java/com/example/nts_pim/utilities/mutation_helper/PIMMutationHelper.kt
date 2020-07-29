@@ -62,12 +62,7 @@ object PIMMutationHelper {
         appSyncClient.mutate(UpdateVehTripStatusMutation.builder().parameters(updatePimStatusInput).build())
             ?.enqueue(mutationCallbackOnReaderUpdate)
     }
-    private fun getCurrentDateFormattedDateUtcIso(): String? {
-        val cal = Calendar.getInstance() ?: return ""
-        val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ", Locale.US)
-         sdf.setTimeZone(TimeZone.getTimeZone("UTC"))
-         return sdf.format(cal.getTime())
-}
+
 
 
     private val mutationCallbackOnReaderUpdate = object : GraphQLCall.Callback<UpdateVehTripStatusMutation.Data>() {
@@ -216,8 +211,7 @@ object PIMMutationHelper {
         }
     }
 
-    fun sendPIMOverheatTime(){
-        val currentTime = getCurrentDateFormattedDateUtcIso()
+    fun sendPIMOverheatTime(currentTime: String){
         val deviceId = ModelPreferences(PimApplication.pimContext).getObject(SharedPrefEnum.DEVICE_ID.key, DeviceID::class.java)?.number
         if(deviceId != null){
             val input = UpdatePIMSettingsInput.builder().deviceId(deviceId).overheatedTimeStamp(currentTime).build()
@@ -238,5 +232,11 @@ object PIMMutationHelper {
         override fun onFailure(e: ApolloException) {
             Log.i("PimOverHeat", "error $e")
         }
+    }
+    internal fun getCurrentDateFormattedDateUtcIso(): String? {
+        val cal = Calendar.getInstance() ?: return ""
+        val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ", Locale.US)
+        sdf.setTimeZone(TimeZone.getTimeZone("UTC"))
+        return sdf.format(cal.getTime())
     }
 }

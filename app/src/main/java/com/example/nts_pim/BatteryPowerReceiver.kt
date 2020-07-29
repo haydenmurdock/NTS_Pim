@@ -6,18 +6,23 @@ import android.content.Context
 import android.content.Intent
 import android.os.BatteryManager
 import android.util.Log
+import com.example.nts_pim.data.repository.VehicleTripArrayHolder
+import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import com.example.nts_pim.utilities.mutation_helper.PIMMutationHelper
+
 
 class BatteryPowerReceiver : BroadcastReceiver() {
     companion object{
         var temp: Float = 0.0F
         var overHeating = false
         var isCharging = false
+        var overheatingProtocolInitiated = false
     }
 
     // We will want to get the current heat level of the battery. If we get an overheat we will want to send an overheating timeStamp
     private val logTag = "Battery"
     private val thermalOverheatLevel = 127.0F
+
     @SuppressLint("UnsafeProtectedBroadcastReceiver")
     override fun onReceive(p0: Context?, p1: Intent?) {
        val mTemp =  p1?.getIntExtra(BatteryManager.EXTRA_TEMPERATURE,0)
@@ -36,8 +41,19 @@ class BatteryPowerReceiver : BroadcastReceiver() {
 
     private fun batteryOverheatingCheck(temp: Float){
         overHeating = if(temp > thermalOverheatLevel){
-            PIMMutationHelper.sendPIMOverheatTime()
+            val overheatTimestamp = PIMMutationHelper.getCurrentDateFormattedDateUtcIso()
+            if(overheatTimestamp != null && !overheatingProtocolInitiated){
+                overheatingProtocolInitiated = true
+                PIMMutationHelper.sendPIMOverheatTime(overheatTimestamp)
+                VehicleTripArrayHolder.sendOverHeatEmail()
+        }
             true
-        }else { false }
+        }else if(temp < 122 && overheatingProtocolInitiated){
+            LoggerHelper.writeToLog("temp $temp is lower then 122 so we are resetting overheating protocol")
+            overheatingProtocolInitiated = false
+            false
+        } else {
+            false
+        }
     }
 }

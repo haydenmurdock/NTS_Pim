@@ -8,6 +8,7 @@ import com.example.nts_pim.data.repository.model_objects.CurrentTrip
 import com.example.nts_pim.data.repository.providers.ModelPreferences
 import com.example.nts_pim.utilities.enums.SharedPrefEnum
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
+import com.example.nts_pim.utilities.mutation_helper.PIMMutationHelper
 
 
 // The vehicleTripArrayHolder object holds all the arrays for app-sync and LiveData
@@ -87,6 +88,12 @@ object VehicleTripArrayHolder {
     //We use this for Pim Status Request
     private var internalPIMStatus = ""
 
+    private var sendOverHeatEmail = false
+    private var sendOverheatEmailMLD = MutableLiveData<Boolean>()
+
+    var pimStartTime:String? = null
+    var pimOverHeat:String? = null
+
 // Adds the status from the main activity app sync subscription. It goes to a live data array to be watched for changes. There is only 1 status in the array at all times.
 //E.g. "Trip_On_Site", "Trip_Assigned", "Trip_Picked_UP"
 
@@ -96,6 +103,7 @@ object VehicleTripArrayHolder {
         newTripHasStartedMutableLiveData.value = newTripHasStarted
         squareHasBeenSetUp = false
         numberOfReaderChecks = 0
+        pimStartTime = PIMMutationHelper.getCurrentDateFormattedDateUtcIso()
     }
 
    fun addStatus(appsyncTripStatus: String){
@@ -397,5 +405,15 @@ object VehicleTripArrayHolder {
     }
 
     internal fun getTripIdForPayment() = tripIdForPayment
+
+    internal fun sendOverHeatEmail(){
+        pimOverHeat = PIMMutationHelper.getCurrentDateFormattedDateUtcIso()
+        sendOverHeatEmail = true
+        sendOverheatEmailMLD.value = sendOverHeatEmail
+        sendOverHeatEmail = false
+        sendOverheatEmailMLD.value = sendOverHeatEmail
+    }
+
+    internal fun isPIMOverHeating() = sendOverheatEmailMLD
 }
 

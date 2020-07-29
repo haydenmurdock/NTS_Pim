@@ -120,10 +120,6 @@ class CallBackViewModel(
 
     internal fun deviceIsBondedViaBT() = VehicleTripArrayHolder.deviceIsBondedViaBluetooth()
 
-    internal fun deviceIsNotBondedViaBT() = VehicleTripArrayHolder.deviceIsNotBondedViaBluetooth()
-
-    internal fun isDeviceBondedViaBT() = VehicleTripArrayHolder.isDeviceBondedViaBluetooth()
-
     internal fun doWeNeedToReAuthorizeSquare() = VehicleTripArrayHolder.doWeNeedToReAuthorizeSquare()
 
     internal fun isReaderConnected() = VehicleTripArrayHolder.isReaderStatusConnected()
@@ -133,5 +129,7 @@ class CallBackViewModel(
     }
 
     internal fun isPimPaired() = VehicleTripArrayHolder.isPimPaired()
+
+    internal fun isPIMOverheating() = vehicleTripArrayHolder.isPIMOverHeating()
 
 }

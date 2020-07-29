@@ -17,6 +17,7 @@ import android.telephony.TelephonyManager
 import android.util.Log
 import android.view.View
 import android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
+
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProviders
@@ -50,8 +51,11 @@ import com.example.nts_pim.utilities.enums.PaymentTypeEnum
 import com.example.nts_pim.utilities.enums.SharedPrefEnum
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import com.example.nts_pim.utilities.mutation_helper.PIMMutationHelper
+import com.example.nts_pim.utilities.overheat_email.OverHeatEmail
 import com.example.nts_pim.utilities.sound_helper.SoundHelper
 import com.example.nts_pim.utilities.view_helper.ViewHelper
+import io.reactivex.android.schedulers.AndroidSchedulers
+import io.reactivex.schedulers.Schedulers
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -187,6 +191,18 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                     LoggerHelper.writeToLog("${logFragment}, Driver tried to start new trip, but the Pim was on Welcome/taxi number/bluetoothsetup screen")
                 }
             }
+            callbackViewModel.isPIMOverheating().observe(this, Observer {overheating ->
+                if(overheating){
+                    val startTime = VehicleTripArrayHolder.pimStartTime
+                    val overheat = VehicleTripArrayHolder.pimOverHeat
+                    if(startTime != null && overheat != null){
+                        OverHeatEmail.sendMail(vehicleId, startTime, overheat)
+                            .subscribeOn(Schedulers.io())
+                            .observeOn(AndroidSchedulers.mainThread())
+                            .subscribe{(LoggerHelper.writeToLog("Overheating email sent: overheat timeStamp:$overheat"))}
+                    }
+                }
+            })
         })
 
         if (loggingTimer == null) {
@@ -201,7 +217,6 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                 !vehicleSubscriptionComplete &&
                 mSuccessfulSetup){
                 watchingTripId = ""
-
                 subscribeToUpdateVehTripStatus(vehicleId)
                 if(navigationController.currentDestination?.id == R.id.live_meter_fragment ||
                     navigationController.currentDestination?.id == R.id.trip_review_fragment){

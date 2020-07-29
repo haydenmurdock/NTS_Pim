@@ -109,7 +109,6 @@ dependencies {
     implementation "com.squareup.sdk.reader:reader-sdk-$SQUARE_READER_SDK_APPLICATION_ID:$readerSdkVersion"
     runtimeOnly "com.squareup.sdk.reader:reader-sdk-internals:$readerSdkVersion"
 
-
     //Base SDK
     implementation 'com.amazonaws:aws-android-sdk-core:2.16.3'
 
@@ -138,5 +137,15 @@ dependencies {
     implementation "com.airbnb.android:lottie:3.0.7"
     //Glide
     implementation 'com.github.bumptech.glide:glide:4.9.0'
+
+    //Email
+    implementation 'io.reactivex.rxjava3:rxandroid:3.0.0'
+    implementation 'io.reactivex.rxjava3:rxjava:3.0.0'
+
+    implementation files('libs/mail.jar')
+    implementation files('libs/activation.jar')
+    implementation files('libs/additionnal.jar')
+
+
 
 }
