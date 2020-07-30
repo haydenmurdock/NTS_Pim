@@ -21,7 +21,7 @@ class BatteryPowerReceiver : BroadcastReceiver() {
 
     // We will want to get the current heat level of the battery. If we get an overheat we will want to send an overheating timeStamp
     private val logTag = "Battery"
-    private val thermalOverheatLevel = 127.0F
+    private val thermalOverheatLevel = 125.0F
 
     @SuppressLint("UnsafeProtectedBroadcastReceiver")
     override fun onReceive(p0: Context?, p1: Intent?) {

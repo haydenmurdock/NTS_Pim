@@ -23,10 +23,10 @@ android {
     buildToolsVersion "28.0.3"
     defaultConfig {
         applicationId "com.example.nts_pim"
-        minSdkVersion 28
+        minSdkVersion 26
         targetSdkVersion 28
-        versionCode 10783
-        versionName "1.0783"
+        versionCode 10790
+        versionName "1.079"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         multiDexEnabled true
         signingConfig signingConfigs.debug
