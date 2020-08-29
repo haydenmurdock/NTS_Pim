@@ -113,7 +113,12 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
         activity_indicator_vehicle_detail.visibility = View.INVISIBLE
         val telephonyManager = activity!!.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
         if(context?.checkCallingOrSelfPermission(Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED) {
-            imei = telephonyManager.imei
+            if(telephonyManager.imei != null){
+                imei = telephonyManager.imei
+            } else {
+                imei = "Android 10 issue getting IMEI- please contact dev team"
+            }
+
         }
        updateUI(batteryStatus)
         check_bluetooth_btn.setOnClickListener {

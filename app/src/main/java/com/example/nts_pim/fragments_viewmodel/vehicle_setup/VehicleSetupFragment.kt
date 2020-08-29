@@ -3,6 +3,7 @@ package com.example.nts_pim.fragments_viewmodel.vehicle_setup
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.content.Context
@@ -24,6 +25,7 @@ import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
+import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProviders
 import androidx.navigation.Navigation
@@ -44,6 +46,7 @@ import com.example.nts_pim.fragments_viewmodel.InjectorUtiles
 import com.example.nts_pim.fragments_viewmodel.base.ClientFactory
 import com.example.nts_pim.fragments_viewmodel.base.ScopedFragment
 import com.example.nts_pim.fragments_viewmodel.vehicle_settings.setting_keyboard_viewModels.SettingsKeyboardViewModel
+import com.example.nts_pim.utilities.dialog_composer.PIMDialogComposer
 import com.example.nts_pim.utilities.enums.LogEnums
 import com.example.nts_pim.utilities.enums.SharedPrefEnum
 import com.example.nts_pim.utilities.keyboards.QwertyKeyboard
@@ -149,10 +152,10 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
         })
         doesVehicleIdExist = viewModel.doesVehicleIDExist()
             if (!doesVehicleIdExist) {
-                checkDeviceID(view, adapter as MyCustomAdapter)
+                checkDeviceID(view, adapter as MyCustomAdapter, this.activity!!)
                 checkForPin(adapter as MyCustomAdapter)
             } else {
-                checkDeviceID(view, adapter as MyCustomAdapter)
+                checkDeviceID(view, adapter as MyCustomAdapter, this.activity!!)
                 showUIForSavedVehicleID()
                 checkAuthorization(vehicleID, authManager)
             }
@@ -200,27 +203,33 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
         }
     }
 
-    private fun checkDeviceID(view: View, adapter: MyCustomAdapter) = launch {
+    private fun checkDeviceID(view: View, adapter: MyCustomAdapter, activity: FragmentActivity) = launch {
         imei = viewModel.getDeviceID.await()
         // This in case there is no device ID, we make one
         if (imei == "") {
-            if(context?.checkCallingOrSelfPermission(Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED){
-                val telephonyManager = activity!!.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
+            if(context?.checkCallingOrSelfPermission(Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED) {
+                val telephonyManager =
+                    activity!!.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
                 val imei = telephonyManager.imei
-                val deviceId =
-                    DeviceID(imei)
-                ModelPreferences(view.context)
-                    .putObject(SharedPrefEnum.DEVICE_ID.key, deviceId)
-                this@VehicleSetupFragment.imei = deviceId.number
-                setup_detail_text_view.text = "imei was created and updated: ${this@VehicleSetupFragment.imei}"
-                updateChecklist(0, true, adapter)
-                launch(Dispatchers.IO) {
-                    checkForPairedVehicleID(deviceId.number)
+                if (imei != null) {
+                    val deviceId =
+                        DeviceID(imei)
+                    ModelPreferences(view.context)
+                        .putObject(SharedPrefEnum.DEVICE_ID.key, deviceId)
+                    this@VehicleSetupFragment.imei = deviceId.number
+                    setup_detail_text_view.text =
+                        "imei was created and updated: ${this@VehicleSetupFragment.imei}"
+                    updateChecklist(0, true, adapter)
+                    launch(Dispatchers.IO) {
+                        checkForPairedVehicleID(deviceId.number)
+                    }
+                    Log.i(
+                        LogEnums.PIM_SETTING.tag,
+                        "Device Id: $imei saved to Shared Preferences"
+                    )
+                } else {
+                    PIMDialogComposer.androidVersionNotSupported(activity)
                 }
-                Log.i(
-                    LogEnums.PIM_SETTING.tag,
-                    "Device Id: $imei saved to Shared Preferences"
-                )
             }
         } else {
             setup_detail_text_view.text = "imei was found $imei"
@@ -686,7 +695,7 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
                 REQUEST_FINE_LOCATION_PERMSSION_CODE)
         }
     }
-    private fun requestPhoneState(){
+    private fun requestPhoneState(activity: FragmentActivity){
         val REQUEST_PHONE_STATE_PERMSSION_CODE = 1
         if (ContextCompat.checkSelfPermission(activity!!, Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(
@@ -698,7 +707,7 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
             androidId = Settings.Secure.getString(activity!!.getContentResolver(),
                 Settings.Secure.ANDROID_ID)
             if(!isSquareAuthorized){
-                checkDeviceID(this.view!!, adapter as MyCustomAdapter)
+                checkDeviceID(this.view!!, adapter as MyCustomAdapter, activity)
             }
         }
     }
@@ -796,7 +805,7 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
         requestMic()
         requestStorage()
         requestLocation()
-        requestPhoneState()
+        requestPhoneState(activity!!)
         ViewHelper.hideSystemUI(activity!!)
     }
 

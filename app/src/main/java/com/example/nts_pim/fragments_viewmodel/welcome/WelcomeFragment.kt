@@ -1,8 +1,6 @@
 package com.example.nts_pim.fragments_viewmodel.welcome
 
 import android.content.Intent
-import android.content.IntentFilter
-import android.os.BatteryManager
 import android.os.Bundle
 import android.os.CountDownTimer
 import android.os.Handler
@@ -17,19 +15,16 @@ import android.view.inputmethod.EditorInfo
 import android.widget.Toast
 import androidx.core.view.isVisible
 import androidx.lifecycle.ViewModelProviders
-import androidx.navigation.NavAction
 import androidx.navigation.Navigation
 import com.amazonaws.mobileconnectors.appsync.AWSAppSyncClient
 import com.example.nts_pim.BatteryPowerReceiver
 import com.example.nts_pim.BuildConfig
 import com.example.nts_pim.PimApplication
 import com.example.nts_pim.R
-import com.example.nts_pim.activity.MainActivity
 import com.example.nts_pim.data.repository.TripDetails
 import com.example.nts_pim.data.repository.VehicleTripArrayHolder
 import com.example.nts_pim.data.repository.model_objects.AppVersion
 import com.example.nts_pim.data.repository.model_objects.CurrentTrip
-import com.example.nts_pim.data.repository.model_objects.JsonAuthCode
 import com.example.nts_pim.data.repository.providers.ModelPreferences
 import com.example.nts_pim.fragments_viewmodel.InjectorUtiles
 import com.example.nts_pim.fragments_viewmodel.base.ClientFactory
@@ -37,7 +32,6 @@ import com.example.nts_pim.fragments_viewmodel.base.ScopedFragment
 import com.example.nts_pim.fragments_viewmodel.callback.CallBackViewModel
 import com.example.nts_pim.fragments_viewmodel.vehicle_settings.setting_keyboard_viewModels.SettingsKeyboardViewModel
 import com.example.nts_pim.utilities.enums.PIMStatusEnum
-import com.example.nts_pim.utilities.enums.ReaderStatusEnum
 import com.example.nts_pim.utilities.enums.SharedPrefEnum
 import com.example.nts_pim.utilities.enums.VehicleStatusEnum
 import com.example.nts_pim.utilities.keyboards.PhoneKeyboard
@@ -45,27 +39,16 @@ import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import com.example.nts_pim.utilities.mutation_helper.PIMMutationHelper
 import com.example.nts_pim.utilities.sound_helper.SoundHelper
 import com.example.nts_pim.utilities.view_helper.ViewHelper
-import com.google.gson.Gson
 import com.squareup.sdk.reader.ReaderSdk
-import com.squareup.sdk.reader.checkout.CheckoutParameters
-import com.squareup.sdk.reader.checkout.CurrencyCode
-import com.squareup.sdk.reader.checkout.Money
 import kotlinx.android.synthetic.main.welcome_screen.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import okhttp3.Call
-import okhttp3.Callback
-import okhttp3.OkHttpClient
-import okhttp3.Request
 import org.kodein.di.KodeinAware
 import org.kodein.di.android.x.closestKodein
 import org.kodein.di.generic.instance
-import java.io.IOException
-import java.lang.Error
 import java.time.LocalDateTime
 import java.util.*
-import java.util.logging.Logger
 import kotlin.concurrent.timerTask
 
 
@@ -327,9 +310,8 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
     }
 
     private fun batteryStatusCheck() {
-        val batteryPowerPermission = callBackViewModel.batteryPowerStatePermission()
         val isCharging = BatteryPowerReceiver.isCharging
-        if (!isCharging && !batteryPowerPermission) {
+        if (!isCharging) {
             LoggerHelper.writeToLog("$logFragment: Battery Check: is charging: $isCharging, sending request for shutdown")
             val action =  "com.claren.tablet_control.shutdown"
             val p = "com.claren.tablet_control"

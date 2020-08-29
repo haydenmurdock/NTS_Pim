@@ -9,6 +9,7 @@ import com.example.nts_pim.data.repository.providers.ModelPreferences
 import com.example.nts_pim.utilities.enums.SharedPrefEnum
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import com.example.nts_pim.utilities.mutation_helper.PIMMutationHelper
+import java.util.*
 
 
 // The vehicleTripArrayHolder object holds all the arrays for app-sync and LiveData
@@ -103,7 +104,6 @@ object VehicleTripArrayHolder {
         newTripHasStartedMutableLiveData.value = newTripHasStarted
         squareHasBeenSetUp = false
         numberOfReaderChecks = 0
-        pimStartTime = PIMMutationHelper.getCurrentDateFormattedDateUtcIso()
     }
 
    fun addStatus(appsyncTripStatus: String){
@@ -415,5 +415,9 @@ object VehicleTripArrayHolder {
     }
 
     internal fun isPIMOverHeating() = sendOverheatEmailMLD
+
+    internal fun setPIMStartTime(startTime: String){
+        pimStartTime = startTime
+    }
 }
 

@@ -25,8 +25,8 @@ android {
         applicationId "com.example.nts_pim"
         minSdkVersion 26
         targetSdkVersion 28
-        versionCode 10790
-        versionName "1.079"
+        versionCode 10820
+        versionName "1.082"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         multiDexEnabled true
         signingConfig signingConfigs.debug

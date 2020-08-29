@@ -48,6 +48,8 @@ import org.kodein.di.android.x.closestKodein
 import org.kodein.di.generic.instance
 import java.io.IOException
 import java.lang.Error
+import java.util.*
+import kotlin.collections.ArrayList
 
 class BluetoothSetupFragment: ScopedFragment(), KodeinAware {
 
@@ -82,10 +84,12 @@ class BluetoothSetupFragment: ScopedFragment(), KodeinAware {
                 startSquareCardReaderCheck()
                 numberOfReaderFailedAttempts += 1
             } else {
+                val cal = Calendar.getInstance()
                 PIMMutationHelper.updateReaderStatus(
                     vehicleId!!,
                     VehicleTripArrayHolder.cardReaderStatus,
-                    mAWSAppSyncClient!!)
+                    mAWSAppSyncClient!!,
+                    cal!!)
                 toWelcomeScreen()
             }
         }
@@ -126,10 +130,12 @@ class BluetoothSetupFragment: ScopedFragment(), KodeinAware {
             if(connected){
                 Log.i("Square", "last reader check == $lastCheckStatus. Internal status of reader is ${VehicleTripArrayHolder.cardReaderStatus}")
                 if(VehicleTripArrayHolder.cardReaderStatus != "default" || lastCheckStatus != VehicleTripArrayHolder.cardReaderStatus){
+                    val cal = Calendar.getInstance()
                     PIMMutationHelper.updateReaderStatus(
                         vehicleId!!,
                         VehicleTripArrayHolder.cardReaderStatus,
-                        mAWSAppSyncClient!!)
+                        mAWSAppSyncClient!!,
+                        cal)
                 } else { Log.i("Square", "last reader check == $lastCheckStatus. Internal status of reader is ${VehicleTripArrayHolder.cardReaderStatus}. Did Not update AWS for Second reader check.")
                  LoggerHelper.writeToLog("last reader check == $lastCheckStatus. Internal status of reader is ${VehicleTripArrayHolder.cardReaderStatus}. Did Not update AWS for Second reader check.")
                 }

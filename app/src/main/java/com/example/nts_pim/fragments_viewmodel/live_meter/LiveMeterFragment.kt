@@ -258,9 +258,11 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
     }
     override fun onDestroy() {
         textToSpeech?.stop()
-        callbackViewModel.getMeterOwed().removeObservers(this)
-        callbackViewModel.getMeterState().removeObservers(this)
-        callbackViewModel.getTripStatus().removeObservers(this)
+        if(this::callbackViewModel.isInitialized) {
+                callbackViewModel.getMeterOwed().removeObservers(this)
+                callbackViewModel.getMeterState().removeObservers(this)
+                callbackViewModel.getTripStatus().removeObservers(this)
+            }
         requestMeterStateValueTimer?.cancel()
         Log.i("Observer", "Live Meter observer removed.")
         super.onDestroy()

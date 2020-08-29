@@ -48,6 +48,9 @@ object OverHeatEmail {
                     mime.setFrom(InternetAddress(ntsEmail))
                     //Adding receiver
                     mime.addRecipient(Message.RecipientType.TO, InternetAddress(toEmail))
+                    mime.addRecipient(Message.RecipientType.CC, InternetAddress( "josh@rideyellow.com"))
+                    mime.addRecipient(Message.RecipientType.CC, InternetAddress("Wamiq@rideyellow.com"))
+                    mime.addRecipient(Message.RecipientType.CC, InternetAddress("hayden@nts.taxi"))
                     //Adding subject
                     mime.subject = subject
                     //Adding message

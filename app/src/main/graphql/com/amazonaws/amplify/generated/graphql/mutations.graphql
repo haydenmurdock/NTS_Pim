@@ -285,6 +285,7 @@ mutation UpdateTrip($parameters: updateTripInput) {
       lat
       lng
     }
+    receiptSent
     tipAmt
     tipPercent
     toll
@@ -475,6 +476,7 @@ mutation UpdateTripFare($parameters: updateTripFareInput) {
       lat
       lng
     }
+    receiptSent
     tipAmt
     tipPercent
     toll
@@ -547,6 +549,7 @@ mutation UpdateTripMeterState($parameters: updateTripMeterStateInput) {
       lat
       lng
     }
+    receiptSent
     tipAmt
     tipPercent
     toll
@@ -646,6 +649,7 @@ mutation DoPimPayment($parameters: doPimPaymentInput) {
       lat
       lng
     }
+    receiptSent
     tipAmt
     tipPercent
     toll
@@ -718,6 +722,7 @@ mutation PimPaymentMade($parameters: pimPaymentMadeInput) {
       lat
       lng
     }
+    receiptSent
     tipAmt
     tipPercent
     toll

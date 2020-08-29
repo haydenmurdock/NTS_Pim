@@ -2,6 +2,7 @@ package com.example.nts_pim.fragments_viewmodel.startup
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.app.admin.DevicePolicyManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -113,7 +114,10 @@ class StartupFragment: ScopedFragment(), KodeinAware {
             getPhoneNumberPermissions()
             return
         }
-        phoneNumber = telephonyManager.line1Number
+        if(telephonyManager.line1Number != null){
+            //Android 10 might block this so check it before setting it.
+            phoneNumber = telephonyManager.line1Number
+        }
         deviceId = ModelPreferences(this.requireContext())
             .getObject(SharedPrefEnum.DEVICE_ID.key, DeviceID::class.java)
             ?.number
@@ -125,6 +129,11 @@ class StartupFragment: ScopedFragment(), KodeinAware {
         }
         blueToothAddress = getBluetoothAddress()
         appVersionNumber = BuildConfig.VERSION_NAME
+        PIMMutationHelper.getCurrentDateFormattedDateUtcIso()?.let {
+            callBackViewModel.setPIMStartTime(
+                it
+            )
+        }
 
     }
 
@@ -287,6 +296,7 @@ class StartupFragment: ScopedFragment(), KodeinAware {
         }
         return retValue
     }
+
 
     private fun openDrawPermissionsMenu(){
         val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + context!!.packageName))

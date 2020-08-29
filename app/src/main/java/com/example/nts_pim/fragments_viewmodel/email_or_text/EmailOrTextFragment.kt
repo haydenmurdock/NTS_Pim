@@ -340,8 +340,10 @@ class EmailOrTextFragment : ScopedFragment(), KodeinAware {
     }
 
     override fun onDestroy() {
-        callBackViewModel.getTripStatus().removeObservers(this)
-        callBackViewModel.getIsTransactionComplete().removeObservers(this)
+        if(this::callBackViewModel.isInitialized){
+            callBackViewModel.getTripStatus().removeObservers(this)
+            callBackViewModel.getIsTransactionComplete().removeObservers(this)
+        }
         super.onDestroy()
     }
 }

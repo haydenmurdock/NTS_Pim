@@ -2,6 +2,7 @@ package com.example.nts_pim.utilities.mutation_helper
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.os.Build
 import android.telephony.TelephonyManager
 import android.util.Log
 import com.amazonaws.amplify.generated.graphql.*
@@ -9,6 +10,7 @@ import com.amazonaws.mobileconnectors.appsync.AWSAppSyncClient
 import com.apollographql.apollo.GraphQLCall
 import com.apollographql.apollo.api.Response
 import com.apollographql.apollo.exception.ApolloException
+import com.example.nts_pim.BuildConfig
 import com.example.nts_pim.PimApplication
 import com.example.nts_pim.data.repository.VehicleTripArrayHolder
 import com.example.nts_pim.data.repository.model_objects.DeviceID
@@ -18,8 +20,6 @@ import com.example.nts_pim.utilities.enums.SharedPrefEnum
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import type.*
 import java.text.SimpleDateFormat
-import java.time.Duration
-import java.time.LocalDate
 import java.util.*
 
 object PIMMutationHelper {
@@ -51,7 +51,8 @@ object PIMMutationHelper {
         }
     }
 
-    fun updateReaderStatus(vehicleId: String, readerStatus: String, appSyncClient: AWSAppSyncClient){
+    fun updateReaderStatus(vehicleId: String, readerStatus: String, appSyncClient: AWSAppSyncClient, calendar: Calendar){
+
         val formattedObject = getCurrentDateFormattedDateUtcIso()
         val updatePimStatusInput = UpdateVehTripStatusInput.builder()
             ?.vehicleId(vehicleId)
@@ -135,8 +136,8 @@ object PIMMutationHelper {
     @SuppressLint("MissingPermission")
     fun updatePimSettings(blueToothAddress: String?, appVersion: String?, phoneNumber: String?, appSyncClient: AWSAppSyncClient, deviceId: String){
         val tabletImei: String
-        tabletImei = if(deviceId == ""){
-            val telephonyManager = PimApplication.instance.applicationContext.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
+        val telephonyManager = PimApplication.instance.applicationContext.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
+        tabletImei = if(deviceId == "" && telephonyManager.imei != null){
             telephonyManager.imei
         } else {
             deviceId
@@ -235,9 +236,9 @@ object PIMMutationHelper {
     }
 
     internal fun getCurrentDateFormattedDateUtcIso(): String? {
-        val cal = Calendar.getInstance() ?: return ""
-        val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ", Locale.US)
-        sdf.setTimeZone(TimeZone.getTimeZone("UTC"))
-        return sdf.format(cal.getTime())
+        val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US)
+       //  sdf.setTimeZone(TimeZone.getTimeZone("UTC"))
+
+        return sdf.format(Date().time)
     }
 }

@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.BatteryManager
 import android.util.Log
+import android.widget.Toast
 import com.example.nts_pim.data.repository.VehicleTripArrayHolder
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import com.example.nts_pim.utilities.mutation_helper.PIMMutationHelper
@@ -35,7 +36,12 @@ class BatteryPowerReceiver : BroadcastReceiver() {
             Log.i(logTag, "Battery temp C = $celsius. Battery temp F = $fahrenheit")
         }
         val status: Int = p1?.getIntExtra(BatteryManager.EXTRA_STATUS, -1) ?: -1
-         isCharging = status == BatteryManager.BATTERY_STATUS_CHARGING || status == BatteryManager.BATTERY_STATUS_FULL
+            isCharging = status == BatteryManager.BATTERY_STATUS_CHARGING || status == BatteryManager.BATTERY_STATUS_FULL
+        if(!isCharging){
+          LoggerHelper.writeToLog("The tablet is no longer charging")
+        }
+
+
         // we could run logic here for if Pim is not Charging and overheating we could turn pim off...
     }
 

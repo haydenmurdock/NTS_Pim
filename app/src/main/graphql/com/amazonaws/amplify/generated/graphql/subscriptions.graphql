@@ -139,6 +139,7 @@ subscription OnTripUpdate($tripId: String) {
       lat
       lng
     }
+    receiptSent
     tipAmt
     tipPercent
     toll
@@ -265,6 +266,7 @@ subscription OnDoPimPayment($tripId: String) {
       lat
       lng
     }
+    receiptSent
     tipAmt
     tipPercent
     toll
@@ -337,6 +339,7 @@ subscription OnPimPaymentMade($tripId: String) {
       lat
       lng
     }
+    receiptSent
     tipAmt
     tipPercent
     toll

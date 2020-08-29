@@ -545,12 +545,14 @@ class CashOrCardFragment : ScopedFragment(), KodeinAware {
     }
     override fun onDestroy() {
         super.onDestroy()
-        callbackViewModel.getIsTransactionComplete().removeObservers(this)
-        Log.i("Observer", "is transaction complete observer removed")
-        callbackViewModel.getMeterState().removeObservers(this)
-        Log.i("Observer", "Meter state observer removed")
-        callbackViewModel.getTripStatus().removeObservers(this)
-        callbackViewModel.getPimPaySubscriptionAmount().removeObservers(this)
+        if(this::callbackViewModel.isInitialized){
+            callbackViewModel.getIsTransactionComplete().removeObservers(this)
+            Log.i("Observer", "is transaction complete observer removed")
+            callbackViewModel.getMeterState().removeObservers(this)
+            Log.i("Observer", "Meter state observer removed")
+            callbackViewModel.getTripStatus().removeObservers(this)
+            callbackViewModel.getPimPaySubscriptionAmount().removeObservers(this)
+        }
         if (textToSpeech != null) {
             textToSpeech?.shutdown()
         }

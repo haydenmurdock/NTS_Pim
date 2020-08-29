@@ -132,4 +132,9 @@ class CallBackViewModel(
 
     internal fun isPIMOverheating() = vehicleTripArrayHolder.isPIMOverHeating()
 
+    internal fun setPIMStartTime(startTime: String){
+        vehicleTripArrayHolder.setPIMStartTime(startTime)
+    }
+
+
 }

@@ -258,6 +258,7 @@ query GetTrip($tripId: String!) {
       lat
       lng
     }
+    receiptSent
     tipAmt
     tipPercent
     toll
@@ -330,6 +331,7 @@ query GetTripsByNbr($endDate: String, $startDate: String, $tripNbr: Int!) {
       lat
       lng
     }
+    receiptSent
     tipAmt
     tipPercent
     toll
@@ -402,6 +404,7 @@ query GetTripsByVehId($vehicleId: String!) {
       lat
       lng
     }
+    receiptSent
     tipAmt
     tipPercent
     toll

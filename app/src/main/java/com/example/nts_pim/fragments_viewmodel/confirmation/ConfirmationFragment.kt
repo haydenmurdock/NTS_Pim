@@ -269,7 +269,8 @@ class ConfirmationFragment: ScopedFragment(), KodeinAware {
     override fun onDestroy() {
         super.onDestroy()
         restartAppTimer.cancel()
-        callbackViewModel.clearAllTripValues()
+        if(this::callbackViewModel.isInitialized){
+           callbackViewModel.clearAllTripValues()
+        }
     }
-
 }

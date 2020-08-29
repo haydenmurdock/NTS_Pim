@@ -82,6 +82,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
     private var resync = false
     private var meterStateQueryComplete = false
     private var mSuccessfulSetup = false
+    private var mOverheatEmailSent = false
     private var tripId = ""
     private var lastTrip: CurrentTrip? = null
     private var subscriptionWatcherDoPimPayment: AppSyncSubscriptionCall<OnDoPimPaymentSubscription.Data>? =
@@ -192,14 +193,16 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                 }
             }
             callbackViewModel.isPIMOverheating().observe(this, Observer {overheating ->
-                if(overheating){
+                if(overheating && !mOverheatEmailSent){
+                    mOverheatEmailSent = true
                     val startTime = VehicleTripArrayHolder.pimStartTime
                     val overheat = VehicleTripArrayHolder.pimOverHeat
                     if(startTime != null && overheat != null){
                         OverHeatEmail.sendMail(vehicleId, startTime, overheat)
                             .subscribeOn(Schedulers.io())
                             .observeOn(AndroidSchedulers.mainThread())
-                            .subscribe{(LoggerHelper.writeToLog("Overheating email sent: overheat timeStamp:$overheat"))}
+                            .subscribe{(LoggerHelper.writeToLog("Overheating email sent: overheat timeStamp:$overheat"))
+                            }
                     }
                 }
             })
@@ -667,6 +670,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
         viewModel.watchSetUpComplete().removeObservers(this)
         callbackViewModel.getTripHasEnded().removeObservers(this)
         callbackViewModel.getIsPimOnline().removeObservers(this)
+        callbackViewModel.isPIMOverheating().removeObservers(this)
         unregisterReceiver(mNetworkReceiver)
         unregisterReceiver(mBatteryReceiver)
         stopLogTimer()
