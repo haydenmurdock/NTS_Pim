@@ -1,5 +1,6 @@
 package com.example.nts_pim
 
+import android.annotation.SuppressLint
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -27,6 +28,7 @@ class NetworkReceiver:BroadcastReceiver() {
             LoggerHelper.writeToLog("${logFragment}, TABLET IS OFFLINE ERROR: ${e.message}")
         }
     }
+    @SuppressLint("MissingPermission")
     private fun isOnline(context: Context?): Boolean {
         return try {
             val cm =

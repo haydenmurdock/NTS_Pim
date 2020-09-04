@@ -46,7 +46,7 @@ class RecentTripAWSFragment: ScopedFragment() {
         callBackViewModel = ViewModelProviders.of(this, factory)
             .get(CallBackViewModel::class.java)
         mAWSAppSyncClient = ClientFactory.getInstance(context)
-        tripId = ModelPreferences(context!!)
+        tripId = ModelPreferences(requireContext())
             .getObject(
                 SharedPrefEnum.CURRENT_TRIP.key,
                 CurrentTrip::class.java)?.tripID ?: ""

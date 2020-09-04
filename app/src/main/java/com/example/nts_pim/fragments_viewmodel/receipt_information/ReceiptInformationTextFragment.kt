@@ -1,5 +1,6 @@
 package com.example.nts_pim.fragments_viewmodel.receipt_information
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.net.ConnectivityManager
 import android.os.Bundle
@@ -87,6 +88,7 @@ class ReceiptInformationTextFragment: ScopedFragment(), KodeinAware {
 
     }
 
+    @SuppressLint("ClickableViewAccessibility")
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         mJob = Job()
@@ -358,13 +360,13 @@ class ReceiptInformationTextFragment: ScopedFragment(), KodeinAware {
                 MotionEvent.ACTION_DOWN -> {
                     keyboardViewModel.keyboardIsGoingBackward()
                     text_receipt_screen_backspace_btn.setImageDrawable(ContextCompat.getDrawable(
-                        context!!,
+                        requireContext(),
                         R.drawable.ic_backspace_arrow_grey))
                     true
                 }
                 MotionEvent.ACTION_UP -> {
                     text_receipt_screen_backspace_btn.setImageDrawable(ContextCompat.getDrawable(
-                        context!!,
+                        requireContext(),
                         R.drawable.ic_backspace_arrow_white))
                     v.performClick()
                     true
@@ -549,10 +551,10 @@ class ReceiptInformationTextFragment: ScopedFragment(), KodeinAware {
         }
     }
     private fun setTextToGrey(button: Button){
-        button.setTextColor((ContextCompat.getColor(context!!, R.color.grey)))
+        button.setTextColor((ContextCompat.getColor(requireContext(), R.color.grey)))
     }
     private fun setTextToWhite(button: Button){
-        button.setTextColor((ContextCompat.getColor(context!!, R.color.whiteTextColor)))
+        button.setTextColor((ContextCompat.getColor(requireContext(), R.color.whiteTextColor)))
     }
     private fun addNumberInEditText(enteredNumber: String){
         enteredPhoneNumber += enteredNumber
@@ -570,10 +572,11 @@ class ReceiptInformationTextFragment: ScopedFragment(), KodeinAware {
     }
     private fun closeSoftKeyboard(){
         val imm =
-            activity!!.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+            requireActivity().getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
         imm.hideSoftInputFromWindow(view?.windowToken, 0)
-        ViewHelper.hideSystemUI(this.activity!!)
+        ViewHelper.hideSystemUI(this.requireActivity())
     }
+    @SuppressLint("MissingPermission")
     private fun isOnline(context: Context): Boolean {
         val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
         val networkInfo = connectivityManager.activeNetworkInfo
@@ -615,7 +618,7 @@ class ReceiptInformationTextFragment: ScopedFragment(), KodeinAware {
             toConfirmation()
     }
     private fun updateCustomerPhoneNumber(phoneNumber:String) = launch(Dispatchers.IO) {
-        if(isOnline(context!!)){
+        if(isOnline(requireContext())){
             updateCustomerPhoneNumber(vehicleId, phoneNumber,mAWSAppSyncClient!!,tripId)
         } else {
             Log.i("Text Receipt", "Internet not connect, could not update custPhone number on AWS")
@@ -723,7 +726,7 @@ class ReceiptInformationTextFragment: ScopedFragment(), KodeinAware {
             .setEmailOrPhoneNumber(text_editText.text.toString())
             .setTripTotal(tripTotal.toFloat())
             .setReceiptType("Text")
-        val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
+        val navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment)
         if (navController.currentDestination?.id == currentFragment){
             navController.navigate(action)
         }
@@ -731,14 +734,14 @@ class ReceiptInformationTextFragment: ScopedFragment(), KodeinAware {
     }
 
     private fun toThankYou(){
-        val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
+        val navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment)
         if (navController.currentDestination?.id == currentFragment){
             navController.navigate(interactionCompleteFragment)
         }
     }
     private fun backToEmailOrText(){
         val action = ReceiptInformationTextFragmentDirections.actionReceiptInformationTextFragment2ToEmailOrTextFragment(tripTotal.toFloat(),paymentType).setTripTotal(tripTotal.toFloat()).setPaymentType(paymentType)
-        val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
+        val navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment)
         if (navController.currentDestination?.id == currentFragment){
             navController.navigate(action)
         }

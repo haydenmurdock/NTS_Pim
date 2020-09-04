@@ -1,21 +1,18 @@
 package com.example.nts_pim.utilities.mutation_helper
 
 import android.annotation.SuppressLint
-import android.content.Context
-import android.os.Build
-import android.telephony.TelephonyManager
 import android.util.Log
 import com.amazonaws.amplify.generated.graphql.*
 import com.amazonaws.mobileconnectors.appsync.AWSAppSyncClient
 import com.apollographql.apollo.GraphQLCall
 import com.apollographql.apollo.api.Response
 import com.apollographql.apollo.exception.ApolloException
-import com.example.nts_pim.BuildConfig
 import com.example.nts_pim.PimApplication
 import com.example.nts_pim.data.repository.VehicleTripArrayHolder
 import com.example.nts_pim.data.repository.model_objects.DeviceID
 import com.example.nts_pim.data.repository.providers.ModelPreferences
 import com.example.nts_pim.fragments_viewmodel.base.ClientFactory
+import com.example.nts_pim.utilities.device_id_check.DeviceIdCheck
 import com.example.nts_pim.utilities.enums.SharedPrefEnum
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import type.*
@@ -135,23 +132,19 @@ object PIMMutationHelper {
 
     @SuppressLint("MissingPermission")
     fun updatePimSettings(blueToothAddress: String?, appVersion: String?, phoneNumber: String?, appSyncClient: AWSAppSyncClient, deviceId: String){
-        val tabletImei: String
-        val telephonyManager = PimApplication.instance.applicationContext.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
-        tabletImei = if(deviceId == "" && telephonyManager.imei != null){
-            telephonyManager.imei
-        } else {
-            deviceId
+        var  newDeviceId = DeviceIdCheck.getDeviceId() ?: ""
+        if(newDeviceId != ""){
+            val updatePimSettings = UpdatePIMSettingsInput
+                .builder()
+                .deviceId(newDeviceId)
+                .phoneNbr(phoneNumber)
+                .appVersion(appVersion)
+                .btAddress(blueToothAddress)
+                .build()
+            appSyncClient.mutate(UpdatePimSettingsMutation.builder().parameters(updatePimSettings).build())?.enqueue(
+                pimSettingsCallback)
+            LoggerHelper.writeToLog("Pim Mutation Helper: update pim settings: blueToothAddress: $blueToothAddress: AppVersion: $appVersion phoneNumber: $phoneNumber: deviceId:$deviceId to aws")
         }
-        val updatePimSettings = UpdatePIMSettingsInput
-            .builder()
-            .deviceId(tabletImei)
-            .phoneNbr(phoneNumber)
-            .appVersion(appVersion)
-            .btAddress(blueToothAddress)
-            .build()
-        appSyncClient.mutate(UpdatePimSettingsMutation.builder().parameters(updatePimSettings).build())?.enqueue(
-            pimSettingsCallback)
-        LoggerHelper.writeToLog("Pim Mutation Helper: update pim settings: blueToothAddress: $blueToothAddress: AppVersion: $appVersion phoneNumber: $phoneNumber: deviceId:$deviceId to aws")
     }
     private val pimSettingsCallback = object : GraphQLCall.Callback<UpdatePimSettingsMutation.Data>() {
         override fun onResponse(response: Response<UpdatePimSettingsMutation.Data>) {
@@ -167,14 +160,14 @@ object PIMMutationHelper {
     }
 
     fun updateDeviceId(deviceId: String, appSyncClient: AWSAppSyncClient, vehicleId: String){
-        val input = UpdateDeviceIdToIMEIInput.builder()
+        val input = UpdateDeviceIdPIMInput.builder()
             .deviceId(deviceId)
             .vehicleId(vehicleId)
             .build()
-        appSyncClient.mutate(UpdateDeviceIdToImeiMutation.builder().parameters(input).build())?.enqueue(updateDeviceIdToIMEICallback)
+        appSyncClient.mutate(UpdateDeviceIdPimMutation.builder().parameters(input).build())?.enqueue(updateDeviceIdToIMEICallback)
     }
-    private val updateDeviceIdToIMEICallback =  object : GraphQLCall.Callback<UpdateDeviceIdToImeiMutation.Data>() {
-        override fun onResponse(response: Response<UpdateDeviceIdToImeiMutation.Data>) {
+    private val updateDeviceIdToIMEICallback =  object : GraphQLCall.Callback<UpdateDeviceIdPimMutation.Data>() {
+        override fun onResponse(response: Response<UpdateDeviceIdPimMutation.Data>) {
             if (!response.hasErrors()) {
                 Log.i(
                     "VehicleSetup",

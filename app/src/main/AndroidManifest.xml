@@ -3,6 +3,12 @@
         xmlns:tools="http://schemas.android.com/tools"
           package="com.example.nts_pim">
 
+    <uses-permission android:name="android.permission.BLUETOOTH" />
+    <uses-permission android:name="android.permission.BLUETOOTH" />
+    <uses-permission android:name="android.permission.BLUETOOTH" />
+    <uses-permission android:name="android.permission.READ_PHONE_NUMBERS" />
+    <uses-permission android:name="android.permission.READ_PHONE_NUMBERS" />
+    <uses-permission android:name="android.permission.READ_PHONE_NUMBERS" />
     <uses-permission android:name="com.samsung.android.knox.permission.KNOX_CUSTOM_SYSTEM" />
     <uses-permission android:name="com.sec.enterprise.knox.permission.CUSTOM_SYSTEM" />
     <uses-permission android:name="android.permission.INTERNET"/>
@@ -46,7 +52,6 @@
                 android:name="com.example.nts_pim.activity.MainActivity"
                 android:screenOrientation="landscape"
                 android:configChanges="orientation|screenSize" >
-
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
 

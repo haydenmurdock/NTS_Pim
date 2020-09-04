@@ -1,6 +1,7 @@
 package com.example.nts_pim.fragments_viewmodel.vehicle_settings_detail
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.AlertDialog
 import android.app.usage.UsageStatsManager
@@ -30,9 +31,7 @@ import org.kodein.di.android.x.closestKodein
 import org.kodein.di.generic.instance
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.telephony.TelephonyManager
 import android.util.Log
-import android.widget.ArrayAdapter
 import com.amazonaws.amplify.generated.graphql.UnpairPimMutation
 import com.amazonaws.mobileconnectors.appsync.AWSAppSyncClient
 import com.apollographql.apollo.GraphQLCall
@@ -44,6 +43,7 @@ import com.example.nts_pim.data.repository.VehicleTripArrayHolder
 import com.example.nts_pim.data.repository.model_objects.*
 import com.example.nts_pim.data.repository.providers.ModelPreferences
 import com.example.nts_pim.fragments_viewmodel.base.ClientFactory
+import com.example.nts_pim.utilities.device_id_check.DeviceIdCheck
 import com.example.nts_pim.fragments_viewmodel.vehicle_settings.setting_keyboard_viewModels.SettingsKeyboardViewModel
 import com.example.nts_pim.utilities.enums.SharedPrefEnum
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
@@ -60,7 +60,6 @@ import okhttp3.Request
 import type.UnpairPIMInput
 import java.io.IOException
 import java.lang.Exception
-import java.util.*
 
 
 class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
@@ -76,7 +75,7 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
     private val currentFragmentId = R.id.vehicle_settings_detail_fragment
     private var vehicleId = ""
     private var tripID = ""
-    private var imei = ""
+    private var deviceId = ""
     private val bluetoothDeviceAdapter = BluetoothAdapter.getDefaultAdapter()
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -85,6 +84,7 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
         return inflater.inflate(R.layout.vehicle_settings_detail, container, false)
     }
 
+    @SuppressLint("MissingPermission")
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
@@ -104,21 +104,15 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
             .get(SettingsKeyboardViewModel::class.java)
         vehicleId = viewModel.getVehicleID()
         VehicleTripArrayHolder.readerStatusHasBeenChecked()
-        tripID = ModelPreferences(context!!)
+        tripID = ModelPreferences(requireContext())
             .getObject(
                 SharedPrefEnum.CURRENT_TRIP.key,
                 CurrentTrip::class.java)?.tripID ?: ""
 
         val batteryStatus = callBackViewModel.batteryPowerStatePermission()
         activity_indicator_vehicle_detail.visibility = View.INVISIBLE
-        val telephonyManager = activity!!.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
         if(context?.checkCallingOrSelfPermission(Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED) {
-            if(telephonyManager.imei != null){
-                imei = telephonyManager.imei
-            } else {
-                imei = "Android 10 issue getting IMEI- please contact dev team"
-            }
-
+            deviceId =  DeviceIdCheck.getDeviceId() ?: "There was an issue in android 10 with the device Id"
         }
        updateUI(batteryStatus)
         check_bluetooth_btn.setOnClickListener {
@@ -131,7 +125,7 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
                    "Bonded Devices: ${bluetoothDeviceAdapter.bondedDevices}" +
                    "Scan Mode: ${bluetoothDeviceAdapter.scanMode}" +
                    "isDiscovering: ${bluetoothDeviceAdapter.isDiscovering}")
-            readerManager.startReaderSettingsActivity(context!!)
+            readerManager.startReaderSettingsActivity(requireContext())
         }
 
 
@@ -139,7 +133,7 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
             Navigation.findNavController(view).navigate(R.id.back_to_welcome_fragment)
         }
         exit_app_btn.setOnClickListener {
-            PIMDialogComposer.exitApplication(activity!!)
+            PIMDialogComposer.exitApplication(requireActivity())
         }
         power_Off_PIM_btn.setOnClickListener {
             showPowerOffDialog()
@@ -155,7 +149,7 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
             startSquareFlow()
         }
         reauth_btn.setOnClickListener {
-            showReauthorizeDialog(activity!!, vehicleId)
+            showReauthorizeDialog(requireActivity(), vehicleId)
         }
 
         callBackViewModel.isPimPaired().observe(this.viewLifecycleOwner, androidx.lifecycle.Observer { isPaired ->
@@ -180,7 +174,7 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
             callBackViewModel.enableOrDisableBatteryPower()
             val batteryPermission = callBackViewModel.batteryPowerStatePermission()
             Toast.makeText(
-                context!!,
+                requireContext(),
                 "Allow Battery Power: $batteryPermission", Toast.LENGTH_LONG
             ).show()
             updatePowerButtonUI(batteryPermission)
@@ -204,7 +198,7 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
                             gson.fromJson(response.body?.string(), JsonAuthCode::class.java)
                         val authCode = convertedObject.authCode
                         onAuthorizationCodeRetrieved(authCode)
-                        com.example.nts_pim.utilities.view_helper.ViewHelper.makeSnackbar(this@VehicleSettingsDetailFragment.view!!, "Re-authorized successful")
+                        com.example.nts_pim.utilities.view_helper.ViewHelper.makeSnackbar(requireView(), "Re-authorized successful")
                     }
                     if (response.code == 404) {
                         launch(Dispatchers.Main.immediate) {
@@ -247,9 +241,9 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
             parametersBuilder.skipReceipt(false)
             parametersBuilder.note("[$vehicleId][square test]")
             val checkoutManager = ReaderSdk.checkoutManager()
-            checkoutManager.startCheckoutActivity(context!!, parametersBuilder.build())
+            checkoutManager.startCheckoutActivity(requireContext(), parametersBuilder.build())
         } else {
-            PIMDialogComposer.showSquareNotAuthorized(activity!!)
+            PIMDialogComposer.showSquareNotAuthorized(requireActivity())
         }
     }
 
@@ -266,18 +260,18 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
 
     private fun unPair(){
         context?.deleteSharedPreferences("MODEL_PREFERENCES")
-        val currentTrip = ModelPreferences(context!!.applicationContext)
+        val currentTrip = ModelPreferences(requireContext().applicationContext)
             .getObject(
                 SharedPrefEnum.CURRENT_TRIP.key,
                 CurrentTrip::class.java)
-        val vehicleSettings = ModelPreferences(context!!.applicationContext)
+        val vehicleSettings = ModelPreferences(requireContext().applicationContext)
             .getObject(SharedPrefEnum.VEHICLE_SETTINGS.key,
                 VehicleSettings::class.java)
-        val pin = ModelPreferences(context!!.applicationContext)
+        val pin = ModelPreferences(requireContext().applicationContext)
             .getObject(SharedPrefEnum.PIN_PASSWORD.key, PIN::class.java)
-        val deviceID = ModelPreferences(context!!.applicationContext)
+        val deviceID = ModelPreferences(requireContext().applicationContext)
             .getObject(SharedPrefEnum.DEVICE_ID.key, DeviceID::class.java)
-        val statusObject = ModelPreferences(context!!.applicationContext)
+        val statusObject = ModelPreferences(requireContext().applicationContext)
             .getObject(SharedPrefEnum.SETUP_COMPLETE.key, SetupComplete::class.java)
 
         if(currentTrip == null && vehicleSettings == null && pin == null && deviceID == null && statusObject == null){
@@ -296,6 +290,7 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
         }
     }
 
+    @SuppressLint("MissingPermission", "HardwareIds")
     private fun onReaderSettingsResult(result: Result<Void, ResultError<ReaderSettingsErrorCode>>) {
         Log.d("VehicleSettingsDetailFragment", "BlueToothDeviceAdapter: State- ${bluetoothDeviceAdapter.state}, " +
                 "Enabled:  ${bluetoothDeviceAdapter.isEnabled}" +
@@ -309,22 +304,22 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
                 activity_indicator_vehicle_detail.visibility = View.INVISIBLE
             }
             // sound on if square call wasn't successful in turning sound back on
-            SoundHelper.turnOnSound(context!!)
+            SoundHelper.turnOnSound(requireContext())
             screenEnabled()
         }
         if (result.isError) {
             //sound on if square call wasn't successful in turning sound back on
-            SoundHelper.turnOnSound(context!!)
+            SoundHelper.turnOnSound(requireContext())
             screenEnabled()
             activity_indicator_vehicle_detail.visibility = View.INVISIBLE
             val error = result.error
             when (error.code) {
                 ReaderSettingsErrorCode.SDK_NOT_AUTHORIZED -> Toast.makeText(
-                    context!!,
+                    requireContext(),
                     "SDK not authorized${error.message}", Toast.LENGTH_LONG
                 ).show()
                 ReaderSettingsErrorCode.USAGE_ERROR -> Toast.makeText(
-                    context!!,
+                    requireContext(),
                     "Usage error ${error.message}", Toast.LENGTH_LONG
                 ).show()
             }
@@ -337,7 +332,7 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
         val isLoggingOn = LoggerHelper.logging
         settings_detail_textView.text = "Vehicle ID: $vehicleId"
         build_version_textView.text = "Build Version: $buildName"
-        imei_textView.text = "IMEI: $imei"
+        imei_textView.text = "Device Identifier: $deviceId"
         logging_textView.text = "Logging: $isLoggingOn"
         val c = context?.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
         val bucket = c.appStandbyBucket.toString()
@@ -425,13 +420,13 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
                 }
             }
             if(response.hasErrors()){
-                com.example.nts_pim.utilities.view_helper.ViewHelper.makeSnackbar(this@VehicleSettingsDetailFragment.view!!, "Unpair was unsuccessful. Error: ${response.errors()}")
+                com.example.nts_pim.utilities.view_helper.ViewHelper.makeSnackbar(requireView(), "Unpair was unsuccessful. Error: ${response.errors()}")
             }
         }
 
         override fun onFailure(e: ApolloException) {
             Log.e("Error", "There was an issue updating the pimStatus: $e")
-            com.example.nts_pim.utilities.view_helper.ViewHelper.makeSnackbar(this@VehicleSettingsDetailFragment.view!!, "Unpair was unsuccessful. Failure due to ${e.message}}")
+            com.example.nts_pim.utilities.view_helper.ViewHelper.makeSnackbar(requireView(), "Unpair was unsuccessful. Failure due to ${e.message}}")
         }
     }
     private fun screenDisabled(){
@@ -481,14 +476,14 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
     }
 //Navigation
     private fun toRecentTrip(){
-        val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
+        val navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment)
         if (navController.currentDestination?.id == currentFragmentId){
             navController.navigate(R.id.action_vehicle_settings_detail_fragment_to_recentTripAWSFragment)
         }
     }
 
     private fun toStartUp(){
-        val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
+        val navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment)
         if (navController.currentDestination?.id == currentFragmentId){
             navController.navigate(R.id.action_vehicle_settings_detail_fragment_to_startupFragment)
         }

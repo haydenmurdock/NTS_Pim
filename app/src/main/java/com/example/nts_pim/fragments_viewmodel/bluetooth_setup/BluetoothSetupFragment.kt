@@ -1,5 +1,6 @@
 package com.example.nts_pim.fragments_viewmodel.bluetooth_setup
 
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.bluetooth.BluetoothAdapter
 import android.os.Bundle
@@ -9,7 +10,6 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import android.widget.Toast
-import androidx.annotation.MainThread
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProviders
 import androidx.navigation.NavController
@@ -42,7 +42,6 @@ import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import okhttp3.internal.waitMillis
 import org.kodein.di.KodeinAware
 import org.kodein.di.android.x.closestKodein
 import org.kodein.di.generic.instance
@@ -102,6 +101,7 @@ class BluetoothSetupFragment: ScopedFragment(), KodeinAware {
     ): View? {
         return inflater.inflate(R.layout.bluetooth_setup_screen, container, false)
     }
+    @SuppressLint("MissingPermission")
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         val callBackFactory = InjectorUtiles.provideCallBackModelFactory()
@@ -111,14 +111,14 @@ class BluetoothSetupFragment: ScopedFragment(), KodeinAware {
             .get(CallBackViewModel::class.java)
         readerSettingsCallbackRef =
             readerManager.addReaderSettingsActivityCallback(this::onReaderSettingsResultBTSetup)
-        val pairedDevices = BlueToothHelper.getPairedDevicesAndRegisterBTReceiver(activity!!)
+        val pairedDevices = BlueToothHelper.getPairedDevicesAndRegisterBTReceiver(requireActivity())
         mAWSAppSyncClient = ClientFactory.getInstance(context)
         val btAdapter = BluetoothAdapter.getDefaultAdapter()
         setUpSquareAuthCallbacks()
         vehicleId = viewModel.getVehicleID()
         devices = ArrayList()
-        mArrayAdapter = ArrayAdapter(this.context!!, R.layout.dialog_select_bluetooth_device)
-        navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
+        mArrayAdapter = ArrayAdapter(this.requireContext(), R.layout.dialog_select_bluetooth_device)
+        navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment)
         getArgs()
         startSquareCardReaderCheck()
         callBackViewModel.doWeNeedToReAuthorizeSquare().observe(this.viewLifecycleOwner, Observer {needsAuthorization->
@@ -167,7 +167,7 @@ class BluetoothSetupFragment: ScopedFragment(), KodeinAware {
         readerSdk.addDeauthorizeCallback(deauthorizeCallback)
     }
     private fun startSquareCardReaderCheck(){
-        ReaderSdk.readerManager().startReaderSettingsActivity(context!!)
+        ReaderSdk.readerManager().startReaderSettingsActivity(requireContext())
     }
     private fun reauthorizeSquare() = launch(Dispatchers.Main.immediate){
         if(readerSdk.authorizationState.canDeauthorize()){
@@ -187,7 +187,7 @@ class BluetoothSetupFragment: ScopedFragment(), KodeinAware {
             when (error.code) {
                 ReaderSettingsErrorCode.SDK_NOT_AUTHORIZED -> {
                     Toast.makeText(
-                        context!!,
+                        requireContext(),
                         "SDK not authorized, trying to reauthorized square", Toast.LENGTH_LONG
                     ).show()
                     reauthorizeSquare()
@@ -249,9 +249,6 @@ class BluetoothSetupFragment: ScopedFragment(), KodeinAware {
        readerSdk.authorize(authorizationCode)
     }
     //Navigation
-    private fun setUpBluetoothServer(activity: Activity){
-        BlueToothServerController(activity).start()
-    }
 
     private fun toWelcomeScreen() = launch(Dispatchers.Main.immediate){
         if (navController?.currentDestination?.id == currentFragmentId) {

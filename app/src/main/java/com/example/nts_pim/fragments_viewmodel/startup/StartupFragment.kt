@@ -2,12 +2,10 @@ package com.example.nts_pim.fragments_viewmodel.startup
 
 import android.Manifest
 import android.annotation.SuppressLint
-import android.app.admin.DevicePolicyManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
-import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.telephony.TelephonyManager
@@ -22,9 +20,7 @@ import androidx.lifecycle.ViewModelProviders
 import androidx.navigation.NavController
 import androidx.navigation.Navigation
 import com.amazonaws.amplify.generated.graphql.GetPimInfoQuery
-import com.amazonaws.amplify.generated.graphql.GetPimSettingsQuery
 import com.amazonaws.amplify.generated.graphql.ResetReAuthSquareMutation
-import com.amazonaws.amplify.generated.graphql.UpdateDeviceIdToImeiMutation
 import com.amazonaws.mobileconnectors.appsync.AWSAppSyncClient
 import com.amazonaws.mobileconnectors.appsync.fetcher.AppSyncResponseFetchers
 import com.apollographql.apollo.GraphQLCall
@@ -32,17 +28,14 @@ import com.apollographql.apollo.api.Response
 import com.apollographql.apollo.exception.ApolloException
 import com.example.nts_pim.BuildConfig
 import com.example.nts_pim.R
-import com.example.nts_pim.activity.MainActivity
-import com.example.nts_pim.data.repository.model_objects.DeviceID
 import com.example.nts_pim.data.repository.model_objects.JsonAuthCode
-import com.example.nts_pim.data.repository.providers.ModelPreferences
 import com.example.nts_pim.fragments_viewmodel.InjectorUtiles
 import com.example.nts_pim.fragments_viewmodel.base.ClientFactory
 import com.example.nts_pim.fragments_viewmodel.base.ScopedFragment
 import com.example.nts_pim.fragments_viewmodel.callback.CallBackViewModel
+import com.example.nts_pim.utilities.device_id_check.DeviceIdCheck
 import com.example.nts_pim.fragments_viewmodel.vehicle_setup.VehicleSetupModelFactory
 import com.example.nts_pim.fragments_viewmodel.vehicle_setup.VehicleSetupViewModel
-import com.example.nts_pim.utilities.enums.SharedPrefEnum
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import com.example.nts_pim.utilities.mutation_helper.PIMMutationHelper
 import com.google.gson.Gson
@@ -74,7 +67,6 @@ class StartupFragment: ScopedFragment(), KodeinAware {
     private var permissionWrite = false
     private var permissionAccessibility = true
     private var setupStatus = false
-    private var navController: NavController? = null
     private var appVersionNumber: String? = null
     private var blueToothAddress: String? = null
     private var deviceId: String? = null
@@ -89,7 +81,7 @@ class StartupFragment: ScopedFragment(), KodeinAware {
         return inflater.inflate(R.layout.startup, container, false)
     }
 
-    @SuppressLint("HardwareIds")
+    @SuppressLint("HardwareIds", "MissingPermission")
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         viewModel = ViewModelProviders.of(this, viewModelFactory)
@@ -97,33 +89,36 @@ class StartupFragment: ScopedFragment(), KodeinAware {
         val factory = InjectorUtiles.provideCallBackModelFactory()
         callBackViewModel = ViewModelProviders.of(this, factory)
             .get(CallBackViewModel::class.java)
-        navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
-        mAWSAppSyncClient = ClientFactory.getInstance(activity!!.applicationContext)
+
+        mAWSAppSyncClient = ClientFactory.getInstance(requireActivity().applicationContext)
         val telephonyManager = context?.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
         if (ActivityCompat.checkSelfPermission(
-                context!!,
+                requireContext(),
                 Manifest.permission.READ_SMS
             ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
-                context!!,
+                requireContext(),
                 Manifest.permission.READ_PHONE_NUMBERS
             ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
-                context!!,
+                requireContext(),
                 Manifest.permission.READ_PHONE_STATE
             ) != PackageManager.PERMISSION_GRANTED
         ) {
             getPhoneNumberPermissions()
             return
-        }
-        if(telephonyManager.line1Number != null){
-            //Android 10 might block this so check it before setting it.
+        } else {
             phoneNumber = telephonyManager.line1Number
+
         }
-        deviceId = ModelPreferences(this.requireContext())
-            .getObject(SharedPrefEnum.DEVICE_ID.key, DeviceID::class.java)
-            ?.number
+
         val isSetupComplete = viewModel.isSetUpComplete()
         if(isSetupComplete){
                 vehicleId = viewModel.getVehicleID()
+                var needToUpdateAWSDeviceId = DeviceIdCheck.needToUpdateBackendForDeviceId()
+                if(needToUpdateAWSDeviceId){
+                deviceId = DeviceIdCheck.getDeviceId()
+                PIMMutationHelper.updateDeviceId(deviceId!!, mAWSAppSyncClient!!, vehicleId!!)
+                }
+                deviceId = DeviceIdCheck.getDeviceId()
                 PIMMutationHelper.sendPIMStartTime(deviceId!!, mAWSAppSyncClient!!)
                 checkAWSForLogging(vehicleId!!)
         }
@@ -134,12 +129,11 @@ class StartupFragment: ScopedFragment(), KodeinAware {
                 it
             )
         }
-
     }
 
     private fun checkAWSForLogging(deviceId: String){
         if (mAWSAppSyncClient == null) {
-            mAWSAppSyncClient = ClientFactory.getInstance(activity!!.applicationContext)
+            mAWSAppSyncClient = ClientFactory.getInstance(requireActivity().applicationContext)
         }
         mAWSAppSyncClient?.query(GetPimInfoQuery.builder().vehicleId(deviceId).build())
             ?.responseFetcher(AppSyncResponseFetchers.NETWORK_ONLY)
@@ -299,7 +293,7 @@ class StartupFragment: ScopedFragment(), KodeinAware {
 
 
     private fun openDrawPermissionsMenu(){
-        val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + context!!.packageName))
+        val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + requireContext().packageName))
         startActivity(intent)
     }
     private fun getBluetoothAddress(): String?{
@@ -320,7 +314,7 @@ class StartupFragment: ScopedFragment(), KodeinAware {
                 return res1.toString()
             }
         } catch (ex: Exception) {
-            com.example.nts_pim.utilities.view_helper.ViewHelper.makeSnackbar(this.view!!, "Error getting bluetooth address: ex: $ex")
+            com.example.nts_pim.utilities.view_helper.ViewHelper.makeSnackbar(this.requireView(), "Error getting bluetooth address: ex: $ex")
         }
         return "02:00:00:00:00:00"
     }
@@ -341,7 +335,7 @@ class StartupFragment: ScopedFragment(), KodeinAware {
 
     private fun openAndroidPermissionsMenu() {
         val i = Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS)
-        i.setData(Uri.parse("package:" + context!!.getPackageName()))
+        i.setData(Uri.parse("package:" + requireContext().packageName))
         i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         startActivity(i)
     }
@@ -355,7 +349,7 @@ class StartupFragment: ScopedFragment(), KodeinAware {
         val missingPermissions = ArrayList<String>()
         // check all required dynamic permissions
         for (permission in REQUIRED_SDK_PERMISSIONS) {
-            val result = ContextCompat.checkSelfPermission(context!!, permission)
+            val result = ContextCompat.checkSelfPermission(requireContext(), permission)
             if (result != PackageManager.PERMISSION_GRANTED) {
                 missingPermissions.add(permission)
             }
@@ -364,7 +358,7 @@ class StartupFragment: ScopedFragment(), KodeinAware {
             // request all missing permissions
             val permissions = missingPermissions
                 .toTypedArray()
-            ActivityCompat.requestPermissions(this.activity!!, permissions, REQUEST_CODE_ASK_PERMISSIONS)
+            ActivityCompat.requestPermissions(this.requireActivity(), permissions, REQUEST_CODE_ASK_PERMISSIONS)
         } else {
             val grantResults = IntArray(REQUIRED_SDK_PERMISSIONS.size)
             Arrays.fill(grantResults, PackageManager.PERMISSION_GRANTED)
@@ -376,22 +370,22 @@ class StartupFragment: ScopedFragment(), KodeinAware {
 
     private fun changeScreenBrightness(screenBrightness: Int) {
         Settings.System.putInt(
-            context!!.contentResolver,
+            requireContext().contentResolver,
             Settings.System.SCREEN_BRIGHTNESS_MODE,
             Settings.System.SCREEN_BRIGHTNESS_MODE_MANUAL
         )  //this will set the manual mode (set the automatic mode off)
         Settings.System.putInt(
-            context!!.contentResolver,
+            requireContext().contentResolver,
             Settings.System.SCREEN_BRIGHTNESS,
             screenBrightness
         )  //this will set the brightness to maximum (255)
 
         //refreshes the screen
         val br =
-            Settings.System.getInt(context!!.contentResolver, Settings.System.SCREEN_BRIGHTNESS)
-        val lp = activity!!.window.attributes
+            Settings.System.getInt(requireContext().contentResolver, Settings.System.SCREEN_BRIGHTNESS)
+        val lp = requireActivity().window.attributes
         lp.screenBrightness = br.toFloat() / 255
-        activity!!.window.attributes = lp
+        requireActivity().window.attributes = lp
     }
     private fun checkPermissions() {
         permissionDraw = checkDrawPermission()
@@ -414,11 +408,12 @@ class StartupFragment: ScopedFragment(), KodeinAware {
 
     override fun onResume() {
         super.onResume()
+        val navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment)
         if (!permissionDraw || !permissionWrite || !permissionAccessibility) {
             checkPermissions()
         } else if (permissionWrite && permissionDraw && permissionAccessibility){
-            checkDestinations(navController!!)
+            checkDestinations(navController)
         }
-        checkDestinations(navController!!)
+        checkDestinations(navController)
     }
 }

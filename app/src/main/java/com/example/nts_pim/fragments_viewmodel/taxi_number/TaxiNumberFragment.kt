@@ -112,7 +112,7 @@ class TaxiNumberFragment : ScopedFragment(), KodeinAware {
     }
 
     private fun navigate() {
-            val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
+            val navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment)
             if (navController.currentDestination?.id == currentFragmentId) {
                navController.navigate(R.id.toSafetyWarning)
             }

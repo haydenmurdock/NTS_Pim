@@ -3,7 +3,7 @@
             xmlns:app="http://schemas.android.com/apk/res-auto"
             xmlns:tools="http://schemas.android.com/tools"
             android:id="@+id/nav_graph"
-        app:startDestination="@id/startupFragment">
+        app:startDestination="@id/deviceIdUpdate">
 
     <fragment
             android:id="@+id/welcome_fragment"
@@ -293,6 +293,14 @@
                 android:name="lastCheckedStatus"
                 app:argType="string"
                 app:nullable="true" />
+    </fragment>
+    <fragment
+            android:id="@+id/deviceIdUpdate"
+            android:name="com.example.nts_pim.fragments_viewmodel.device_id_update.DeviceIdUpdate"
+            android:label="DeviceIdUpdate" >
+        <action
+                android:id="@+id/action_deviceIdUpdate_to_startupFragment"
+                app:destination="@id/startupFragment" />
     </fragment>
 
 

@@ -53,7 +53,6 @@ class PimApplication : Application(), KodeinAware{
     companion object {
         lateinit var instance: PimApplication
         lateinit var pimContext: Context
-        lateinit var deviceId: String
     }
 
     val CHANNEL_ID = "powerservicechannel"
@@ -68,7 +67,12 @@ class PimApplication : Application(), KodeinAware{
             AndroidThreeTen.init(this)
             registerActivityLifecycleCallbacks(LifeCycleCallBacks())
             //createNotificationChannel()
-            ReaderSdk.initialize(this)
+            try {
+                ReaderSdk.initialize(this)
+            } catch(e: SecurityException){
+                Log.e("Square Error", "error: $e")
+            }
+
             Log.i("LOGGER",   "initialized readerSDK")
         }
         private fun createNotificationChannel(){

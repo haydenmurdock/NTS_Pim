@@ -125,7 +125,7 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
         mAWSAppSyncClient = ClientFactory.getInstance(context)
         val callBackFactory = InjectorUtiles.provideCallBackModelFactory()
         val keyboardViewModelFactory = InjectorUtiles.provideSettingKeyboardModelFactory()
-        ViewHelper.hideSystemUI(activity!!)
+        ViewHelper.hideSystemUI(requireActivity())
         callBackViewModel = ViewModelProviders.of(this, callBackFactory)
             .get(CallBackViewModel::class.java)
         viewModel = ViewModelProviders.of(this, viewModelFactory)
@@ -273,7 +273,7 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
     }
 
     private fun toNextScreen() {
-        if(view != null && view!!.isVisible){
+        if(view != null && requireView().isVisible){
             Timer().schedule(timerTask {
                 toTaxiNumber()
             }, 5000)
@@ -361,7 +361,7 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
 
     private fun checkToSeeIfOnTrip(): Pair<Boolean?, String>{
         if (!resources.getBoolean(R.bool.isDevModeOn)){
-            val lastTrip = ModelPreferences(context!!)
+            val lastTrip = ModelPreferences(requireContext())
                 .getObject(SharedPrefEnum.CURRENT_TRIP.key,
                     CurrentTrip::class.java)
             Log.i("Welcome Screen", "Last Trip Id${lastTrip?.tripID}. Is trip active: ${lastTrip?.isActive}, Last Trip MeterState: ${lastTrip?.lastMeterState}")
@@ -389,7 +389,7 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
     }
 
     private fun checkAppBuildVersion(){
-        val lastSavedAppVersion = ModelPreferences(context!!.applicationContext).getObject(SharedPrefEnum.BUILD_VERSION.key,
+        val lastSavedAppVersion = ModelPreferences(requireContext().applicationContext).getObject(SharedPrefEnum.BUILD_VERSION.key,
             AppVersion::class.java)
         val currentBuildVersion = BuildConfig.VERSION_NAME
         if(lastSavedAppVersion == null){
@@ -397,7 +397,7 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
         } else if (lastSavedAppVersion.version != currentBuildVersion){
             Log.i("VERSION", "Build Version is different. Updating ${lastSavedAppVersion.version} to $currentBuildVersion")
             lastSavedAppVersion.version = currentBuildVersion
-            ModelPreferences(context!!.applicationContext).putObject(SharedPrefEnum.BUILD_VERSION.key, lastSavedAppVersion)
+            ModelPreferences(requireContext().applicationContext).putObject(SharedPrefEnum.BUILD_VERSION.key, lastSavedAppVersion)
             LoggerHelper.writeToLog("${logFragment}: Build Version is different. Updating ${lastSavedAppVersion.version} to $currentBuildVersion. Restarting Tablet")
             // if we wanted to restart PIM this is where we would write that code.
             restartAppTimer.start()
@@ -409,12 +409,12 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
     private fun saveAppBuildVersion(){
         val buildName = BuildConfig.VERSION_NAME
         val appVersion = AppVersion(buildName)
-        ModelPreferences(context!!.applicationContext).putObject(SharedPrefEnum.BUILD_VERSION.key,appVersion)
+        ModelPreferences(requireContext().applicationContext).putObject(SharedPrefEnum.BUILD_VERSION.key,appVersion)
         Log.i("VERSION", "Current app version is $buildName. It has been saved to Model Preferences")
     }
     // Navigation
     private fun toLiveMeterScreen() = launch(Dispatchers.Main.immediate) {
-        val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
+        val navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment)
         if (navController.currentDestination?.id == currentFragmentId){
             navController.navigate(R.id.welcomeFragmentToLiveMeterSceen)
         }
@@ -422,21 +422,21 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
     private fun toTaxiNumber() {
         markPimStartTime()
         if(tripId != ""){
-            callBackViewModel.updateCurrentTrip(true, tripId, "off", context!!)
+            callBackViewModel.updateCurrentTrip(true, tripId, "off", requireContext())
         }
-        val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
+        val navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment)
         if (navController.currentDestination?.id == currentFragmentId){
             navController.navigate(R.id.toTaxiNumber)
         }
     }
     private fun toVehicleSettingsDetail(){
-        val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
+        val navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment)
         if (navController.currentDestination?.id == currentFragmentId){
             navController.navigate(R.id.toVehicleSettingsDetail)
         }
     }
     private fun backToBlueToothCheck(){
-        val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
+        val navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment)
         if (navController.currentDestination?.id == currentFragmentId) {
             val action = WelcomeFragmentDirections.actionWelcomeFragmentToBluetoothSetupFragment(lastReaderStatus).setLastCheckedStatus(lastReaderStatus)
             navController.navigate(action)
@@ -454,7 +454,7 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
     override fun onPause() {
         super.onPause()
         Log.i("PimApplication", "OnPause")
-        ViewHelper.hideSystemUI(activity!!)
+        ViewHelper.hideSystemUI(requireActivity())
         batteryCheckTimer.cancel()
         dimScreenTimer.cancel()
         failedReaderTimer?.cancel()
@@ -463,7 +463,7 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
     override fun onResume() {
         Log.i("PimApplication", "OnResume")
         super.onResume()
-        ViewHelper.hideSystemUI(activity!!)
+        ViewHelper.hideSystemUI(requireActivity())
         vehicleId = viewModel.getVehicleId()
         batteryCheckTimer.cancel()
         batteryCheckTimer.start()

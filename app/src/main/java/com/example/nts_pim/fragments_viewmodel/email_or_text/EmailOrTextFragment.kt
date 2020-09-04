@@ -1,5 +1,6 @@
 package com.example.nts_pim.fragments_viewmodel.email_or_text
 
+import android.annotation.SuppressLint
 import android.os.Bundle
 import android.os.CountDownTimer
 import android.view.LayoutInflater
@@ -75,6 +76,7 @@ class EmailOrTextFragment : ScopedFragment(), KodeinAware {
 
     }
 
+    @SuppressLint("ClickableViewAccessibility")
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         mJob = Job()
@@ -114,8 +116,8 @@ class EmailOrTextFragment : ScopedFragment(), KodeinAware {
             when(event?.action) {
                 MotionEvent.ACTION_DOWN -> {
                     email_icon_imageView.setImageDrawable(ContextCompat.getDrawable(
-                        context!!, R.drawable.ic_email_icon_grey))
-                    email_textView.setTextColor(ContextCompat.getColor(context!!, R.color.grey))
+                        requireContext(), R.drawable.ic_email_icon_grey))
+                    email_textView.setTextColor(ContextCompat.getColor(requireContext(), R.color.grey))
                     true
                 }
                 MotionEvent.ACTION_UP -> {
@@ -131,8 +133,8 @@ class EmailOrTextFragment : ScopedFragment(), KodeinAware {
             when(event?.action) {
                 MotionEvent.ACTION_DOWN -> {
                     text_message_icon_imageView.setImageDrawable(ContextCompat.getDrawable(
-                        context!!, R.drawable.ic_text_message_icon_grey))
-                    text_textView.setTextColor(ContextCompat.getColor(context!!, R.color.grey))
+                        requireContext(), R.drawable.ic_text_message_icon_grey))
+                    text_textView.setTextColor(ContextCompat.getColor(requireContext(), R.color.grey))
                     true
                 }
                 MotionEvent.ACTION_UP -> {
@@ -147,9 +149,9 @@ class EmailOrTextFragment : ScopedFragment(), KodeinAware {
         no_receipt_btn.setOnTouchListener((View.OnTouchListener { v, event ->
             when(event?.action) {
                 MotionEvent.ACTION_DOWN -> {
-                    no_receipt_btn.setTextColor(ContextCompat.getColor(context!!, R.color.grey))
+                    no_receipt_btn.setTextColor(ContextCompat.getColor(requireContext(), R.color.grey))
                     no_receipt_btn.setBackgroundColor(ContextCompat.getColor(
-                        context!!,
+                        requireContext(),
                         R.color.squareBtnBackgroundPressed))
                     true
                 }
@@ -172,7 +174,7 @@ class EmailOrTextFragment : ScopedFragment(), KodeinAware {
                 tripHasEnded = true
             }
         })
-        callBackViewModel.getIsTransactionComplete().observe(this, Observer {
+        callBackViewModel.getIsTransactionComplete().observe(viewLifecycleOwner, Observer {
             val isTransactionComplete = it
             if (isTransactionComplete) {
                 email_or_text_back_btn.isVisible = false
@@ -224,7 +226,7 @@ class EmailOrTextFragment : ScopedFragment(), KodeinAware {
             callBackViewModel.setTransactionId(transactionId)
             updatePaymentDetail(transactionId,tripNumber,vehicleId, mAWSAppSyncClient!!,"cash", tripId)
         }
-        SoundHelper.turnOnSound(context!!)
+        SoundHelper.turnOnSound(requireContext())
     }
 
     private fun updatePaymentDetail(transactionId: String, tripNumber: Int, vehicleId: String, awsAppSyncClient: AWSAppSyncClient, paymentType: String, tripID: String) = launch(Dispatchers.IO){
@@ -261,7 +263,7 @@ class EmailOrTextFragment : ScopedFragment(), KodeinAware {
     //We are going to check to see if they need a receipt and if a email/phoneNumber is on file for them
     private fun checkCustomerDetailsAWS(tripID: String) = launch(Dispatchers.IO){
         if (mAWSAppSyncClient == null) {
-            mAWSAppSyncClient = ClientFactory.getInstance(context!!)
+            mAWSAppSyncClient = ClientFactory.getInstance(requireContext())
         }
         mAWSAppSyncClient?.query(GetTripQuery.builder().tripId(tripID).build())
             ?.responseFetcher(AppSyncResponseFetchers.CACHE_AND_NETWORK)
@@ -297,14 +299,14 @@ class EmailOrTextFragment : ScopedFragment(), KodeinAware {
     //Navigation
     private fun backToCreditOrCash(){
         val action = EmailOrTextFragmentDirections.EmailOrTextBackToTripReview(tripTotal.toFloat()).setMeterOwedPrice(tripTotal.toFloat())
-        val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
+        val navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment)
         if (navController.currentDestination?.id == (currentFragmentId)){
             navController.navigate(action)
         }
     }
 
     private fun toEmailReceipt()= launch(Dispatchers.Main.immediate){
-        val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
+        val navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment)
         val action = EmailOrTextFragmentDirections.actionEmailOrTextFragmentToReceiptInformationEmailFragment(paymentType,tripTotal.toFloat(),previousEmail)
             .setPaymentType(paymentType)
             .setTripTotal(tripTotal.toFloat())
@@ -315,7 +317,7 @@ class EmailOrTextFragment : ScopedFragment(), KodeinAware {
     }
 
     private fun toTextReceipt(){
-        val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
+        val navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment)
         val action = EmailOrTextFragmentDirections.actionEmailOrTextFragmentToReceiptInformationTextFragment2(
             paymentType,tripTotal.toFloat(),previousPhoneNumber)
             .setPaymentType(paymentType)
@@ -327,7 +329,7 @@ class EmailOrTextFragment : ScopedFragment(), KodeinAware {
     }
 
     private fun toThankYou(){
-        val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
+        val navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment)
         if (navController.currentDestination?.id == (currentFragmentId)){
             navController.navigate(R.id.toInteractionComplete)
         }
@@ -336,7 +338,7 @@ class EmailOrTextFragment : ScopedFragment(), KodeinAware {
     override fun onPause() {
         super.onPause()
         inactiveScreenTimer?.cancel()
-        ViewHelper.hideSystemUI(activity!!)
+        ViewHelper.hideSystemUI(requireActivity())
     }
 
     override fun onDestroy() {

@@ -1,6 +1,7 @@
 package com.example.nts_pim.fragments_viewmodel.trip_details
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
 import android.location.LocationManager
@@ -63,23 +64,25 @@ class TripDetailFragment : ScopedFragment() {
         } else {
             receipt_server_message_textView.text = "Receipt server message: " +receiptMessage
         }
-        val onlineStatus = isOnline(context!!)
+        val onlineStatus = isOnline(requireContext())
         isOnline_textView.text = "LTE Network Connected: ${onlineStatus}"
         getLastError()
     }
 
+    @SuppressLint("MissingPermission")
     private fun isOnline(context: Context): Boolean {
         val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
         val networkInfo = connectivityManager.activeNetworkInfo
         return networkInfo != null && networkInfo.isConnected
     }
 
+    @SuppressLint("MissingPermission")
     private fun getLocation() {
         val locationManager =
-            activity!!.getSystemService(Context.LOCATION_SERVICE) as LocationManager
+            requireActivity().getSystemService(Context.LOCATION_SERVICE) as LocationManager
         val locationProvider: String = LocationManager.NETWORK_PROVIDER
         if (ContextCompat.checkSelfPermission(
-                this.activity!!,
+                this.requireActivity(),
                 Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED &&
                 pim_current_lat_textView != null &&
             pim_current_long_textView != null)
@@ -92,11 +95,11 @@ class TripDetailFragment : ScopedFragment() {
     }
 
     private fun getLastError(){
-        val lastError = ModelPreferences(context!!).getObject("PimError", PimError::class.java)
+        val lastError = ModelPreferences(requireContext()).getObject("PimError", PimError::class.java)
         println(lastError?.message)
     }
     private fun backToRecentTrip(){
-        val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
+        val navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment)
         if (navController.currentDestination?.id == currentFragmentId){
             navController.navigate(R.id.action_tripReviewFragment_to_recentTripAWSFragment)
         }

@@ -424,6 +424,23 @@ mutation UpdateDeviceIdToImei($parameters: updateDeviceIdToIMEIInput) {
     overheatedTimeStamp
   }
 }
+mutation UpdateDeviceIdPim($parameters: updateDeviceIdPIMInput) {
+  updateDeviceIdPIM(parameters: $parameters) {
+    deviceId
+    error
+    errorCode
+    vehicleId
+    log
+    btAddress
+    appVersion
+    reAuthSquare
+    useBluetooth
+    phoneNbr
+    paired
+    pimStartedTimeStamp
+    overheatedTimeStamp
+  }
+}
 mutation UpdateTripFare($parameters: updateTripFareInput) {
   updateTripFare(parameters: $parameters) {
     airportFee

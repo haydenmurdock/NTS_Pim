@@ -97,7 +97,7 @@ class CashOrCardFragment : ScopedFragment(), KodeinAware {
         pimMeterValue = callbackViewModel.getMeterOwed().value ?: 0.0
         pimPayAmount = callbackViewModel.getPimPayAmount()
         tripTotal = pimPayAmount
-        currentTrip = ModelPreferences(context!!)
+        currentTrip = ModelPreferences(requireContext())
             .getObject(SharedPrefEnum.CURRENT_TRIP.key, CurrentTrip::class.java)
         Log.i("Trip Review","Pim Pay amount at the start of page was $pimPayAmount")
         updatePimStatus()
@@ -119,7 +119,7 @@ class CashOrCardFragment : ScopedFragment(), KodeinAware {
         val audioManager = context?.getSystemService(Context.AUDIO_SERVICE) as AudioManager
         //If the microphone is muted, the square connection is still taking place.
         if (!audioManager.isMicrophoneMute) {
-            val currentTrip = ModelPreferences(context!!)
+            val currentTrip = ModelPreferences(requireContext())
                 .getObject(SharedPrefEnum.CURRENT_TRIP.key, CurrentTrip::class.java)
             if (currentTrip?.tripID != "" &&
                 currentTrip != null
@@ -140,10 +140,10 @@ class CashOrCardFragment : ScopedFragment(), KodeinAware {
         cash_btn.setOnTouchListener((View.OnTouchListener { v, event ->
             when (event?.action) {
                 MotionEvent.ACTION_DOWN -> {
-                    cash_textView.setTextColor(ContextCompat.getColor(context!!, R.color.grey))
+                    cash_textView.setTextColor(ContextCompat.getColor(requireContext(), R.color.grey))
                     dollar_sign_imageView.setImageDrawable(
                         ContextCompat.getDrawable(
-                            context!!,
+                            requireContext(),
                             R.drawable.ic_currency_icon_grey
                         )
                     )
@@ -161,10 +161,10 @@ class CashOrCardFragment : ScopedFragment(), KodeinAware {
         debit_credit_btn.setOnTouchListener((View.OnTouchListener { v, event ->
             when (event?.action) {
                 MotionEvent.ACTION_DOWN -> {
-                    credit_textView.setTextColor(ContextCompat.getColor(context!!, R.color.grey))
+                    credit_textView.setTextColor(ContextCompat.getColor(requireContext(), R.color.grey))
                     credit_card_imageView.setImageDrawable(
                         ContextCompat.getDrawable(
-                            context!!,
+                            requireContext(),
                             R.drawable.ic_credit_card_grey
                         )
                     )
@@ -367,12 +367,12 @@ class CashOrCardFragment : ScopedFragment(), KodeinAware {
         val tripTotalFloat = tripTotal.toFloat()
         val actionComplete = CashOrCardFragmentDirections.toEmailOrText(tripTotalFloat, "CARD")
             .setTripTotal(tripTotalFloat)
-        val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
+        val navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment)
         navController.navigate(actionComplete)
     }
 
     private fun toTipScreen() {
-        val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
+        val navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment)
         if (navController.currentDestination?.id == currentFragmentId) {
             val action = CashOrCardFragmentDirections.toTipScreen(tripTotal.toFloat(), 0.toFloat())
                 .setTipScreenTripTotal(tripTotal.toFloat())
@@ -383,7 +383,7 @@ class CashOrCardFragment : ScopedFragment(), KodeinAware {
     private fun toEmailOrTextWithPayment() {
         val action = CashOrCardFragmentDirections.toEmailOrText(tripTotal.toFloat(), "CASH")
             .setTripTotal(tripTotal.toFloat())
-        val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
+        val navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment)
         if (navController.currentDestination?.id == currentFragmentId) {
             navController.navigate(action)
         }
@@ -392,14 +392,14 @@ class CashOrCardFragment : ScopedFragment(), KodeinAware {
     private fun toEmailOrTextWithoutPayment() {
         val action = CashOrCardFragmentDirections.toEmailOrText(tripTotal.toFloat(), "NONE")
             .setTripTotal(tripTotal.toFloat())
-        val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
+        val navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment)
         if (navController.currentDestination?.id == currentFragmentId) {
             navController.navigate(action)
         }
     }
 
     private fun toInterActionComplete() {
-        val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
+        val navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment)
         if (navController.currentDestination?.id == currentFragmentId) {
             PIMMutationHelper.updatePIMStatus(
                 vehicleId,
@@ -415,9 +415,9 @@ class CashOrCardFragment : ScopedFragment(), KodeinAware {
         val tripTotalFloat = tripTotal.toFloat()
         val action = CashOrCardFragmentDirections.backToLiveMeter(tripTotalFloat)
             .setMeterTotal(tripTotalFloat)
-        val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
+        val navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment)
         if (navController.currentDestination?.id == currentFragmentId) {
-            callbackViewModel.updateCurrentTrip(true, tripID,"ON", context!!)
+            callbackViewModel.updateCurrentTrip(true, tripID,"ON", requireContext())
             navController.navigate(action)
         }
     }
@@ -493,7 +493,7 @@ class CashOrCardFragment : ScopedFragment(), KodeinAware {
 
     private fun getTripId(vehicleId: String) = launch(Dispatchers.IO) {
         if (mAWSAppSyncClient == null) {
-            mAWSAppSyncClient = ClientFactory.getInstance(context!!)
+            mAWSAppSyncClient = ClientFactory.getInstance(requireContext())
         }
         mAWSAppSyncClient?.query(GetStatusQuery.builder().vehicleId(vehicleId).build())
             ?.responseFetcher(AppSyncResponseFetchers.CACHE_AND_NETWORK)

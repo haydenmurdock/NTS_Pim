@@ -9,8 +9,6 @@ import com.example.nts_pim.data.repository.providers.ModelPreferences
 import com.example.nts_pim.utilities.enums.SharedPrefEnum
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import com.example.nts_pim.utilities.mutation_helper.PIMMutationHelper
-import java.util.*
-
 
 // The vehicleTripArrayHolder object holds all the arrays for app-sync and LiveData
 object VehicleTripArrayHolder {
@@ -143,7 +141,7 @@ object VehicleTripArrayHolder {
     fun getMeterValue() = meterOwedMutableLiveData as LiveData<Double>
 // Changes the square transaction from either the Main_activity or the Transaction complete screen.
 // E.g. Boolean-True/False
-    internal fun squareTransactionChange(): Boolean{
+    internal fun squareTransactionChange(): Boolean {
         isSquareTransactionComplete = !isSquareTransactionComplete
         isSquareTransactionCompleteMutableLiveData.value = isSquareTransactionComplete
         return isSquareTransactionComplete
@@ -156,7 +154,7 @@ object VehicleTripArrayHolder {
         isSquareTransactionStartedMutableLiveData.value = isSquareTransactionStarted
     }
 
-    fun getIsTransactionStarted() = isSquareTransactionStartedMutableLiveData as LiveData<Boolean>
+//    fun getIsTransactionStarted() = isSquareTransactionStartedMutableLiveData as LiveData<Boolean>
 
 
     fun addTripId(enteredTripId: String, context: Context){
@@ -349,14 +347,14 @@ object VehicleTripArrayHolder {
         deviceIsBondedBTMutableLiveData.value = deviceIsBondedBT
     }
 
-    fun deviceIsNotBondedViaBluetooth(){
-        deviceIsBondedBT = false
-        deviceIsBondedBTMutableLiveData.value = deviceIsBondedBT
-    }
-
-    fun isDeviceBondedViaBluetooth(): LiveData<Boolean>{
-        return deviceIsBondedBTMutableLiveData
-    }
+//    fun deviceIsNotBondedViaBluetooth(){
+//        deviceIsBondedBT = false
+//        deviceIsBondedBTMutableLiveData.value = deviceIsBondedBT
+//    }
+//
+//    fun isDeviceBondedViaBluetooth(): LiveData<Boolean>{
+//        return deviceIsBondedBTMutableLiveData
+//    }
 
     fun updateReaderStatus(status: String){
         cardReaderStatus = status

@@ -3,16 +3,13 @@ package com.example.nts_pim.fragments_viewmodel.vehicle_setup
 
 import android.Manifest
 import android.annotation.SuppressLint
-import android.app.Activity
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
-import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
-import android.telephony.TelephonyManager
 import android.text.InputType
 import android.util.Log
 import android.view.Gravity
@@ -30,16 +27,14 @@ import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProviders
 import androidx.navigation.Navigation
 import com.amazonaws.amplify.generated.graphql.GetPimSettingsQuery
-import com.amazonaws.amplify.generated.graphql.UpdateDeviceIdToImeiMutation
+import com.amazonaws.amplify.generated.graphql.UpdateDeviceIdPimMutation
 import com.amazonaws.mobileconnectors.appsync.AWSAppSyncClient
 import com.amazonaws.mobileconnectors.appsync.fetcher.AppSyncResponseFetchers
 import com.apollographql.apollo.GraphQLCall
 import com.apollographql.apollo.api.Response
 import com.apollographql.apollo.exception.ApolloException
 import com.example.nts_pim.BuildConfig
-import com.example.nts_pim.PimApplication
 import com.example.nts_pim.R
-import com.example.nts_pim.activity.MainActivity
 import com.example.nts_pim.data.repository.model_objects.*
 import com.example.nts_pim.data.repository.providers.ModelPreferences
 import com.example.nts_pim.fragments_viewmodel.InjectorUtiles
@@ -50,7 +45,6 @@ import com.example.nts_pim.utilities.dialog_composer.PIMDialogComposer
 import com.example.nts_pim.utilities.enums.LogEnums
 import com.example.nts_pim.utilities.enums.SharedPrefEnum
 import com.example.nts_pim.utilities.keyboards.QwertyKeyboard
-import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import com.example.nts_pim.utilities.mutation_helper.PIMMutationHelper
 import com.example.nts_pim.utilities.sound_helper.SoundHelper
 import com.example.nts_pim.utilities.view_helper.ViewHelper
@@ -76,7 +70,7 @@ import okhttp3.Request
 import org.kodein.di.KodeinAware
 import org.kodein.di.android.x.closestKodein
 import org.kodein.di.generic.instance
-import type.UpdateDeviceIdToIMEIInput
+import type.UpdateDeviceIdPIMInput
 import java.io.IOException
 import java.lang.Error
 import java.net.NetworkInterface
@@ -84,7 +78,7 @@ import java.util.*
 
 class VehicleSetupFragment:ScopedFragment(), KodeinAware {
     override val kodein by closestKodein()
-    private val viewModelFactory: VehicleSetupModelFactory by instance<VehicleSetupModelFactory>()
+    private val viewModelFactory: VehicleSetupModelFactory by instance()
     private lateinit var viewModel: VehicleSetupViewModel
     private lateinit var keyboardViewModel: SettingsKeyboardViewModel
     private var mAWSAppSyncClient: AWSAppSyncClient? = null
@@ -94,7 +88,7 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
     private val setNamesArray =
         arrayOf("UUID", "PIN", "Vehicle ID", "Authorization","Knox Startup", "Bluetooth Setup")
     private val setBooleanArray = arrayOf(false, false, false, false, false,false)
-    private var imei = ""
+    private var deviceId = ""
     private var androidId = ""
     private var pin = ""
     private var vehicleID = ""
@@ -103,7 +97,7 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
     private var isSquareAuthorized = false
     private val currentFragment = R.id.vehicleSetupFragment
     private val alreadyAuthString = "authorize_already_authorized"
-    private var checkedIMEI = false
+    private var checkedDeviceId = false
     private var checkedAndroidId = false
     var pinEntered = false
     var incorrectPin = ""
@@ -111,7 +105,6 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
     var doesVehicleIdExist = false
     var appVersion: String? = null
     var blueToothAddress: String? = null
-    var telephonyManager:TelephonyManager? = null
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -122,14 +115,14 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
     }
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        adapter = MyCustomAdapter(context!!, setNamesArray, setBooleanArray)
+        adapter = MyCustomAdapter(requireContext(), setNamesArray, setBooleanArray)
         listView.adapter = adapter as MyCustomAdapter
         authorizeCallbackRef =
             authManager.addAuthorizeCallback(this::onAuthorizeResult)
         val readerManager = ReaderSdk.readerManager()
         readerSettingsCallbackRef =
             readerManager.addReaderSettingsActivityCallback(this::onReaderSettingsResult)
-        mAWSAppSyncClient = ClientFactory.getInstance(context)
+        mAWSAppSyncClient = ClientFactory.getInstance(requireContext())
         val keyboardFactory = InjectorUtiles.provideSettingKeyboardModelFactory()
         viewModel = ViewModelProviders.of(this, viewModelFactory)
             .get(VehicleSetupViewModel::class.java)
@@ -152,10 +145,10 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
         })
         doesVehicleIdExist = viewModel.doesVehicleIDExist()
             if (!doesVehicleIdExist) {
-                checkDeviceID(view, adapter as MyCustomAdapter, this.activity!!)
+                checkDeviceID(view, adapter as MyCustomAdapter, this.requireActivity())
                 checkForPin(adapter as MyCustomAdapter)
             } else {
-                checkDeviceID(view, adapter as MyCustomAdapter, this.activity!!)
+                checkDeviceID(view, adapter as MyCustomAdapter, this.requireActivity())
                 showUIForSavedVehicleID()
                 checkAuthorization(vehicleID, authManager)
             }
@@ -191,8 +184,7 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
             //This is for if there needs to be a check auth because its the first one in fleet.
             if (authorized) {
                 setUpComplete()
-
-                SoundHelper.turnOnSound(context!!)
+                SoundHelper.turnOnSound(requireContext())
                 toCheckVehicleInfo()
             } else {
                 setup_detail_text_view.isVisible = false
@@ -203,43 +195,43 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
         }
     }
 
+    @SuppressLint("HardwareIds")
     private fun checkDeviceID(view: View, adapter: MyCustomAdapter, activity: FragmentActivity) = launch {
-        imei = viewModel.getDeviceID.await()
+        deviceId = viewModel.getDeviceID.await()
         // This in case there is no device ID, we make one
-        if (imei == "") {
+        if (deviceId == "") {
             if(context?.checkCallingOrSelfPermission(Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED) {
-                val telephonyManager =
-                    activity!!.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
-                val imei = telephonyManager.imei
-                if (imei != null) {
-                    val deviceId =
-                        DeviceID(imei)
+                val deviceId = Settings.Secure.getString(requireActivity().contentResolver,
+                    Settings.Secure.ANDROID_ID)
+                if (deviceId != null) {
+                    val deviceIdObject =
+                        DeviceID(deviceId)
                     ModelPreferences(view.context)
-                        .putObject(SharedPrefEnum.DEVICE_ID.key, deviceId)
-                    this@VehicleSetupFragment.imei = deviceId.number
+                        .putObject(SharedPrefEnum.DEVICE_ID.key, deviceIdObject)
+                    this@VehicleSetupFragment.deviceId = deviceIdObject.number
                     setup_detail_text_view.text =
-                        "imei was created and updated: ${this@VehicleSetupFragment.imei}"
+                        "imei was created and updated: ${this@VehicleSetupFragment.deviceId}"
                     updateChecklist(0, true, adapter)
                     launch(Dispatchers.IO) {
-                        checkForPairedVehicleID(deviceId.number)
+                        checkForPairedVehicleID(deviceIdObject.number)
                     }
                     Log.i(
                         LogEnums.PIM_SETTING.tag,
-                        "Device Id: $imei saved to Shared Preferences"
+                        "Device Id: $deviceIdObject saved to Shared Preferences"
                     )
                 } else {
                     PIMDialogComposer.androidVersionNotSupported(activity)
                 }
             }
         } else {
-            setup_detail_text_view.text = "imei was found $imei"
+            setup_detail_text_view.text = "Device id was found $deviceId"
             updateChecklist(0, true, adapter)
             launch(Dispatchers.IO) {
-                checkForPairedVehicleID(imei)
+                checkForPairedVehicleID(deviceId)
             }
             Log.i(
                 LogEnums.PIM_SETTING.tag,
-                "Device Id: Already saved into preferences and is $imei"
+                "Device Id: Already saved into preferences and is $deviceId"
             )
         }
     }
@@ -256,8 +248,8 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
             // There is a pin found so we will get the Vehicle ID
             setup_detail_text_view.text = "Pin: $pin found in settings"
             updateChecklist(1, true, adapter)
-            if (imei != "") {
-                queryVehicleIdWithPIN(imei, pin, adapter)
+            if (deviceId != "") {
+                queryVehicleIdWithPIN(deviceId, pin, adapter)
             }
         }
     }
@@ -265,7 +257,7 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
     private fun createPin(enteredPin: String, adapter: MyCustomAdapter) {
         val pin = PIN(enteredPin)
         // Puts pin into preferences and updates listView
-        ModelPreferences(context!!)
+        ModelPreferences(requireContext())
             .putObject(SharedPrefEnum
                 .PIN_PASSWORD.key,
                 pin)
@@ -317,12 +309,11 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
     }
     @SuppressLint("HardwareIds")
     private fun checkForPairedVehicleID(deviceID: String){
-        if (deviceID == imei){
+        if (deviceID == deviceId){
             //This means that the vehicle has not been unpaired. We will need to get the vehicle Id and skip the pin.
-            checkedIMEI = true
+            checkedDeviceId = true
             appVersion = BuildConfig.VERSION_NAME
             blueToothAddress = getBluetoothAddress()
-            telephonyManager = context?.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
             mAWSAppSyncClient!!.query(GetPimSettingsQuery.builder().deviceId(deviceID).build())
                 ?.responseFetcher(AppSyncResponseFetchers.CACHE_AND_NETWORK)
                 ?.enqueue(vehicleIdQueryCallBack)
@@ -341,7 +332,7 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
             val errorCode = response.data()?.pimSettings?.errorCode()
             when(errorCode){
                     "1014" -> {
-                            if(checkedIMEI && !checkedAndroidId) {
+                            if(checkedDeviceId && !checkedAndroidId) {
                                 checkForPairedVehicleID(androidId)
                             }
                         }
@@ -353,7 +344,7 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
                     showUIForSavedVehicleID()
                     checkAuthorization(vehicleID, authManager)
                     if(checkedAndroidId){
-                        updateDeviceIdToIMEI(imei,vehicleID)
+                        updateDeviceId(deviceId,vehicleID)
                     }
                 }
             }
@@ -362,34 +353,21 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
             Log.i("VehicleSetup", "Response for getting device ID has Apollo Exception. Error: ${e.message}")
         }
     }
-    private fun updateDeviceIdToIMEI(deviceId: String, vehicleId: String){
-        val tabletImei: String
-        tabletImei = if(deviceId == ""){
-            val telephonyManager = PimApplication.instance.applicationContext.getSystemService(
-                Context.TELEPHONY_SERVICE) as TelephonyManager
-            if (ActivityCompat.checkSelfPermission(
-                    context!!,
-                    Manifest.permission.READ_PHONE_STATE
-                ) != PackageManager.PERMISSION_GRANTED
-            ) {
-                LoggerHelper.writeToLog("We could not update device id since the read phone state was not granted at vehicle setup")
-                return
-            }
-            telephonyManager.imei
-        } else {
-            deviceId
-        }
-        val input = UpdateDeviceIdToIMEIInput.builder()
-            .deviceId(tabletImei)
+    @SuppressLint("HardwareIds")
+    private fun updateDeviceId(deviceId: String, vehicleId: String){
+        val newDeviceID: String = Settings.Secure.getString(requireActivity().contentResolver,
+            Settings.Secure.ANDROID_ID)
+        val input = UpdateDeviceIdPIMInput.builder()
+            .deviceId(newDeviceID)
             .vehicleId(vehicleId)
             .build()
-        mAWSAppSyncClient?.mutate(UpdateDeviceIdToImeiMutation.builder().parameters(input).build())
-            ?.enqueue(updateDeviceIdToIMEICallback)
+        mAWSAppSyncClient?.mutate(UpdateDeviceIdPimMutation.builder().parameters(input).build())
+            ?.enqueue(updateDeviceIdCallBack)
     }
-    private val updateDeviceIdToIMEICallback =  object : GraphQLCall.Callback<UpdateDeviceIdToImeiMutation.Data>(){
-        override fun onResponse(response: Response<UpdateDeviceIdToImeiMutation.Data>) {
+    private val updateDeviceIdCallBack =  object : GraphQLCall.Callback<UpdateDeviceIdPimMutation.Data>(){
+        override fun onResponse(response: Response<UpdateDeviceIdPimMutation.Data>) {
             if(!response.hasErrors()){
-                Log.i("VehicleSetup", "Updated device Id for $vehicleID from $androidId to $imei")
+                Log.i("VehicleSetup", "Updated device Id for $vehicleID from $androidId to $deviceId")
             } else {
                 Log.i("VehicleSetup", "Response for updating for device ID has errors. Error: ${response.errors()[0].message()}")
             }
@@ -417,13 +395,13 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
                 return res1.toString()
             }
         } catch (ex: Exception) {
-            com.example.nts_pim.utilities.view_helper.ViewHelper.makeSnackbar(this.view!!, "Error getting bluetooth address: ex: $ex")
+           ViewHelper.makeSnackbar(this.requireView(), "Error getting bluetooth address: ex: $ex")
         }
         return "02:00:00:00:00:00"
     }
     private fun saveVehicleID(vehicleId: String) {
         val vehicleID = VehicleID(vehicleId)
-        ModelPreferences(context!!).putObject(SharedPrefEnum.VEHICLE_ID.key, vehicleID)
+        ModelPreferences(requireContext()).putObject(SharedPrefEnum.VEHICLE_ID.key, vehicleID)
         launch(Dispatchers.Main.immediate) {
             viewModel.vehicleIDExists()
             showUIForSavedVehicleID()
@@ -546,7 +524,7 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
         pin = enteredPin
         vehicle_id_progressBar.isVisible = true
         vehicle_id_progressBar.animate()
-        queryVehicleIdWithPIN(imei, pin, adapter as MyCustomAdapter)
+        queryVehicleIdWithPIN(deviceId, pin, adapter as MyCustomAdapter)
         pinEntered = false
     }
     private fun showUIForAuthWebView(){
@@ -595,7 +573,7 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
     }
     //Toasts
     private fun showVehicleIDToast(vehicleID: String){
-        if(!vehicleID.isNullOrBlank()){
+        if(!vehicleID.isBlank()){
             val toast =
                 Toast.makeText(context,
                     "Connected to $vehicleID"
@@ -614,7 +592,7 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
     }
     private fun showErrorToastNotAuthorized(){
         Toast.makeText(
-        context!!,
+        requireContext(),
         "SDK not authorized", Toast.LENGTH_LONG)
             .show()
     }
@@ -626,14 +604,14 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
     }
     private fun showErrorToastUsageReader(error: ResultError<ReaderSettingsErrorCode>){
         Toast.makeText(
-            context!!,
+            requireContext(),
             "Usage error: ${error.message}",
             Toast.LENGTH_LONG
         ).show()
     }
     private fun showErrorToastNoNetworkToast(){
         Toast.makeText(
-            context!!,
+            requireContext(),
             "No Network",
             Toast.LENGTH_LONG
 
@@ -651,7 +629,7 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
             setup_complete_btn.isVisible = true
         }
         val readerManager = ReaderSdk.readerManager()
-        readerManager.startReaderSettingsActivity(context!!)
+        readerManager.startReaderSettingsActivity(requireContext())
         updateChecklist(4, true, adapter)
     }
     private fun setUpKeyboard() {
@@ -661,7 +639,7 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
         val qwertyKeyboard = qwertyKeyboard as QwertyKeyboard
         val ic = enter_pin_editText.onCreateInputConnection(EditorInfo())
         qwertyKeyboard.setInputConnection(ic)
-        ViewHelper.hideSystemUI(activity!!)
+        ViewHelper.hideSystemUI(requireActivity())
     }
     private fun updateChecklist(position: Int, boolean: Boolean, adapter: MyCustomAdapter) {
         setBooleanArray[position] = boolean
@@ -669,9 +647,9 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
     }
     private fun requestMic() {
         val REQUEST_RECORD_AUDIO_PERMISSION = 200
-        if (ContextCompat.checkSelfPermission(activity!!, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+        if (ContextCompat.checkSelfPermission(requireActivity(), Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(
-                activity!!,
+                requireActivity(),
                 arrayOf(Manifest.permission.RECORD_AUDIO),
                 REQUEST_RECORD_AUDIO_PERMISSION
             )
@@ -679,35 +657,36 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
     }
     private fun requestStorage(){
         val REQUEST_STORAGE_PERMSSION_CODE = 1
-        if (ContextCompat.checkSelfPermission(activity!!, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+        if (ContextCompat.checkSelfPermission(requireActivity(), Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(
-                activity!!,
+                requireActivity(),
                 arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE),
                 REQUEST_STORAGE_PERMSSION_CODE)
         }
     }
     private fun requestLocation() {
         val REQUEST_FINE_LOCATION_PERMSSION_CODE = 1
-        if (ContextCompat.checkSelfPermission(activity!!, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+        if (ContextCompat.checkSelfPermission(requireActivity(), Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(
-                activity!!,
+                requireActivity(),
                 arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
                 REQUEST_FINE_LOCATION_PERMSSION_CODE)
         }
     }
+    @SuppressLint("HardwareIds")
     private fun requestPhoneState(activity: FragmentActivity){
         val REQUEST_PHONE_STATE_PERMSSION_CODE = 1
-        if (ContextCompat.checkSelfPermission(activity!!, Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_GRANTED) {
+        if (ContextCompat.checkSelfPermission(requireActivity(), Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(
-                activity!!,
+                requireActivity(),
                 arrayOf(Manifest.permission.READ_PHONE_STATE),
                 REQUEST_PHONE_STATE_PERMSSION_CODE)
         } else {
             // We need phoneStatePermission to get Android Id.
-            androidId = Settings.Secure.getString(activity!!.getContentResolver(),
+            androidId = Settings.Secure.getString(requireActivity().contentResolver,
                 Settings.Secure.ANDROID_ID)
             if(!isSquareAuthorized){
-                checkDeviceID(this.view!!, adapter as MyCustomAdapter, activity)
+                checkDeviceID(this.requireView(), adapter as MyCustomAdapter, activity)
             }
         }
     }
@@ -732,7 +711,7 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
         val missingPermissions = ArrayList<String>()
         // check all required dynamic permissions
         for (permission in REQUIRED_SDK_PERMISSIONS) {
-            val result = ContextCompat.checkSelfPermission(context!!, permission)
+            val result = ContextCompat.checkSelfPermission(requireContext(), permission)
             if (result != PackageManager.PERMISSION_GRANTED) {
                 missingPermissions.add(permission)
             }
@@ -741,7 +720,7 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
             // request all missing permissions
             val permissions = missingPermissions
                 .toTypedArray()
-            ActivityCompat.requestPermissions(this.activity!!, permissions, REQUEST_CODE_ASK_PERMISSIONS)
+            ActivityCompat.requestPermissions(this.requireActivity(), permissions, REQUEST_CODE_ASK_PERMISSIONS)
         } else {
             val grantResults = IntArray(REQUIRED_SDK_PERMISSIONS.size)
             Arrays.fill(grantResults, PackageManager.PERMISSION_GRANTED)
@@ -750,6 +729,7 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
                 grantResults)
         }
     }
+    @SuppressLint("MissingPermission")
     private fun checkIfBlueToothReaderIsConnected(){
         val mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
         val connectedDevices = mBluetoothAdapter.bondedDevices
@@ -785,7 +765,7 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
     }
     private fun setUpComplete(){
         val setUpStatus = SetupComplete(true)
-        ModelPreferences(context!!).
+        ModelPreferences(requireContext()).
             putObject(
                 SharedPrefEnum.SETUP_COMPLETE.key,
                 setUpStatus)
@@ -795,7 +775,7 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
         setUpWebView(vehicleID)
     }
     private fun toCheckVehicleInfo(){
-        val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
+        val navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment)
         if (navController.currentDestination?.id == currentFragment){
             navController.navigate(R.id.toCheckVehicleInfoFragment)
         }
@@ -805,26 +785,26 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
         requestMic()
         requestStorage()
         requestLocation()
-        requestPhoneState(activity!!)
-        ViewHelper.hideSystemUI(activity!!)
+        requestPhoneState(requireActivity())
+        ViewHelper.hideSystemUI(requireActivity())
     }
 
-    @SuppressLint("HardwareIds")
+    @SuppressLint("HardwareIds", "MissingPermission")
     override fun onPause() {
         if (ActivityCompat.checkSelfPermission(
-                context!!,
+                requireContext(),
                 Manifest.permission.READ_SMS
             ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
-                context!!,
+                requireContext(),
                 Manifest.permission.READ_PHONE_NUMBERS
             ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
-                context!!,
+                requireContext(),
                 Manifest.permission.READ_PHONE_STATE
             ) != PackageManager.PERMISSION_GRANTED
         ) {
             return
         }
-        PIMMutationHelper.updatePimSettings(blueToothAddress, appVersion, telephonyManager?.line1Number, mAWSAppSyncClient!!, imei)
+        PIMMutationHelper.updatePimSettings(blueToothAddress, appVersion, "Unknown", mAWSAppSyncClient!!, deviceId)
         super.onPause()
     }
     override fun onDestroy() {

@@ -1,5 +1,6 @@
 package com.example.nts_pim.utilities.bluetooth_helper
 
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
@@ -19,6 +20,7 @@ import kotlin.collections.ArrayList
 
 object BlueToothHelper {
     private val bluetoothAdapter: BluetoothAdapter? = BluetoothAdapter.getDefaultAdapter()
+    @SuppressLint("MissingPermission")
     private val pairedDevices: Set<BluetoothDevice>? = bluetoothAdapter?.bondedDevices
     val _UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB")
 
@@ -47,6 +49,7 @@ object BlueToothHelper {
         }
     }
 
+    @SuppressLint("MissingPermission")
     internal fun getPairedDevicesAndRegisterBTReceiver(activity: Activity): MutableList<Pair<String, String>>{
         val intent = IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED);
         activity.registerReceiver(mPairReceiver, intent)

@@ -1,6 +1,7 @@
 package com.example.nts_pim.activity
 
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.bluetooth.BluetoothAdapter
 import android.content.ContentValues
 import android.content.Context
@@ -13,11 +14,9 @@ import android.media.MediaPlayer
 import android.net.ConnectivityManager
 import android.os.Bundle
 import android.os.CountDownTimer
-import android.telephony.TelephonyManager
 import android.util.Log
 import android.view.View
 import android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
-
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProviders
@@ -36,14 +35,15 @@ import com.example.nts_pim.R
 import com.example.nts_pim.UnlockScreenLock
 import com.example.nts_pim.data.repository.VehicleTripArrayHolder
 import com.example.nts_pim.data.repository.model_objects.CurrentTrip
-import com.example.nts_pim.data.repository.model_objects.DeviceID
 import com.example.nts_pim.data.repository.providers.ModelPreferences
 import com.example.nts_pim.fragments_viewmodel.InjectorUtiles
 import com.example.nts_pim.fragments_viewmodel.base.ClientFactory
 import com.example.nts_pim.fragments_viewmodel.callback.CallBackViewModel
+import com.example.nts_pim.utilities.device_id_check.DeviceIdCheck
 import com.example.nts_pim.fragments_viewmodel.vehicle_setup.VehicleSetupModelFactory
 import com.example.nts_pim.fragments_viewmodel.vehicle_setup.VehicleSetupViewModel
 import com.example.nts_pim.utilities.bluetooth_helper.BlueToothHelper
+import com.example.nts_pim.utilities.bluetooth_helper.BlueToothServerController
 import com.example.nts_pim.utilities.driver_receipt.DriverReceiptHelper
 import com.example.nts_pim.utilities.enums.MeterEnum
 import com.example.nts_pim.utilities.enums.PIMStatusEnum
@@ -419,8 +419,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
 
     @SuppressLint("MissingPermission")
     private fun subscribeToUpdatePimSettings(){
-        val telephonyManager = this.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
-        val deviceId  = ModelPreferences(this).getObject(SharedPrefEnum.DEVICE_ID.key, DeviceID::class.java)?.number ?: telephonyManager.imei
+        val deviceId  = DeviceIdCheck.getDeviceId()
         val subscription =  OnPimSettingsUpdateSubscription.builder().deviceId(deviceId).build()
         if (deviceId != null) {
             subscriptionWatcherUpdatePimSettings = mAWSAppSyncClient?.subscribe(subscription)
@@ -576,6 +575,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
             it.release()
         }
     }
+    @SuppressLint("MissingPermission")
     private fun isOnline(context: Context): Boolean {
         val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
         val networkInfo = connectivityManager.activeNetworkInfo
@@ -654,16 +654,27 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
         Log.i("Back Button", "Back button was pressed")
     }
 
+    @SuppressLint("MissingPermission")
     private fun setUpBluetooth(){
         val mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
+        if (mBluetoothAdapter == null){
+            LoggerHelper.writeToLog("$logFragment, bluetooth is not supported on this device")
+            Log.i("$logFragment", "bluetooth is not supported on this device")
+            return
+        }
         if (!mBluetoothAdapter.isEnabled) {
             LoggerHelper.writeToLog("${logFragment}, bluetooth was off, turned on programmatically")
             mBluetoothAdapter.enable()
         } else {
             LoggerHelper.writeToLog("${logFragment}, bluetooth was on during start up")
+            setUpBluetoothServer(this)
         }
     }
-    override fun onDestroy() {
+
+    private fun setUpBluetoothServer(activity: Activity) {
+        BlueToothServerController(activity).start()
+    }
+        override fun onDestroy() {
         Log.i("SubscriptionWatcher", "Subscription watcher canceled for $vehicleId")
         subscriptionWatcherUpdateVehTripStatus?.cancel()
         viewModel.isSquareAuthorized().removeObservers(this)

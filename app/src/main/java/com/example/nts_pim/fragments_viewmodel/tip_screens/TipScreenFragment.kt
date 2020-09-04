@@ -203,7 +203,7 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
         customTipAmountBtn.setOnTouchListener((View.OnTouchListener { v, event ->
             when(event?.action) {
                 MotionEvent.ACTION_DOWN -> {
-                    customTipAmountBtn.setTextColor(ContextCompat.getColor(context!!, R.color.grey))
+                    customTipAmountBtn.setTextColor(ContextCompat.getColor(requireContext(), R.color.grey))
                     true
                 }
                 MotionEvent.ACTION_UP -> {
@@ -219,7 +219,7 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
         no_tip_btn.setOnTouchListener((View.OnTouchListener { v, event ->
             when (event?.action) {
                 MotionEvent.ACTION_DOWN -> {
-                    no_tip_btn.setTextColor(ContextCompat.getColor(context!!, R.color.grey))
+                    no_tip_btn.setTextColor(ContextCompat.getColor(requireContext(), R.color.grey))
                     true
                 }
                 MotionEvent.ACTION_UP -> {
@@ -234,7 +234,7 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
 
         closeTipScreenBtn.setOnClickListener {
             LoggerHelper.writeToLog("$logFragment, Back button hit")
-            val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
+            val navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment)
             if(navController.currentDestination?.id == (R.id.tipScreenFragment)){
                 val action = TipScreenFragmentDirections.backToTripReview(tripTotal.toFloat()).setMeterOwedPrice(tripTotal.toFloat())
                 navController.navigate(action)
@@ -296,7 +296,7 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
             lowerAlpha()
         }
         customTipAmountBtn.setOnClickListener {
-            customTipAmountBtn.setTextColor(ContextCompat.getColor(context!!, R.color.grey))
+            customTipAmountBtn.setTextColor(ContextCompat.getColor(requireContext(), R.color.grey))
             toCustomTip()
         }
         no_tip_btn.setOnClickListener {
@@ -306,13 +306,13 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
 
         callbackViewModel.getMeterState().observe(this.viewLifecycleOwner, Observer { meterState ->
             if (meterState == MeterEnum.METER_ON.state){
-                Log.i("Trip Review", "The meter is back on so going to the trip Review screen")
+                Log.i("Tip Screen Fragment", "The meter is back on so going to the trip Review screen")
                backToTripReview()
             }
         })
         callbackViewModel.getIsTransactionComplete().observe(this.viewLifecycleOwner, Observer {transactionIsComplete ->
             if(transactionIsComplete){
-                Log.i("Trip Review", "The transaction is complete so going to email or text screen")
+                Log.i("Tip Screen Fragment", "The transaction is complete so going to email or text screen")
                toEmailOrText()
             }
         })
@@ -499,7 +499,7 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
             parametersBuilder.note("[${tripId?.length?.minus(8)?.let { tripId?.substring(it) }}] [$vehicleId] [$driverId]")
         }
         val checkoutManager = ReaderSdk.checkoutManager()
-        checkoutManager.startCheckoutActivity(context!!, parametersBuilder.build())
+        checkoutManager.startCheckoutActivity(requireContext(), parametersBuilder.build())
         PIMMutationHelper.updatePIMStatus(vehicleId, PIMStatusEnum.STARTED_SQUARE_PAYMENT.status, mAWSAppSyncClient!!)
     }
     private fun lowerAlpha() {
@@ -587,7 +587,7 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
         }
 
         if(no_tip_btn != null){
-            no_tip_btn.setTextColor(ContextCompat.getColor(context!!, R.color.whiteTextColor))
+            no_tip_btn.setTextColor(ContextCompat.getColor(requireContext(), R.color.whiteTextColor))
         }
         callbackViewModel.setTipAmount(0.0)
         screenTimeOutTimer.cancel()
@@ -595,14 +595,14 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
         LoggerHelper.writeToLog("$logFragment,  Raised Alpha after Square payment")
     }
     private fun onCheckoutResult(result: Result<CheckoutResult, ResultError<CheckoutErrorCode>>) {
-        SoundHelper.turnOnSound(context!!)
+        SoundHelper.turnOnSound(requireContext())
         if (result.isSuccess) {
             LoggerHelper.writeToLog("$logFragment,  Square payment result: Success")
             val checkoutResult = result.successValue
             showCheckoutResult(checkoutResult)
-            ViewHelper.hideSystemUI(activity!!)
+            ViewHelper.hideSystemUI(requireActivity())
         } else {
-            ViewHelper.hideSystemUI(activity!!)
+            ViewHelper.hideSystemUI(requireActivity())
             val error = result.error
             raiseAlphaUI()
             resetScreen()
@@ -690,12 +690,12 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
     }
     private fun setTextToGreyForButtonPress(textView: TextView){
         if (textView.isVisible){
-            textView.setTextColor((ContextCompat.getColor(context!!, R.color.grey)))
+            textView.setTextColor((ContextCompat.getColor(requireContext(), R.color.grey)))
         }
     }
     private fun setTextBackToWhiteForUIReset(textView: TextView){
         if(textView.isVisible){
-            textView.setTextColor(ContextCompat.getColor(context!!, R.color.whiteTextColor))
+            textView.setTextColor(ContextCompat.getColor(requireContext(), R.color.whiteTextColor))
         }
     }
     private fun updateTripTotalTextField(tripTotalEntered: Double){
@@ -718,9 +718,11 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
     private fun updateTransactionInfo(tipAmount: Double, cardInfo: String, tipPercent: Double, paidAmount: Double, transactionDate: String, transactionId: String, tripId: String) = launch(Dispatchers.IO) {
     if(!paymentSentForSquare){
         paymentSentForSquare = true
-        LoggerHelper.writeToLog("Boolean for payment sent to square is true. No more payment attempts until ")
+       val vehicleIdForPayment = viewModel.getVehicleID()
+        LoggerHelper.writeToLog("Boolean for payment set to true for tripid $tripId")
+        LoggerHelper.writeToLog("pim payment builder structure. VehicleId: $vehicleIdForPayment, TripId: $tripId, tipAmt: $tipAmount, cardInfo: $cardInfo, tipPercent: $tipPercent, pimPaidAmt: $paidAmount, PimTransactionDate: $transactionDate, pimTransId: $transactionId, paymentType: card")
         val pimPaymentInput = PimPaymentMadeInput.builder()
-            .vehicleId(vehicleId)
+            .vehicleId(vehicleIdForPayment)
             .tripId(tripId)
             .tipAmt(tipAmount)
             .cardInfo(cardInfo)
@@ -738,7 +740,13 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
 
     private val pimPaymentMadeCallback = object : GraphQLCall.Callback<PimPaymentMadeMutation.Data>() {
         override fun onResponse(response: Response<PimPaymentMadeMutation.Data>) {
-            LoggerHelper.writeToLog("pimPaymentMade response. $response")
+            LoggerHelper.writeToLog("pim Payment Made")
+            if(!response.hasErrors()){
+                LoggerHelper.writeToLog("Pim Payment Made: No errors in response: response package: ${response.data()}")
+            }
+            if(response.hasErrors()){
+                LoggerHelper.writeToLog("Pim Payment Made: There was an error in the response. ${response.errors()}}")
+            }
         }
 
         override fun onFailure(e: ApolloException) {
@@ -747,7 +755,7 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
     }
 
     private fun toCustomTip(){
-        val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
+        val navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment)
         if(navController.currentDestination?.id == (R.id.tipScreenFragment)){
             val action = TipScreenFragmentDirections.ToCustomTipScreen(tripTotal.toFloat()).setTripTotalFromTipScreen(tripTotal.toFloat())
             navController.navigate(action)
@@ -755,7 +763,7 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
     }
 
     private  fun toEmailOrText(){
-        val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
+        val navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment)
         if(navController.currentDestination?.id == (R.id.tipScreenFragment)){
             val action = TipScreenFragmentDirections.tipFragmentToEmailorTextFragment(amountForSquare.toFloat(), "CARD")
                 .setPaymentType("CARD").setTripTotal(amountForSquare.toFloat())
@@ -764,7 +772,7 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
     }
 
     private fun backToTripReview(){
-        val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
+        val navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment)
         if(navController.currentDestination?.id == (R.id.tipScreenFragment)){
             val action = TipScreenFragmentDirections.backToTripReview(tripTotal.toFloat()).setMeterOwedPrice(tripTotal.toFloat())
             navController.navigate(action)
@@ -773,10 +781,10 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
     override fun onPause() {
         super.onPause()
         screenTimeOutTimer.cancel()
-        ViewHelper.hideSystemUI(activity!!)
+        ViewHelper.hideSystemUI(requireActivity())
         callbackViewModel.hasSquareTimedOut().observe(this, Observer { hasSquareTimedOut ->
             if (hasSquareTimedOut) {
-                val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
+                val navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment)
                 if (navController.currentDestination?.id == (R.id.tipScreenFragment)) {
                     val action = TipScreenFragmentDirections.backToTripReview(tripTotal.toFloat())
                         .setMeterOwedPrice(tripTotal.toFloat())

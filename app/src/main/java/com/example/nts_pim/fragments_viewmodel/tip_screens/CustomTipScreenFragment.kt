@@ -17,6 +17,7 @@ import android.os.Handler
 import androidx.lifecycle.ViewModelProviders
 import com.example.nts_pim.fragments_viewmodel.InjectorUtiles
 import com.example.nts_pim.fragments_viewmodel.callback.CallBackViewModel
+import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import java.util.*
 
 
@@ -73,7 +74,7 @@ class CustomTipScreenFragment : ScopedFragment() {
         handler = Handler()
         close_custom_tip_screen_btn.setOnClickListener {
             val noTipChosen = 00.00.toFloat()
-            val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
+            val navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment)
             val action = CustomTipScreenFragmentDirections.backToTipScreenFragment(tripTotalWithTip.toFloat(), noTipChosen)
                 .setTipScreenTripTotal(tripTotal.toFloat())
                 .setDoneButtonTouchedOnCustomTipScreen(false)
@@ -265,14 +266,14 @@ class CustomTipScreenFragment : ScopedFragment() {
             when(event?.action) {
                 MotionEvent.ACTION_DOWN -> {
                     custom_tip_screen_backspace_btn.setImageDrawable(ContextCompat.getDrawable(
-                        context!!,
+                        requireContext(),
                         R.drawable.ic_backspace_arrow_grey
                     ))
                     true
                 }
                 MotionEvent.ACTION_UP -> {
                     custom_tip_screen_backspace_btn.setImageDrawable(ContextCompat.getDrawable(
-                        context!!,
+                        requireContext(),
                         R.drawable.ic_backspace_arrow_white
                     ))
                     v.performClick()
@@ -287,14 +288,14 @@ class CustomTipScreenFragment : ScopedFragment() {
             when(event?.action) {
                 MotionEvent.ACTION_DOWN -> {
                     custom_tip_screen_plus_btn.setImageDrawable(ContextCompat.getDrawable(
-                        context!!,
+                        requireContext(),
                         R.drawable.ic_add_circular_outlined_button_grey
                     ))
                     true
                 }
                 MotionEvent.ACTION_UP -> {
                     custom_tip_screen_plus_btn.setImageDrawable(ContextCompat.getDrawable(
-                        context!!,
+                        requireContext(),
                         R.drawable.ic_add_circular_outlined_button
                     ))
                     v.performClick()
@@ -309,14 +310,14 @@ class CustomTipScreenFragment : ScopedFragment() {
             when(event?.action) {
                 MotionEvent.ACTION_DOWN -> {
                     custom_tip_screen_minus_btn.setImageDrawable(ContextCompat.getDrawable(
-                        context!!,
+                        requireContext(),
                         R.drawable.ic_minus_circular_button_grey
                     ))
                     true
                 }
                 MotionEvent.ACTION_UP -> {
                     custom_tip_screen_minus_btn.setImageDrawable(ContextCompat.getDrawable(
-                        context!!,
+                        requireContext(),
                         R.drawable.ic_minus_circular_button
                     ))
                     v.performClick()
@@ -463,10 +464,11 @@ class CustomTipScreenFragment : ScopedFragment() {
                 .setPercentagePickedForCustomTip(customTipViewPercentageMode)
                 .setDoneButtonTouchedOnCustomTipScreen(true)
                 .setTipChosenFromCustomTipScreen(tipPicked)
-            val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
+            val navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment)
             if (navController.currentDestination?.id == (R.id.customTipScreenFragment)) {
                 navController.navigate(action)
             }
+            LoggerHelper.writeToLog("Customer is viewing Custom Tip Screen")
         }
         custom_tip_screen_editText.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
@@ -658,10 +660,10 @@ class CustomTipScreenFragment : ScopedFragment() {
             }.start()
     }
     private fun setTextToGrey(button: Button){
-        button.setTextColor((ContextCompat.getColor(context!!, R.color.grey)))
+        button.setTextColor((ContextCompat.getColor(requireContext(), R.color.grey)))
     }
     private fun setTextToWhite(button:Button){
-        button.setTextColor((ContextCompat.getColor(context!!, R.color.whiteTextColor)))
+        button.setTextColor((ContextCompat.getColor(requireContext(), R.color.whiteTextColor)))
     }
     private fun formatString(enteredDouble: Double):String{
         if(enteredDouble < 10){

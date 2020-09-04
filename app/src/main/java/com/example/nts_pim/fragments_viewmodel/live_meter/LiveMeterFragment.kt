@@ -82,12 +82,10 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
             ViewModelProviders.of(this, callbackFactory).get(CallBackViewModel::class.java)
         vehicleId = viewModel.getVehicleID()
         audioManager = context?.getSystemService(Context.AUDIO_SERVICE) as AudioManager
-        currentTrip = ModelPreferences(context!!)
+        currentTrip = ModelPreferences(requireContext())
             .getObject(SharedPrefEnum.CURRENT_TRIP.key, CurrentTrip::class.java)
         tripId = callbackViewModel.getTripId()
         textToSpeechMode = TripDetails.textToSpeechActivated
-        val settings = viewModel.getVehicleSettings()
-
         if(tripId == "" &&
                 currentTrip != null){
             tripId = currentTrip!!.tripID
@@ -143,10 +141,10 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
 
     private fun toTripReview()=launch(Dispatchers.Main.immediate) {
         if(meterValue != ""){
-            val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
+            val navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment)
             if(navController.currentDestination?.id == R.id.live_meter_fragment){
                 if(currentTrip != null){
-                    callbackViewModel.updateCurrentTrip(true, tripId, "TIME_OFF", context!!)
+                    callbackViewModel.updateCurrentTrip(true, tripId, "TIME_OFF", requireContext())
                 }
                 val priceAsFloat = meterValue.toFloat()
                 val action = LiveMeterFragmentDirections.toTripReviewFragment(priceAsFloat).setMeterOwedPrice(priceAsFloat)
@@ -165,7 +163,7 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
             val priceAsFloat = meterValue.toFloat()
             val paymentType = PaymentTypeEnum.CARD.paymentType
             val action = LiveMeterFragmentDirections.toEmailorTextFromLiveMeter(priceAsFloat, paymentType).setPaymentType(paymentType).setTripTotal(priceAsFloat)
-            val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
+            val navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment)
             if(navController.currentDestination?.id == R.id.live_meter_fragment){
                 navController.navigate(action)
             }
@@ -196,7 +194,7 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
 
     private fun getMeterOwedQuery(tripId: String) = launch(Dispatchers.IO){
             if (mAWSAppSyncClient == null) {
-                mAWSAppSyncClient = ClientFactory.getInstance(context!!)
+                mAWSAppSyncClient = ClientFactory.getInstance(requireContext())
             }
            mAWSAppSyncClient?.query(GetTripQuery.builder().tripId(tripId).build())
                 ?.responseFetcher(AppSyncResponseFetchers.CACHE_AND_NETWORK)
@@ -231,13 +229,13 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
         }
 
     private fun reSyncComplete() = launch(Dispatchers.Main.immediate) {
-        callbackViewModel.updateCurrentTrip(true, tripId, meterState, context!!)
+        callbackViewModel.updateCurrentTrip(true, tripId, meterState, requireContext())
         callbackViewModel.reSyncComplete()
         LoggerHelper.writeToLog("$logFragment: Resync Complete")
     }
 
     private fun playTimeOffSound(){
-        SoundHelper.turnOnSound(context!!)
+        SoundHelper.turnOnSound(requireContext())
         val mediaPlayer = MediaPlayer.create(context, R.raw.time_off_test_sound)
         mediaPlayer.setOnCompletionListener {
             LoggerHelper.writeToLog("$logFragment: Time Off Sound Played")

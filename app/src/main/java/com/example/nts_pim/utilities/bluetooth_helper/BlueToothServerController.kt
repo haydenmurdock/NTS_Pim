@@ -1,5 +1,6 @@
 package com.example.nts_pim.utilities.bluetooth_helper
 
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothServerSocket
@@ -13,10 +14,10 @@ class BlueToothServerController(act: Activity): Thread() {
     private var serverSocket: BluetoothServerSocket? = null
     private val activity = act
 
-    init {
+         init {
         val btAdapter = BluetoothAdapter.getDefaultAdapter()
         if (btAdapter != null) {
-            serverSocket = btAdapter.listenUsingRfcommWithServiceRecord("NTS", _uuid) // 1
+           serverSocket = btAdapter.listenUsingRfcommWithServiceRecord("NTS", _uuid) // 1
         }
     }
 

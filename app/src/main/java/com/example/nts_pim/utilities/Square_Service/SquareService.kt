@@ -550,12 +550,12 @@ class SquareService : OnLayoutChangeListener,
             return
         }
 
-        val noReceipt = getButton(squareActivity!!, com.squareup.sdk.reader.api.R.id.no_receipt_button, "NoReceipt")
+//        val noReceipt = getButton(squareActivity!!, com.squareup.sdk.reader.api.R.id.no_receipt_button, "NoReceipt")
         //myLog.e(TAG,"noReceipt ************ = " + noReceipt);
-        if (noReceipt != null) {
-            noReceipt.performClick()
-            return
-        }
+//        if (noReceipt != null) {
+//            noReceipt.performClick()
+//            return
+//        }
 
         val cancelButton1 =
             getButton(squareActivity!!, com.squareup.sdk.reader.api.R.id.select_payment_up_button, "cancelButton1")

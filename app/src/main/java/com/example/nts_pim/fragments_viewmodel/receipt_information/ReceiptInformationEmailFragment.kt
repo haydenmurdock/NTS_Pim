@@ -1,5 +1,6 @@
 package com.example.nts_pim.fragments_viewmodel.receipt_information
 
+import android.annotation.SuppressLint
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -79,7 +80,7 @@ class ReceiptInformationEmailFragment: ScopedFragment(), KodeinAware {
             .get(CallBackViewModel::class.java)
         vehicleId = viewModel.getVehicleID()
         transactionId = callBackViewModel.getTransactionId()
-        val greyColor = ContextCompat.getColor(context!!,R.color.grey)
+        val greyColor = ContextCompat.getColor(requireContext(),R.color.grey)
         showSoftKeyboard()
         email_editText.addTextChangedListener(object : TextWatcher {
             override fun afterTextChanged(s: Editable) {}
@@ -195,17 +196,17 @@ class ReceiptInformationEmailFragment: ScopedFragment(), KodeinAware {
     }
     private fun showSoftKeyboard() {
         val imm =
-            activity!!.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+            requireActivity().getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
         imm.showSoftInput(email_editText, InputMethodManager.SHOW_IMPLICIT)
         email_editText.requestFocus()
-        ViewHelper.hideSystemUI(activity!!)
+        ViewHelper.hideSystemUI(requireActivity())
         LoggerHelper.writeToLog("$logFragment, Showing Keyboard")
     }
     private fun closeSoftKeyboard(){
         val imm =
-            activity!!.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+            requireActivity().getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
         imm.hideSoftInputFromWindow(view?.windowToken, 0)
-        ViewHelper.hideSystemUI(this.activity!!)
+        ViewHelper.hideSystemUI(this.requireActivity())
     }
 
     private fun enableSendEmailBtn(){
@@ -214,6 +215,7 @@ class ReceiptInformationEmailFragment: ScopedFragment(), KodeinAware {
         }
     }
 
+    @SuppressLint("MissingPermission")
     private fun isOnline(context: Context): Boolean {
         val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
         val networkInfo = connectivityManager.activeNetworkInfo
@@ -221,9 +223,6 @@ class ReceiptInformationEmailFragment: ScopedFragment(), KodeinAware {
         return networkInfo != null && networkInfo.isConnected
 
     }
-//    private fun updatePaymentDetailsApi() = launch(Dispatchers.IO) {
-//        PIMMutationHelper.updatePaymentDetails(transactionId, tripNumber, vehicleId, mAWSAppSyncClient!!,paymentType, tripId)
-//    }
     private fun sendEmail(email: String){
         if(vehicleId.isNotEmpty()&&
             tripId.isNotEmpty()&&
@@ -244,7 +243,7 @@ class ReceiptInformationEmailFragment: ScopedFragment(), KodeinAware {
     private fun updateCustomerEmail(vehicleId: String, custEmail: String, appSyncClient: AWSAppSyncClient, tripId: String){
         LoggerHelper.writeToLog("$logFragment, entered email: $custEmail")
         val updatePaymentTypeInput = UpdateTripInput.builder().vehicleId(vehicleId).tripId(tripId).custEmail(custEmail).build()
-        if(isOnline(context!!)){
+        if(isOnline(requireContext())){
             appSyncClient.mutate(UpdateTripMutation.builder().parameters(updatePaymentTypeInput).build())
                 ?.enqueue(mutationCustomerEmailCallback )
         } else {
@@ -332,14 +331,14 @@ class ReceiptInformationEmailFragment: ScopedFragment(), KodeinAware {
             .setEmailOrPhoneNumber(email_editText.text.toString())
             .setTripTotal(tripTotal.toFloat())
             .setReceiptType("Email")
-        val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
+        val navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment)
         if (navController.currentDestination?.id == R.id.receiptInformationEmailFragment){
             navController.navigate(action)
         }
     }
 
     private fun toThankYou(){
-        val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
+        val navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment)
         if (navController.currentDestination?.id == R.id.receiptInformationEmailFragment){
             navController.navigate(R.id.action_receiptInformationEmailFragment_to_interaction_complete_fragment)
         }
@@ -352,7 +351,7 @@ class ReceiptInformationEmailFragment: ScopedFragment(), KodeinAware {
                 tripTotal.toFloat(),paymentType)
             .setPaymentType(paymentType)
             .setTripTotal(tripTotal.toFloat())
-        val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
+        val navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment)
         if (navController.currentDestination?.id == R.id.receiptInformationEmailFragment){
             navController.navigate(action)
         }

@@ -1,5 +1,6 @@
 package com.example.nts_pim.fragments_viewmodel.interaction_complete
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.net.ConnectivityManager
 import android.os.Bundle
@@ -113,7 +114,7 @@ class InteractionCompleteFragment : ScopedFragment(), KodeinAware {
         callbackViewModel.tripHasEnded()
     }
     private fun restartApp() {
-            val navController = Navigation.findNavController(activity!!, R.id.nav_host_fragment)
+            val navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment)
             if (navController.currentDestination?.id == R.id.interaction_complete_fragment) {
                 navController.navigate(R.id.toRestartNewTrip)
             }
@@ -121,37 +122,39 @@ class InteractionCompleteFragment : ScopedFragment(), KodeinAware {
     private fun checkIfTransactionIsComplete(){
         val isTransactionComplete = callbackViewModel.getIsTransactionComplete().value
             if(isTransactionComplete != null)
-                if(isTransactionComplete)
+                if(isTransactionComplete) {
                     callbackViewModel.squareChangeTransaction()
-
+                    LoggerHelper.writeToLog("square value of isTransactionComplete was true and now is $isTransactionComplete")
+                }
     }
     private fun runEndTripMutation() = launch {
         if (tripStatus != null &&
             tripStatus == VehicleStatusEnum.TRIP_PICKED_UP.status &&
-            isOnline(context!!)){
+            isOnline(requireContext())){
             Log.i("LOGGER", "trip status was still picked up. Sent end trip status")
             PIMMutationHelper.updateTripStatus(vehicleId, VehicleStatusEnum.TRIP_END.status, mAWSAppSyncClient!!, tripId)
         }
         if(tripStatus != null && tripStatus
             == VehicleStatusEnum.TRIP_PICKED_UP.status &&
-            !isOnline(context!!)){
+            !isOnline(requireContext())){
             //Internet is not connected so we will change the internal trip status
             callbackViewModel.addTripStatus("End")
             Log.i("LOGGER", "trip status was still picked up. Internet was not connected so changed internal value to End")
         }
     }
 
+    @SuppressLint("MissingPermission")
     private fun isOnline(context: Context): Boolean {
         val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
         val networkInfo = connectivityManager.activeNetworkInfo
         return networkInfo != null && networkInfo.isConnected
     }
     private fun setInternalCurrentTripStatus(){
-        val currentTrip = ModelPreferences(context!!).getObject(
+        val currentTrip = ModelPreferences(requireContext()).getObject(
             SharedPrefEnum.CURRENT_TRIP.key,
             CurrentTrip::class.java)
         currentTrip?.isActive = false
-        ModelPreferences(context!!).putObject(SharedPrefEnum.CURRENT_TRIP.key, currentTrip)
+        ModelPreferences(requireContext()).putObject(SharedPrefEnum.CURRENT_TRIP.key, currentTrip)
         TripDetails.textToSpeechActivated = false
         LoggerHelper.writeToLog("$logFragment, internal trip status changed. Trip Active ${currentTrip?.isActive}")
     }

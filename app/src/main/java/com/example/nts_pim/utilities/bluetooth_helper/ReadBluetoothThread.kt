@@ -22,7 +22,7 @@ class ReadBluetoothThread(private val socket: BluetoothSocket): Thread() {
                 val didTheParseWork = ntsPimPacket().parseData(bytes)
                 BlueToothHelper.getBlueToothData(message)
 
-  //              val data = ntsPimPacket().packetData.toString()
+             val data = ntsPimPacket().packetData.toString()
                 Log.i("BlueTooth Server", "Message Received: $message")
                 if(message.isNotEmpty()){
                     Log.i("BlueTooth", "Updating response to BlueToothDataCenter")
