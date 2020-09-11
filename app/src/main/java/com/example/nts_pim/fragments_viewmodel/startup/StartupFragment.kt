@@ -113,11 +113,6 @@ class StartupFragment: ScopedFragment(), KodeinAware {
         val isSetupComplete = viewModel.isSetUpComplete()
         if(isSetupComplete){
                 vehicleId = viewModel.getVehicleID()
-                var needToUpdateAWSDeviceId = DeviceIdCheck.needToUpdateBackendForDeviceId()
-                if(needToUpdateAWSDeviceId){
-                deviceId = DeviceIdCheck.getDeviceId()
-                PIMMutationHelper.updateDeviceId(deviceId!!, mAWSAppSyncClient!!, vehicleId!!)
-                }
                 deviceId = DeviceIdCheck.getDeviceId()
                 PIMMutationHelper.sendPIMStartTime(deviceId!!, mAWSAppSyncClient!!)
                 checkAWSForLogging(vehicleId!!)
@@ -142,6 +137,7 @@ class StartupFragment: ScopedFragment(), KodeinAware {
 
     private var awsLoggingQueryCallBack = object: GraphQLCall.Callback<GetPimInfoQuery.Data>() {
         override fun onResponse(response: Response<GetPimInfoQuery.Data>) {
+            Log.i("CheckingAWS", "${response.data()}")
             if (response.data() != null &&
                 !response.hasErrors()
             ) {

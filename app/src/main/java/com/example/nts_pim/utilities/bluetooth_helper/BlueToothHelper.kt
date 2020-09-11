@@ -32,6 +32,7 @@ object BlueToothHelper {
                 Any::class.java
             )
             method.invoke(device, null as Array<Any?>?)
+            Log.i("BlueToothHelper", "Trying to pair to ${device.name}")
         } catch (e: Exception) {
             e.printStackTrace()
         }

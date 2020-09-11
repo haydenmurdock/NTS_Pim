@@ -16,9 +16,9 @@ class BlueToothServerController(act: Activity): Thread() {
 
          init {
         val btAdapter = BluetoothAdapter.getDefaultAdapter()
-        if (btAdapter != null) {
-           serverSocket = btAdapter.listenUsingRfcommWithServiceRecord("NTS", _uuid) // 1
-        }
+//        if (btAdapter != null) {
+//           serverSocket = btAdapter.listenUsingRfcommWithServiceRecord("NTS", _uuid) // 1
+//        }
     }
 
     override fun run() {

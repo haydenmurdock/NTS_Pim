@@ -88,7 +88,7 @@ class BluetoothSetupFragment: ScopedFragment(), KodeinAware {
                     vehicleId!!,
                     VehicleTripArrayHolder.cardReaderStatus,
                     mAWSAppSyncClient!!,
-                    cal!!)
+                    cal)
                 toWelcomeScreen()
             }
         }

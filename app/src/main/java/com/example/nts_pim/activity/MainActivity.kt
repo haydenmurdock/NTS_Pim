@@ -150,7 +150,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                 val currentTrip = ModelPreferences(applicationContext)
                     .getObject(SharedPrefEnum.CURRENT_TRIP.key, CurrentTrip::class.java)
                 lastTrip = currentTrip
-                if (!vehicleSubscriptionComplete) {
+                if  (!vehicleSubscriptionComplete) {
                     Log.i("Results", "Vehicle subscription was started from re-sync")
                     subscribeToUpdateVehTripStatus(vehicleId)
                     subscribeToUpdatePimSettings()
@@ -672,7 +672,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
     }
 
     private fun setUpBluetoothServer(activity: Activity) {
-        BlueToothServerController(activity).start()
+       // BlueToothServerController(activity).start()
     }
         override fun onDestroy() {
         Log.i("SubscriptionWatcher", "Subscription watcher canceled for $vehicleId")
@@ -712,6 +712,5 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
             ViewHelper.hideSystemUI(this)
         }
     }
-
 }
 

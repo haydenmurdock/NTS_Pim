@@ -5,11 +5,14 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
+import android.telecom.TelecomManager
+import android.telephony.TelephonyManager
 import android.text.InputType
 import android.util.Log
 import android.view.Gravity
@@ -78,7 +81,7 @@ import java.util.*
 
 class VehicleSetupFragment:ScopedFragment(), KodeinAware {
     override val kodein by closestKodein()
-    private val viewModelFactory: VehicleSetupModelFactory by instance()
+    private val viewModelFactory: VehicleSetupModelFactory by instance<VehicleSetupModelFactory>()
     private lateinit var viewModel: VehicleSetupViewModel
     private lateinit var keyboardViewModel: SettingsKeyboardViewModel
     private var mAWSAppSyncClient: AWSAppSyncClient? = null
@@ -86,7 +89,7 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
     private var readerSettingsCallbackRef: CallbackReference? = null
     private val authManager = ReaderSdk.authorizationManager()
     private val setNamesArray =
-        arrayOf("UUID", "PIN", "Vehicle ID", "Authorization","Knox Startup", "Bluetooth Setup")
+        arrayOf("UUID", "PIN", "Vehicle ID", "Authorization","Knox Startup", "Square Connection")
     private val setBooleanArray = arrayOf(false, false, false, false, false,false)
     private var deviceId = ""
     private var androidId = ""
@@ -315,26 +318,25 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
             appVersion = BuildConfig.VERSION_NAME
             blueToothAddress = getBluetoothAddress()
             mAWSAppSyncClient!!.query(GetPimSettingsQuery.builder().deviceId(deviceID).build())
-                ?.responseFetcher(AppSyncResponseFetchers.CACHE_AND_NETWORK)
+                ?.responseFetcher(AppSyncResponseFetchers.NETWORK_ONLY)
                 ?.enqueue(vehicleIdQueryCallBack)
         } else {
             if (!checkedAndroidId){
                 checkedAndroidId = true
                 mAWSAppSyncClient!!.query(GetPimSettingsQuery.builder().deviceId(deviceID).build())
-                    ?.responseFetcher(AppSyncResponseFetchers.CACHE_AND_NETWORK)
+                    ?.responseFetcher(AppSyncResponseFetchers.NETWORK_ONLY)
                     ?.enqueue(vehicleIdQueryCallBack)
             }
         }
     }
     private val vehicleIdQueryCallBack = object : GraphQLCall.Callback<GetPimSettingsQuery.Data>() {
         override fun onResponse(response: Response<GetPimSettingsQuery.Data>) {
+            Log.i("vehicleIdQuery", "reponse: ${response.data()}")
             val callBackVehicleID = response.data()?.pimSettings?.vehicleId()
             val errorCode = response.data()?.pimSettings?.errorCode()
             when(errorCode){
                     "1014" -> {
-                            if(checkedDeviceId && !checkedAndroidId) {
-                                checkForPairedVehicleID(androidId)
-                            }
+                           //this is where we would check for an android Id as well.
                         }
                     }
             if(!response.hasErrors()){
@@ -348,6 +350,9 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
                     }
                 }
             }
+            if(response.hasErrors()){
+                Log.i("VehicleIdError", "Error when getting vehicleId. ${response.errors()}")
+            }
         }
         override fun onFailure(e: ApolloException) {
             Log.i("VehicleSetup", "Response for getting device ID has Apollo Exception. Error: ${e.message}")
@@ -355,27 +360,7 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
     }
     @SuppressLint("HardwareIds")
     private fun updateDeviceId(deviceId: String, vehicleId: String){
-        val newDeviceID: String = Settings.Secure.getString(requireActivity().contentResolver,
-            Settings.Secure.ANDROID_ID)
-        val input = UpdateDeviceIdPIMInput.builder()
-            .deviceId(newDeviceID)
-            .vehicleId(vehicleId)
-            .build()
-        mAWSAppSyncClient?.mutate(UpdateDeviceIdPimMutation.builder().parameters(input).build())
-            ?.enqueue(updateDeviceIdCallBack)
-    }
-    private val updateDeviceIdCallBack =  object : GraphQLCall.Callback<UpdateDeviceIdPimMutation.Data>(){
-        override fun onResponse(response: Response<UpdateDeviceIdPimMutation.Data>) {
-            if(!response.hasErrors()){
-                Log.i("VehicleSetup", "Updated device Id for $vehicleID from $androidId to $deviceId")
-            } else {
-                Log.i("VehicleSetup", "Response for updating for device ID has errors. Error: ${response.errors()[0].message()}")
-            }
-        }
-
-        override fun onFailure(e: ApolloException) {
-            Log.i("VehicleSetup", "Response for updating for device ID has Apollo Exception. Error: ${e.message}")
-        }
+        PIMMutationHelper.updateDeviceId(deviceId,mAWSAppSyncClient!!, vehicleId)
     }
     private fun getBluetoothAddress(): String?{
         // We will use this for BlueTooth setup with the driver tablet
@@ -804,7 +789,9 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
         ) {
             return
         }
-        PIMMutationHelper.updatePimSettings(blueToothAddress, appVersion, "Unknown", mAWSAppSyncClient!!, deviceId)
+        val telephonyManager = context?.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
+        val phoneNumber = telephonyManager.line1Number
+        PIMMutationHelper.updatePimSettings(blueToothAddress, appVersion, phoneNumber, mAWSAppSyncClient!!, deviceId)
         super.onPause()
     }
     override fun onDestroy() {

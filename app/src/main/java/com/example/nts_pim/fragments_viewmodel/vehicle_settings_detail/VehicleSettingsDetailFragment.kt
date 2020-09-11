@@ -31,7 +31,9 @@ import org.kodein.di.android.x.closestKodein
 import org.kodein.di.generic.instance
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.os.Build
 import android.util.Log
+import androidx.annotation.RequiresApi
 import com.amazonaws.amplify.generated.graphql.UnpairPimMutation
 import com.amazonaws.mobileconnectors.appsync.AWSAppSyncClient
 import com.apollographql.apollo.GraphQLCall
@@ -66,7 +68,7 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
 
     //kodein and viewModel/Factory
     override val kodein by closestKodein()
-    private val viewModelFactory: VehicleSettingsDetailViewModelFactory by instance()
+    private val viewModelFactory: VehicleSettingsDetailViewModelFactory by instance<VehicleSettingsDetailViewModelFactory>()
     private lateinit var callBackViewModel: CallBackViewModel
     private lateinit var viewModel: VehicleSettingsDetailViewModel
     private lateinit var keyboardViewModel: SettingsKeyboardViewModel
@@ -325,6 +327,7 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
             }
         }
     }
+
     private fun updateUI(batteryStatus: Boolean) {
         val alpha = 1.00f
         val duration = 500.toLong()
@@ -335,12 +338,17 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
         imei_textView.text = "Device Identifier: $deviceId"
         logging_textView.text = "Logging: $isLoggingOn"
         val c = context?.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
-        val bucket = c.appStandbyBucket.toString()
+        val bucket = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            c.appStandbyBucket.toString()
+        } else {
+            val bucket = "50"
+        }
         when(bucket){
             "10" -> power_status_textView.text = "Power Status: Active"
             "20" -> power_status_textView.text = "Power Status:Working Set"
             "30" -> power_status_textView.text = "Power Status:Frequent"
             "40" -> power_status_textView.text = "Power Status:Stand by"
+            "50" -> power_status_textView.text = "Current OS version does not support power bucket check"
         }
         val currentBatteryTemp = BatteryPowerReceiver.temp
         battery_temp_textView.text = "Battery Temp: $currentBatteryTemp F"

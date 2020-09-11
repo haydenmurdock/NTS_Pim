@@ -77,8 +77,8 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
     private val currentFragmentId = R.id.welcome_fragment
     private val logFragment = "Welcome Screen"
 
-    private val batteryCheckTimer = object : CountDownTimer( 3600000, 1000) {
-        //Every 60 minutes  we are doing a battery check.
+    private val batteryCheckTimer = object : CountDownTimer( 600000, 60000) {
+        //Every 10 minutes  we are doing a battery check.
         override fun onTick(millisUntilFinished: Long) {
         }
 

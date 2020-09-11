@@ -63,7 +63,7 @@ class DeviceIdUpdate: ScopedFragment(), KodeinAware {
     private fun goToVehicleStartUp(){
         val navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment)
         if (navController.currentDestination?.id == currentFragmentId) {
-            navController.navigate(R.id.bluetoothSetupFragment)
+            navController.navigate(R.id.startupFragment)
         }
     }
 }
