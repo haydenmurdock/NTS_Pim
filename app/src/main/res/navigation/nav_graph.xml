@@ -286,13 +286,13 @@
             android:id="@+id/bluetoothSetupFragment"
             android:name="com.example.nts_pim.fragments_viewmodel.bluetooth_setup.BluetoothSetupFragment"
             android:label="BluetoothSetupFragment" >
-        <action
-                android:id="@+id/action_bluetoothSetupFragment_to_welcome_fragment"
-                app:destination="@id/welcome_fragment" />
         <argument
                 android:name="lastCheckedStatus"
                 app:argType="string"
                 app:nullable="true" />
+        <action
+                android:id="@+id/action_bluetoothSetupFragment_to_blueToothPairingFragment"
+                app:destination="@id/blueToothPairingFragment" />
     </fragment>
     <fragment
             android:id="@+id/deviceIdUpdate"
@@ -301,6 +301,15 @@
         <action
                 android:id="@+id/action_deviceIdUpdate_to_startupFragment"
                 app:destination="@id/startupFragment" />
+    </fragment>
+    <fragment
+            android:id="@+id/blueToothPairingFragment"
+            android:name="com.example.nts_pim.fragments_viewmodel.bluetooth_pairing.BlueToothPairingFragment"
+            android:label="fragment_blue_tooth_pairing"
+            tools:layout="@layout/fragment_blue_tooth_pairing" >
+        <action
+                android:id="@+id/action_blueToothPairingFragment_to_welcome_fragment"
+                app:destination="@id/welcome_fragment" />
     </fragment>
 
 

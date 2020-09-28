@@ -11,5 +11,6 @@ enum class PIMStatusEnum(val status: String) {
     SQUARE_PAYMENT_COMPLETE("PAYMENT_COMPLETE|Passenger has completed payment"),
     PAYMENT_ERROR("PAYMENT_ERROR|There was an error during Passenger payment"),
     RECEIPT_SCREEN("RECEIPT_SCREEN| Passenger is viewing a receipt screen"),
+    PIM_PAIRING("PIM_PAIRING: Pim is looking to pair with driver tablet"),
     ERROR_UPDATING("ERROR| Syncing error. Try again")
 }

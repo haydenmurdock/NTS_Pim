@@ -380,15 +380,16 @@ class SquareService : OnLayoutChangeListener,
                 override fun onTick(millisUntilFinished: Long) {
                     val newViewGroup =
                         squareActivity?.findViewById<TextView>(com.squareup.sdk.reader.api.R.id.reader_message_bar_current_text_view)
-                    val squareReaderState = newViewGroup?.text
-                    Log.i(tag, "Reader Check Timer: squareReaderState: $squareReaderState")
-                    if (squareReaderState == null){
+                    val mSquareReaderState = newViewGroup?.text
+                    Log.i(tag, "Reader Check Timer: squareReaderState: $mSquareReaderState")
+                    LoggerHelper.writeToLog("$tag, Reader Check Timer: squareReaderState: $mSquareReaderState")
+                    if (mSquareReaderState == null){
                         Log.i(tag, "Reader checked via readerCheckTimer. Text view was null but timer was still going")
                         LoggerHelper.writeToLog("$tag, Reader checked via readerCheckTimer. Text view was null but timer is still going. Will check again in 2.5 seconds.")
                         stopReaderCheckTimeout()
                         return
                     }
-                    if (squareReaderState.contains("Reader Ready")) {
+                    if (mSquareReaderState.contains("Reader Ready")) {
                         Log.i(tag, "Reader checked via readerCheckTimer. Reader is Connected")
                         LoggerHelper.writeToLog("$tag, Reader checked via readerCheckTimer. Reader is Connected")
                         VehicleTripArrayHolder.updateReaderStatus(ReaderStatusEnum.CONNECTED.status)

@@ -1,6 +1,8 @@
 package com.example.nts_pim.fragments_viewmodel.welcome
 
 import android.content.Intent
+import android.content.IntentFilter
+import android.os.BatteryManager
 import android.os.Bundle
 import android.os.CountDownTimer
 import android.os.Handler
@@ -310,7 +312,12 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
     }
 
     private fun batteryStatusCheck() {
-        val isCharging = BatteryPowerReceiver.isCharging
+        val batteryStatus: Intent? = IntentFilter(Intent.ACTION_BATTERY_CHANGED).let { ifilter ->
+            context?.registerReceiver(null, ifilter)
+        }
+        val status: Int = batteryStatus?.getIntExtra(BatteryManager.EXTRA_STATUS, -1) ?: -1
+        val isCharging: Boolean = status == BatteryManager.BATTERY_STATUS_CHARGING
+                || status == BatteryManager.BATTERY_STATUS_FULL
         if (!isCharging) {
             LoggerHelper.writeToLog("$logFragment: Battery Check: is charging: $isCharging, sending request for shutdown")
             val action =  "com.claren.tablet_control.shutdown"

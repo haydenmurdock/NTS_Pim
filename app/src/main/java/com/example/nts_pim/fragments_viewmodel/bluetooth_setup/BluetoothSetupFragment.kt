@@ -1,7 +1,6 @@
 package com.example.nts_pim.fragments_viewmodel.bluetooth_setup
 
 import android.annotation.SuppressLint
-import android.app.Activity
 import android.bluetooth.BluetoothAdapter
 import android.os.Bundle
 import android.util.Log
@@ -25,7 +24,6 @@ import com.example.nts_pim.fragments_viewmodel.callback.CallBackViewModel
 import com.example.nts_pim.fragments_viewmodel.vehicle_setup.VehicleSetupModelFactory
 import com.example.nts_pim.fragments_viewmodel.vehicle_setup.VehicleSetupViewModel
 import com.example.nts_pim.utilities.bluetooth_helper.BlueToothHelper
-import com.example.nts_pim.utilities.bluetooth_helper.BlueToothServerController
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import com.example.nts_pim.utilities.mutation_helper.PIMMutationHelper
 import com.google.gson.Gson
@@ -89,7 +87,7 @@ class BluetoothSetupFragment: ScopedFragment(), KodeinAware {
                     VehicleTripArrayHolder.cardReaderStatus,
                     mAWSAppSyncClient!!,
                     cal)
-                toWelcomeScreen()
+                toBluetoothPairing()
             }
         }
     }
@@ -139,7 +137,7 @@ class BluetoothSetupFragment: ScopedFragment(), KodeinAware {
                 } else { Log.i("Square", "last reader check == $lastCheckStatus. Internal status of reader is ${VehicleTripArrayHolder.cardReaderStatus}. Did Not update AWS for Second reader check.")
                  LoggerHelper.writeToLog("last reader check == $lastCheckStatus. Internal status of reader is ${VehicleTripArrayHolder.cardReaderStatus}. Did Not update AWS for Second reader check.")
                 }
-                toWelcomeScreen()
+                toBluetoothPairing()
             }
         })
         //adding devices to adapter and device array. If there is not a SAMSUNG device bonded it starts the discovery mode.
@@ -249,10 +247,9 @@ class BluetoothSetupFragment: ScopedFragment(), KodeinAware {
        readerSdk.authorize(authorizationCode)
     }
     //Navigation
-
-    private fun toWelcomeScreen() = launch(Dispatchers.Main.immediate){
+    private fun toBluetoothPairing() = launch(Dispatchers.Main.immediate){
         if (navController?.currentDestination?.id == currentFragmentId) {
-            navController?.navigate(R.id.action_bluetoothSetupFragment_to_welcome_fragment)
+            navController?.navigate(R.id.action_bluetoothSetupFragment_to_blueToothPairingFragment)
         }
     }
 

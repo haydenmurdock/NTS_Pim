@@ -36,6 +36,7 @@ import com.example.nts_pim.fragments_viewmodel.callback.CallBackViewModel
 import com.example.nts_pim.utilities.device_id_check.DeviceIdCheck
 import com.example.nts_pim.fragments_viewmodel.vehicle_setup.VehicleSetupModelFactory
 import com.example.nts_pim.fragments_viewmodel.vehicle_setup.VehicleSetupViewModel
+import com.example.nts_pim.utilities.bluetooth_helper.BluetoothDataCenter
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import com.example.nts_pim.utilities.mutation_helper.PIMMutationHelper
 import com.google.gson.Gson
@@ -148,6 +149,7 @@ class StartupFragment: ScopedFragment(), KodeinAware {
                 val awsPhoneNumber = response.data()?.pimInfo?.phoneNbr()
                 val pimPaired = response.data()?.pimInfo?.paired() ?: true
                 val awsDeviceId = response.data()?.pimInfo?.deviceId()
+                val useBluetooth = response.data()?.pimInfo?.useBluetooth()
 
                 if (!pimPaired){
                 launch {
@@ -179,6 +181,18 @@ class StartupFragment: ScopedFragment(), KodeinAware {
                 if(awsPhoneNumber != phoneNumber){
                     Log.i("LOGGER", "updating aws with phone number. AWS number: $awsPhoneNumber, phone number: $phoneNumber")
                     PIMMutationHelper.updatePimSettings(blueToothAddress, appVersionNumber, phoneNumber, mAWSAppSyncClient!!, deviceId!!)
+                }
+                if(useBluetooth != null){
+                    if(useBluetooth == true){
+                        launch(Dispatchers.Main){
+                            BluetoothDataCenter.turnOnBlueTooth()
+                        }
+
+                    } else {
+                        launch(Dispatchers.Main) {
+                            BluetoothDataCenter.turnOffBlueTooth()
+                        }
+                    }
                 }
             }
         }

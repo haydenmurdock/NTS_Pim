@@ -18,6 +18,7 @@ import com.example.nts_pim.fragments_viewmodel.vehicle_settings_detail.VehicleSe
 import com.example.nts_pim.fragments_viewmodel.vehicle_setup.VehicleSetupModelFactory
 import com.example.nts_pim.fragments_viewmodel.welcome.WelcomeViewModelFactory
 import com.example.nts_pim.utilities.LifeCycleCallBacks
+import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import com.jakewharton.threetenabp.AndroidThreeTen
 import com.squareup.sdk.reader.ReaderSdk
 import org.kodein.di.Kodein
@@ -55,7 +56,6 @@ class PimApplication : Application(), KodeinAware{
         lateinit var pimContext: Context
     }
 
-    val CHANNEL_ID = "powerservicechannel"
         override fun onCreate() {
             super.onCreate()
             try {
@@ -66,22 +66,13 @@ class PimApplication : Application(), KodeinAware{
             }
             AndroidThreeTen.init(this)
             registerActivityLifecycleCallbacks(LifeCycleCallBacks())
-            //createNotificationChannel()
             try {
                 ReaderSdk.initialize(this)
-            } catch(e: SecurityException){
-                Log.e("Square Error", "error: $e")
+            } catch(e: Exception){
+               LoggerHelper.writeToLog("issue initializing square. Error: $e")
             }
 
             Log.i("LOGGER",   "initialized readerSDK")
         }
-        private fun createNotificationChannel(){
-           val notificationChannel = NotificationChannel(
-               CHANNEL_ID,
-               "Power Service Channel",
-               NotificationManager.IMPORTANCE_HIGH
-           )
-            val manager: NotificationManager = getSystemService(NotificationManager::class.java)
-            manager.createNotificationChannel(notificationChannel)
-        }
+
 }

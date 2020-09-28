@@ -3,6 +3,7 @@ package com.example.nts_pim.activity
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothDevice
 import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
@@ -29,10 +30,7 @@ import com.amazonaws.mobileconnectors.appsync.fetcher.AppSyncResponseFetchers
 import com.apollographql.apollo.GraphQLCall
 import com.apollographql.apollo.api.Response
 import com.apollographql.apollo.exception.ApolloException
-import com.example.nts_pim.BatteryPowerReceiver
-import com.example.nts_pim.NetworkReceiver
-import com.example.nts_pim.R
-import com.example.nts_pim.UnlockScreenLock
+import com.example.nts_pim.*
 import com.example.nts_pim.data.repository.VehicleTripArrayHolder
 import com.example.nts_pim.data.repository.model_objects.CurrentTrip
 import com.example.nts_pim.data.repository.providers.ModelPreferences
@@ -42,8 +40,9 @@ import com.example.nts_pim.fragments_viewmodel.callback.CallBackViewModel
 import com.example.nts_pim.utilities.device_id_check.DeviceIdCheck
 import com.example.nts_pim.fragments_viewmodel.vehicle_setup.VehicleSetupModelFactory
 import com.example.nts_pim.fragments_viewmodel.vehicle_setup.VehicleSetupViewModel
-import com.example.nts_pim.utilities.bluetooth_helper.BlueToothHelper
-import com.example.nts_pim.utilities.bluetooth_helper.BlueToothServerController
+import com.example.nts_pim.utilities.bluetooth_helper.BluetoothDataCenter
+import com.example.nts_pim.utilities.bluetooth_helper.ConnectThread
+import com.example.nts_pim.utilities.bluetooth_helper.ConnectedThread
 import com.example.nts_pim.utilities.driver_receipt.DriverReceiptHelper
 import com.example.nts_pim.utilities.enums.MeterEnum
 import com.example.nts_pim.utilities.enums.PIMStatusEnum
@@ -98,8 +97,11 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
     private val logFragment = "Background Activity"
     private var mNetworkReceiver: NetworkReceiver? = null
     private var mBatteryReceiver: BatteryPowerReceiver? = null
+    private var mBluetoothReceiver: BluetoothReceiver? = null
     private var watchingTripId = ""
     internal var unpairPIMSubscription = false
+    internal var isBluetoothOnAWS = false
+    private var driverTablet: BluetoothDevice? = null
 
     companion object  {
         lateinit var mainActivity: MainActivity
@@ -135,7 +137,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
             }
         })
         forceSpeaker()
-        setUpBluetooth()
+        turnOnBluetooth()
         checkNavBar()
         registerReceivers()
         LoggerHelper.getOrStartInternalLogs()
@@ -228,6 +230,51 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                 subscribeToUpdatePimSettings()
             }
         })
+        //BlueTooth Stuff
+        BluetoothDataCenter.isBluetoothOn().observe(this, Observer { blueToothOn ->
+            if(blueToothOn){
+                isBluetoothOnAWS = true
+                clearAllSubscriptions()
+                BluetoothDataCenter.getIsDeviceFound().observe(this, Observer {deviceIsFound ->
+                    if(deviceIsFound){
+                        driverTablet = BluetoothDataCenter.getDriverTablet()
+                        if(driverTablet != null){
+                            ConnectThread(driverTablet!!).start()
+                        } else {
+                            Log.i("Bluetooth", "Connect thread didn't start since device id was null")
+                        }
+                    }
+                    if(!deviceIsFound){
+                        Log.i("Bluetooth", "Driver tablet was lost/not connected")
+                    }
+                })
+            }
+        })
+        BluetoothDataCenter.isBluetoothSocketConnected().observe(this, Observer { socketConnected ->
+
+            if(isBluetoothOnAWS && socketConnected){
+                Log.i("Bluetooth", "Socket is connected and aws bluetooth is on. Creating Connected Thread")
+                val socket = BluetoothDataCenter.getBTSocket()
+                if(socket != null){
+                    ConnectedThread(socket).start()
+                } else {
+                    Log.i("Bluetooth", "Socket is null. Need to recreate socket connection")
+                }
+            }
+            if(isBluetoothOnAWS && !socketConnected) {
+                val bluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
+                while (true)
+                    if (!bluetoothAdapter.isDiscovering) {
+                        Log.i("Bluetooth", "bluetooth wasn't discovering so we are starting discovering")
+                        bluetoothAdapter.cancelDiscovery()
+                        bluetoothAdapter.startDiscovery()
+                    }
+            }
+        })
+
+        BluetoothDataCenter.isConnectedToDriverTablet().observe(this, Observer {
+
+        })
     }
 
     private fun clearAllSubscriptions(){
@@ -235,12 +282,18 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
         tripSubscriptionComplete = false
         subscriptionWatcherDoPimPayment?.cancel()
         subscriptionWatcherDoPimPayment = null
-        subscriptionWatcherUpdatePimSettings?.cancel()
-        subscriptionWatcherUpdatePimSettings = null
         subscriptionWatcherUpdateVehTripStatus?.cancel()
         subscriptionWatcherUpdateVehTripStatus = null
-        subscriptionWatcherUnPairPIM?.cancel()
-        subscriptionWatcherUnPairPIM = null
+        if (!isBluetoothOnAWS){
+            subscriptionWatcherUpdatePimSettings?.cancel()
+            subscriptionWatcherUpdatePimSettings = null
+            subscriptionWatcherUnPairPIM?.cancel()
+            subscriptionWatcherUnPairPIM = null
+        } else {
+            LoggerHelper.writeToLog("PIM is suppose to use bluetooth. keeping subscription to pimSettings and Unpair pim")
+            Log.i("Bluetooth", "PIM is suppose to use bluetooth. keeping subscription to pimSettings and Unpair pim")
+        }
+
         LoggerHelper.writeToLog("PIM is offline. Canceled vehicle subscription, doPimPayment,and PIM Settings")
     }
     private fun clearObserverOnMeter(){
@@ -433,6 +486,8 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
         override fun onResponse(response: Response<OnPimSettingsUpdateSubscription.Data>) {
             if(!response.hasErrors()){
                 val awsLog = response.data()?.onPIMSettingsUpdate()?.log()!!
+                //We will use this value if the bluetooth is changed in fleet mgmt portal
+                val useBluetooth = response.data()?.onPIMSettingsUpdate()?.useBluetooth()
                 LoggerHelper.logging = awsLog
                 if(awsLog){
                     launch(Dispatchers.IO) {
@@ -588,6 +643,14 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
         //Battery receiver
         mBatteryReceiver = BatteryPowerReceiver()
         registerReceiver(mBatteryReceiver, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
+
+        mBluetoothReceiver = BluetoothReceiver()
+        val filter = IntentFilter()
+        filter.addAction(BluetoothDevice.ACTION_FOUND)
+        filter.addAction(BluetoothDevice.ACTION_ACL_CONNECTED)
+        filter.addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED)
+        registerReceiver(mBluetoothReceiver, filter)
+
     }
     private fun recheckInternetConnection(context: Context){
         if(internetConnectionTimer == null){
@@ -655,7 +718,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
     }
 
     @SuppressLint("MissingPermission")
-    private fun setUpBluetooth(){
+    private fun turnOnBluetooth(){
         val mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
         if (mBluetoothAdapter == null){
             LoggerHelper.writeToLog("$logFragment, bluetooth is not supported on this device")
@@ -667,13 +730,9 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
             mBluetoothAdapter.enable()
         } else {
             LoggerHelper.writeToLog("${logFragment}, bluetooth was on during start up")
-            setUpBluetoothServer(this)
         }
     }
 
-    private fun setUpBluetoothServer(activity: Activity) {
-       // BlueToothServerController(activity).start()
-    }
         override fun onDestroy() {
         Log.i("SubscriptionWatcher", "Subscription watcher canceled for $vehicleId")
         subscriptionWatcherUpdateVehTripStatus?.cancel()
@@ -684,9 +743,9 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
         callbackViewModel.isPIMOverheating().removeObservers(this)
         unregisterReceiver(mNetworkReceiver)
         unregisterReceiver(mBatteryReceiver)
+            unregisterReceiver(mBluetoothReceiver)
         stopLogTimer()
         vehicleSubscriptionTimer?.cancel()
-        BlueToothHelper.unregisterBlueToothReceiver(this)
         LoggerHelper.writeToLog("$logFragment, MainActivity onDestroy hit")
         super.onDestroy()
     }
