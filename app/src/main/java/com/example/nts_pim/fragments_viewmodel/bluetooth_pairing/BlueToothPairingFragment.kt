@@ -33,7 +33,6 @@ import org.kodein.di.android.x.closestKodein
 import org.kodein.di.generic.instance
 import java.lang.IllegalArgumentException
 
-// TODO: Rename parameter arguments, choose names that match
 // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
 
 
@@ -68,8 +67,6 @@ class BlueToothPairingFragment : ScopedFragment(), KodeinAware {
         vehicleId = viewModel.getVehicleID()
         bt_connected_textView.text = "Pair with driver tablet: $isBluetoothOn"
         bt_description_textView.text = "Searching for $vehicleId..."
-
-
         if(!isBluetoothOn!!){
             Log.i("${logTag}", "Bluetooth pairing is off. Going to welcome screen")
             LoggerHelper.writeToLog("${logTag}, Bluetooth pairing is off. Going to welcome screen")

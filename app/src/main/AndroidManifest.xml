@@ -57,13 +57,13 @@
                 android:name="com.google.android.actions"
                 android:resource="@xml/acc_config" />
 
-        <receiver android:name=".NetworkReceiver">
+        <receiver android:name=".receivers.NetworkReceiver">
             <intent-filter>
                 <action android:name="android.net.conn.CONNECTIVITY_CHANGE" />
             </intent-filter>
         </receiver>
 
-        <receiver android:name=".BatteryPowerReceiver">
+        <receiver android:name=".receivers.BatteryPowerReceiver">
             <intent-filter>
                 <action android:name="android.intent.action.BATTERY_CHANGED"/>
             </intent-filter>

@@ -23,7 +23,6 @@ import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.TimeUnit
 import kotlin.ConcurrentModificationException
-import kotlin.Error
 
 
 object LoggerHelper {
@@ -149,7 +148,8 @@ object LoggerHelper {
 
     private fun saveArrayList(list: ArrayList<String?>) {
         try {
-            val prefs: SharedPreferences = PreferenceManager.getDefaultSharedPreferences(PimApplication.pimContext)
+            val prefs: SharedPreferences = PreferenceManager.getDefaultSharedPreferences(
+                PimApplication.pimContext)
             val editor: SharedPreferences.Editor = prefs.edit()
             val gson = Gson()
             val json: String = gson.toJson(list)

@@ -184,18 +184,13 @@ class StartupFragment: ScopedFragment(), KodeinAware {
                 }
                 if(useBluetooth != null){
                     if(useBluetooth == true){
-                        launch(Dispatchers.Main){
                             BluetoothDataCenter.turnOnBlueTooth()
-                        }
-
-                    } else {
-                        launch(Dispatchers.Main) {
+                        } else {
                             BluetoothDataCenter.turnOffBlueTooth()
                         }
                     }
                 }
             }
-        }
         override fun onFailure(e: ApolloException) {
         }
     }

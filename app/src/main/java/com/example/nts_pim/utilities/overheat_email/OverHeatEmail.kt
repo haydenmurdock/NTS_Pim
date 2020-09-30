@@ -2,9 +2,7 @@ package com.example.nts_pim.utilities.overheat_email
 
 
 import android.annotation.SuppressLint
-import com.example.nts_pim.PimApplication
 import io.reactivex.Completable
-import org.threeten.bp.DateTimeUtils
 import java.text.ParseException
 import java.text.SimpleDateFormat
 import java.util.*

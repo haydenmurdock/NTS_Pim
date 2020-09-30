@@ -1,4 +1,4 @@
-package com.example.nts_pim
+package com.example.nts_pim.receivers
 
 import android.annotation.SuppressLint
 import android.content.BroadcastReceiver

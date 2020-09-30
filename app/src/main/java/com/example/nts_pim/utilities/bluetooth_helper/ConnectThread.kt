@@ -15,10 +15,14 @@ class ConnectThread(device: BluetoothDevice) : Thread() {
     private val logTag = "Bluetooth_Connect_Thread"
     private var bluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
     private var mmSocket: BluetoothSocket? = null
+    private var hasBeenInit = false
     init {
         if(mmSocket == null){
             Log.i("Bluetooth", "Socket was null so created socket")
-             mmSocket = device.createInsecureRfcommSocketToServiceRecord(BlueToothHelper._UUID)
+            if(!hasBeenInit){
+                hasBeenInit = true
+                mmSocket = device.createInsecureRfcommSocketToServiceRecord(BlueToothHelper._UUID)
+            }
         }
     }
 
@@ -33,11 +37,10 @@ class ConnectThread(device: BluetoothDevice) : Thread() {
             }
             } catch (e: IOException){
             Log.i("Bluetooth", "socket error. $e")
-            BluetoothDataCenter.blueToothSocketIsDisconnected()
-            BluetoothDataCenter.disconnectedToDriverTablet()
+            hasBeenInit = false
            }
         }
-         private fun cancelThread() {
+         fun cancelThread() {
              try {
                  mmSocket?.close()
                  Log.i("Bluetooth", "socket is closed")
@@ -49,9 +52,9 @@ class ConnectThread(device: BluetoothDevice) : Thread() {
 
 }
 
-class ConnectedThread(private var mmSocket: BluetoothSocket) : Thread() {
-    private var mmInStream: InputStream = mmSocket.inputStream
-    private var mmOutStream: OutputStream = mmSocket.outputStream
+class ConnectedThread(private var mmSocket: BluetoothSocket?) : Thread() {
+    private var mmInStream: InputStream? = mmSocket?.inputStream
+    private var mmOutStream: OutputStream? = mmSocket?.outputStream
     private val mmBuffer: ByteArray = ByteArray(1024) // mmBuffer store for the stream
 
     init {
@@ -66,12 +69,11 @@ class ConnectedThread(private var mmSocket: BluetoothSocket) : Thread() {
 
     override fun run() {
         this.name = "Connected Thread"
-        var numBytes: Int // bytes returned from read()
         // Keep listening to the InputStream until an exception occurs
         while (true) {
             // Read from the InputStream.
-            numBytes = try {
-                mmInStream.read(mmBuffer)
+            try {
+                mmInStream?.read(mmBuffer)
             } catch (e: IOException) {
                 Log.d(TAG, "Input stream was disconnected", e)
                 BluetoothDataCenter.blueToothSocketIsDisconnected()
@@ -96,18 +98,17 @@ class ConnectedThread(private var mmSocket: BluetoothSocket) : Thread() {
     internal fun write(bytes: ByteArray?) {
         try {
             Log.i("bluetooth", "Writing bytes")
-            mmOutStream.write(bytes)
-            mmOutStream.flush()
+            mmOutStream?.write(bytes)
+            mmOutStream?.flush()
         } catch (e: IOException) {
             Log.i("bluetooth", "error writing bytes")
-            BluetoothDataCenter.blueToothSocketIsDisconnected()
         }
     }
 
     /* Call this from the main activity to shutdown the connection */
     fun cancel() {
         try {
-            mmSocket.close()
+            mmSocket?.close()
         } catch (e: IOException) {
         }
     }

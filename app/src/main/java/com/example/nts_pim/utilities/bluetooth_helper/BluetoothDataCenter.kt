@@ -23,11 +23,12 @@ object BluetoothDataCenter {
     private var responseMessageMutableLiveData =  MutableLiveData<String>()
     private var blueToothSocket: BluetoothSocket? = null
     private var btDriverTablet: BluetoothDevice? = null
-    val logtag = "Bluetooth_Data_Center"
+    private val logtag = "Bluetooth_Data_Center"
 
     init {
         responseMessage = ""
         connectedToDriverTabletMLD.postValue(connectedToDriverTablet)
+        useBlueToothMLD.postValue(useBluetooth)
     }
 
 
@@ -39,16 +40,14 @@ object BluetoothDataCenter {
     }
 
     internal fun updateDriverTabletBTDevice(device: BluetoothDevice){
-        if(device != btDriverTablet){
             btDriverTablet = device
             Log.i("$logtag", "Data Center has been updated with driver tablet for connection.")
             blueToothDeviceFound()
-        }
     }
     private fun blueToothDeviceFound(){
         driverTabletFound = true
-        driverTabletFoundMLD.value = driverTabletFound
-    }
+        driverTabletFoundMLD.postValue(driverTabletFound)
+}
 
     internal fun getIsDeviceFound() = driverTabletFoundMLD
 
@@ -59,12 +58,12 @@ object BluetoothDataCenter {
 
     internal fun turnOnBlueTooth() {
         useBluetooth = true
-        useBlueToothMLD.value = useBluetooth
+        useBlueToothMLD.postValue(useBluetooth)
         Log.i("$logtag", "bluetooth pairing is turning on internally")
     }
     internal fun turnOffBlueTooth(){
         useBluetooth = false
-        useBlueToothMLD.value = useBluetooth
+        useBlueToothMLD.postValue(useBluetooth)
         Log.i("$logtag", "bluetooth pairing is turning off internally")
     }
 

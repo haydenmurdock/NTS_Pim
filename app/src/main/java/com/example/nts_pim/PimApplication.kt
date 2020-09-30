@@ -1,8 +1,6 @@
 package com.example.nts_pim
 
 import android.app.Application
-import android.app.NotificationChannel
-import android.app.NotificationManager
 import android.content.Context
 import android.util.Log
 import com.example.nts_pim.data.repository.trip_repository.TripRepository

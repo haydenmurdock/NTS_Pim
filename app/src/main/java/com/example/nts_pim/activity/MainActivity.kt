@@ -1,7 +1,6 @@
 package com.example.nts_pim.activity
 
 import android.annotation.SuppressLint
-import android.app.Activity
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.content.ContentValues
@@ -40,6 +39,9 @@ import com.example.nts_pim.fragments_viewmodel.callback.CallBackViewModel
 import com.example.nts_pim.utilities.device_id_check.DeviceIdCheck
 import com.example.nts_pim.fragments_viewmodel.vehicle_setup.VehicleSetupModelFactory
 import com.example.nts_pim.fragments_viewmodel.vehicle_setup.VehicleSetupViewModel
+import com.example.nts_pim.receivers.BatteryPowerReceiver
+import com.example.nts_pim.receivers.BluetoothReceiver
+import com.example.nts_pim.receivers.NetworkReceiver
 import com.example.nts_pim.utilities.bluetooth_helper.BluetoothDataCenter
 import com.example.nts_pim.utilities.bluetooth_helper.ConnectThread
 import com.example.nts_pim.utilities.bluetooth_helper.ConnectedThread
@@ -102,6 +104,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
     internal var unpairPIMSubscription = false
     internal var isBluetoothOnAWS = false
     private var driverTablet: BluetoothDevice? = null
+    private var connectionThread: Thread? = null
 
     companion object  {
         lateinit var mainActivity: MainActivity
@@ -117,7 +120,6 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
         mainActivity = this
         navigationController = findNavController(this, R.id.nav_host_fragment)
         mAWSAppSyncClient = ClientFactory.getInstance(applicationContext)
-
         val factory = InjectorUtiles.provideCallBackModelFactory()
         callbackViewModel = ViewModelProviders.of(this, factory)
             .get(CallBackViewModel::class.java)
@@ -128,6 +130,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                 mSuccessfulSetup = successfulSetup
                 vehicleId = viewModel.getVehicleID()
                 internetConnection = isOnline(this)
+                Log.i("Bluetooth", "successful setup: $mSuccessfulSetup")
             }
         })
         callbackViewModel.getTripHasEnded().observe(this, Observer { tripEnded ->
@@ -238,10 +241,13 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                 BluetoothDataCenter.getIsDeviceFound().observe(this, Observer {deviceIsFound ->
                     if(deviceIsFound){
                         driverTablet = BluetoothDataCenter.getDriverTablet()
-                        if(driverTablet != null){
-                            ConnectThread(driverTablet!!).start()
+                        if(driverTablet != null && mSuccessfulSetup){
+                            connectionThread = ConnectThread(driverTablet!!)
+                            if(connectionThread != null && !(connectionThread as ConnectThread).isAlive){
+                                ConnectThread(driverTablet!!).start()
+                            }
                         } else {
-                            Log.i("Bluetooth", "Connect thread didn't start since device id was null")
+                            Log.i("Bluetooth", "Connect thread didn't start. driverTablet: $driverTablet. Setup: $mSuccessfulSetup")
                         }
                     }
                     if(!deviceIsFound){
@@ -251,26 +257,22 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
             }
         })
         BluetoothDataCenter.isBluetoothSocketConnected().observe(this, Observer { socketConnected ->
-
-            if(isBluetoothOnAWS && socketConnected){
+            if(isBluetoothOnAWS && socketConnected && mSuccessfulSetup){
                 Log.i("Bluetooth", "Socket is connected and aws bluetooth is on. Creating Connected Thread")
                 val socket = BluetoothDataCenter.getBTSocket()
                 if(socket != null){
                     ConnectedThread(socket).start()
                 } else {
-                    Log.i("Bluetooth", "Socket is null. Need to recreate socket connection")
+                    Log.i("Bluetooth", "Socket is null. Need to recreate socket connection. Cancelling Connect thread" +
+                            "")
+                    ConnectThread(driverTablet!!).cancelThread()
+                    ConnectedThread(socket).cancel()
                 }
             }
-            if(isBluetoothOnAWS && !socketConnected) {
-                val bluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
-                while (true)
-                    if (!bluetoothAdapter.isDiscovering) {
-                        Log.i("Bluetooth", "bluetooth wasn't discovering so we are starting discovering")
-                        bluetoothAdapter.cancelDiscovery()
-                        bluetoothAdapter.startDiscovery()
-                    }
-            }
         })
+ //           if(isBluetoothOnAWS && !socketConnected && mSuccessfulSetup) {
+//
+//        })
 
         BluetoothDataCenter.isConnectedToDriverTablet().observe(this, Observer {
 
@@ -494,6 +496,13 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                         LoggerHelper.addInternalLogsToAWS(vehicleId)
                     }
                 }
+                if(useBluetooth != null){
+                    if(useBluetooth == true){
+                        BluetoothDataCenter.turnOnBlueTooth()
+                    } else {
+                        BluetoothDataCenter.turnOffBlueTooth()
+                    }
+                }
                 Log.i("Logging", "Logging == $awsLog from updatePimSettingsCallBack")
             }
             if(response.hasErrors()){
@@ -584,7 +593,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
     }
     private fun forceSpeaker() {
         try {
-            playTestSound()
+//            playTestSound()
         } catch (e: Exception) {
             Log.e(ContentValues.TAG, e.toString())
         }

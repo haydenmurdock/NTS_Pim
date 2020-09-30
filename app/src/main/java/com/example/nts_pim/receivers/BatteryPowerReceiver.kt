@@ -1,4 +1,4 @@
-package com.example.nts_pim
+package com.example.nts_pim.receivers
 
 import android.annotation.SuppressLint
 import android.content.BroadcastReceiver
@@ -8,6 +8,8 @@ import android.media.MediaPlayer
 import android.os.BatteryManager
 import android.os.CountDownTimer
 import android.util.Log
+import com.example.nts_pim.PimApplication
+import com.example.nts_pim.R
 import com.example.nts_pim.data.repository.VehicleTripArrayHolder
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import com.example.nts_pim.utilities.mutation_helper.PIMMutationHelper

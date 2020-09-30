@@ -143,8 +143,8 @@
             android:name="com.example.nts_pim.fragments_viewmodel.check_vehicle_info.CheckVehicleInfoFragment"
             android:label="CheckVehicleInfoFragment" >
         <action
-                android:id="@+id/WelcomeFragment"
-                app:destination="@id/welcome_fragment" />
+                android:id="@+id/action_checkVehicleInfoFragment_to_blueToothPairingFragment"
+                app:destination="@id/blueToothPairingFragment" />
     </fragment>
     <fragment
             android:id="@+id/startupFragment"

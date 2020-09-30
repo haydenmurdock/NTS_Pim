@@ -19,12 +19,14 @@ import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProviders
 import androidx.navigation.Navigation
 import com.amazonaws.amplify.generated.graphql.GetCompanyNameQuery
+import com.amazonaws.amplify.generated.graphql.GetPimInfoQuery
 import com.amazonaws.mobileconnectors.appsync.AWSAppSyncClient
 import com.amazonaws.mobileconnectors.appsync.fetcher.AppSyncResponseFetchers
 import com.apollographql.apollo.GraphQLCall
 import com.apollographql.apollo.api.Response
 import com.apollographql.apollo.exception.ApolloException
 import com.example.nts_pim.R
+import com.example.nts_pim.data.repository.model_objects.DeviceID
 import com.example.nts_pim.data.repository.model_objects.VehicleSettings
 import com.example.nts_pim.data.repository.providers.ModelPreferences
 import com.example.nts_pim.fragments_viewmodel.InjectorUtiles
@@ -32,6 +34,7 @@ import com.example.nts_pim.fragments_viewmodel.base.ClientFactory
 import com.example.nts_pim.fragments_viewmodel.base.ScopedFragment
 import com.example.nts_pim.fragments_viewmodel.callback.CallBackViewModel
 import com.example.nts_pim.utilities.bluetooth_helper.BlueToothHelper
+import com.example.nts_pim.utilities.bluetooth_helper.BluetoothDataCenter
 import com.example.nts_pim.utilities.bluetooth_helper.ConnectThread
 import com.example.nts_pim.utilities.enums.SharedPrefEnum
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
@@ -73,27 +76,60 @@ class CheckVehicleInfoFragment: ScopedFragment(), KodeinAware {
         callBackViewModel = ViewModelProviders.of(this, callBackFactory)
             .get(CallBackViewModel::class.java)
         mArrayAdapter = ArrayAdapter(this.requireContext(), R.layout.dialog_select_bluetooth_device)
+
        com.example.nts_pim.utilities.view_helper.ViewHelper.hideSystemUI(requireActivity())
         progressBar.animate()
         val threeBounce = ThreeBounce()
         progressBar.setIndeterminateDrawable(threeBounce)
+        vehicleId = viewModel.getVehicleID()
         callBackViewModel.pimPairingValueChangedViaFMP(true)
+        queryBlueTooth()
         getVehicleInfo()
         viewModel.doesCompanyNameExist().observe(this.viewLifecycleOwner, Observer {companyNameExists ->
             if(companyNameExists){
                 saveVehicleSettings()
-                activity?.recreate()
+//                activity?.recreate()
                 val navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment)
-                navController.navigate(R.id.WelcomeFragment)
+                navController.navigate(R.id.action_checkVehicleInfoFragment_to_blueToothPairingFragment)
             }
         })
     }
     private fun getVehicleInfo() = launch(Dispatchers.IO){
-        vehicleId = viewModel.getVehicleID()
         if(vehicleId != ""){
             queryCompanyName(vehicleId)
         }
         cabNumber = getCabNumber(vehicleId)
+    }
+
+    private fun queryBlueTooth() = launch(Dispatchers.IO){
+        if (mAWSAppSyncClient == null) {
+            mAWSAppSyncClient = ClientFactory.getInstance(requireActivity().applicationContext)
+        }
+            mAWSAppSyncClient?.query(GetPimInfoQuery.builder().vehicleId(vehicleId).build())
+                ?.responseFetcher(AppSyncResponseFetchers.NETWORK_ONLY)
+                ?.enqueue(awsBluetoothQueryCallBack)
+    }
+    private var awsBluetoothQueryCallBack = object: GraphQLCall.Callback<GetPimInfoQuery.Data>() {
+        override fun onResponse(response: Response<GetPimInfoQuery.Data>) {
+            val res = response.data()?.pimInfo
+            Log.i("Bluetooth", "Response == $res")
+            if(!response.hasErrors()){
+                val isBlueToothOn = response.data()?.pimInfo?.useBluetooth()
+                if(isBlueToothOn != null){
+                    if(isBlueToothOn){
+                        Log.i("Bluetooth", "Bluetooth was on in aws")
+                        BluetoothDataCenter.turnOnBlueTooth()
+                    } else {
+                        Log.i("Bluetooth", "Bluetooth was off in aws")
+                        BluetoothDataCenter.turnOffBlueTooth()
+                    }
+                }
+            }
+        }
+
+        override fun onFailure(e: ApolloException) {
+
+        }
     }
     private fun queryCompanyName(vehicleID: String)= launch {
         if (mAWSAppSyncClient == null) {
