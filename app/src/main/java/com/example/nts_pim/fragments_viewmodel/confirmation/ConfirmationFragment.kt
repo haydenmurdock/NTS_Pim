@@ -40,7 +40,7 @@ import java.util.*
 
 class ConfirmationFragment: ScopedFragment(), KodeinAware {
     override val kodein by closestKodein()
-    private val viewModelFactory: InteractionCompleteViewModelFactory by instance()
+    private val viewModelFactory: InteractionCompleteViewModelFactory by instance<InteractionCompleteViewModelFactory>()
     private var vehicleId = ""
     private var tripId = ""
     private var mAWSAppSyncClient: AWSAppSyncClient? = null
@@ -103,7 +103,6 @@ class ConfirmationFragment: ScopedFragment(), KodeinAware {
         }
         getTripDetails()
         checkIfTransactionIsComplete()
-        sendDriverReceipt()
         runEndTripMutation()
         setInternalCurrentTripStatus()
         changeEndTripInternalBool()
@@ -174,14 +173,6 @@ class ConfirmationFragment: ScopedFragment(), KodeinAware {
             }
 
         }
-    }
-
-    private fun sendDriverReceipt() = launch(Dispatchers.IO){
-        transactionType?.let { transactionId?.let { it1 ->
-            DriverReceiptHelper.sendReceipt(tripId, it,
-                it1
-            )
-        } }
     }
 
     private fun maskEmailType(message: String):String{

@@ -55,7 +55,7 @@ import java.util.*
 
 class ReceiptInformationTextFragment: ScopedFragment(), KodeinAware {
     override val kodein by closestKodein()
-    private val viewModelFactory: EmailOrTextViewModelFactory by instance()
+    private val viewModelFactory: EmailOrTextViewModelFactory by instance<EmailOrTextViewModelFactory>()
     private lateinit var mJob: Job
     private lateinit var viewModel: EmailOrTextViewModel
     private lateinit var callBackViewModel: CallBackViewModel
@@ -614,8 +614,14 @@ class ReceiptInformationTextFragment: ScopedFragment(), KodeinAware {
                 combinedNumber = countryCode + phoneNumber
             }
             val trimmedPhoneNumber = combinedNumber.replace("-", "").trim()
+
             updateCustomerPhoneNumber(trimmedPhoneNumber)
             toConfirmation()
+    }
+
+    private fun checkPhoneNumberAgain(phoneNumber: String): String {
+        Log.i("_", "")
+        return ""
     }
     private fun updateCustomerPhoneNumber(phoneNumber:String) = launch(Dispatchers.IO) {
         if(isOnline(requireContext())){
@@ -674,7 +680,7 @@ class ReceiptInformationTextFragment: ScopedFragment(), KodeinAware {
         override fun onResponse(response: com.apollographql.apollo.api.Response<SavePaymentDetailsMutation.Data>) {
             if(!response.hasErrors()){
                launch(Dispatchers.IO) {
-                   Log.i("Text Receipt", "Payment details have been updated successful. Step 1 Complete")
+                   Log.i("Text_Receipt", "Payment details have been updated successful. Step 1 Complete")
                    LoggerHelper.writeToLog("Payment details have been updated successful. Step 1 Complete")
                    sendTextReceipt()
                }
@@ -683,10 +689,11 @@ class ReceiptInformationTextFragment: ScopedFragment(), KodeinAware {
         }
 
         override fun onFailure(e: ApolloException) {
-            Log.e("Text Receipt", "There was an issue updating payment api: $e")
+            Log.e("Text_Receipt", "There was an issue updating payment api: $e")
         }
     }
     private fun updateCustomerPhoneNumber(vehicleId: String, custPhoneNumber: String, appSyncClient: AWSAppSyncClient, tripId: String){
+        LoggerHelper.writeToLog("$logFragment, entered phone number: $custPhoneNumber")
         val updatePaymentTypeInput = UpdateTripInput.builder().vehicleId(vehicleId).tripId(tripId).custPhoneNbr(custPhoneNumber).build()
         appSyncClient.mutate(UpdateTripMutation.builder().parameters(updatePaymentTypeInput).build())
             ?.enqueue(mutationCustomerPhoneNumberCallback )
@@ -695,18 +702,19 @@ class ReceiptInformationTextFragment: ScopedFragment(), KodeinAware {
     private val mutationCustomerPhoneNumberCallback = object : GraphQLCall.Callback<UpdateTripMutation.Data>() {
         override fun onResponse(response: com.apollographql.apollo.api.Response<UpdateTripMutation.Data>) {
             Log.i("Results", "Meter Table Updated ${response.data()}")
+            LoggerHelper.writeToLog("$logFragment, entered phone number response: ${response.data()}")
             val tripId = callBackViewModel.getTripId()
             val transactionId = callBackViewModel.getTransactionId()
 
             if(response.hasErrors()){
-                Log.i("Text Receipt", "Response from aws had errors so did not send text message")
+                Log.i("Text_Receipt", "Response from aws had errors so did not send text message")
                 LoggerHelper.writeToLog("Response from aws had errors so did not send text message ${response.errors().get(0).message()}")
                 return
             }
             if(!response.hasErrors()){
                 if(response.data() != null){
                     launch(Dispatchers.IO) {
-                        Log.i("Text Receipt", "Updated custPhone number successfully. Step 2 Complete")
+                        Log.i("Text_Receipt", "Updated custPhone number successfully. Step 2 Complete")
                         LoggerHelper.writeToLog("$logFragment,Updated custPhone number successfully. Step 2 Complete")
                         SmsHelper.sendSMS(tripId, paymentType, transactionId)
                     }

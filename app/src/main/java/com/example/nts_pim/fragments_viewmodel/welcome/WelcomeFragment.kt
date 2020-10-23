@@ -208,7 +208,7 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
 
         PIMMutationHelper.updatePIMStatus(vehicleId, PIMStatusEnum.WELCOME_SCREEN.status, mAWSAppSyncClient!!)
         changeLoggingTimer()
-        checkInternalReaderStatus()
+//        checkInternalReaderStatus()
         SoundHelper.turnOnSound(PimApplication.pimContext)
         VehicleTripArrayHolder.squareHasBeenSetUp = true
     }

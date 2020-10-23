@@ -32,8 +32,8 @@ object SmsHelper {
              }
 
         val body = json.toString().toRequestBody(jSON)
-        Log.i("URL","Json body :  $json")
-        val url = URL("https://5s27urxc78.execute-api.us-east-2.amazonaws.com/test/sendReceipt")
+        Log.i("URL","Json body : $json")
+        val url = URL("https://5s27urxc78.execute-api.us-east-2.amazonaws.com/prod/sendReceipt")
 
         val request = Request.Builder()
             .url(url)
@@ -42,9 +42,8 @@ object SmsHelper {
           try {
               client.newCall(request).execute().use { response ->
                   Log.i("URL","response code : ${response.code} response message: ${response.message}")
-
                   if (response.isSuccessful){
-                      Log.i("Text Receipt", "Send Text receipt successful. Step 3: Complete")
+                      Log.i("Text_Receipt", "Send Text receipt successful. Step 3: Complete")
                       TripDetails.isReceiptSent = true
                       TripDetails.receiptCode = response.code
                       TripDetails.receiptMessage = response.message

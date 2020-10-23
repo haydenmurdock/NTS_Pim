@@ -253,6 +253,7 @@ class ReceiptInformationEmailFragment: ScopedFragment(), KodeinAware {
 
     private val mutationCustomerEmailCallback = object : GraphQLCall.Callback<UpdateTripMutation.Data>() {
         override fun onResponse(response: Response<UpdateTripMutation.Data>) {
+            LoggerHelper.writeToLog("$logFragment, entered email response: ${response.data()}")
             Log.i("Email Receipt", "Meter Table Updated Customer Email}")
             val tripId = callBackViewModel.getTripId()
             val transactionId = callBackViewModel.getTransactionId()

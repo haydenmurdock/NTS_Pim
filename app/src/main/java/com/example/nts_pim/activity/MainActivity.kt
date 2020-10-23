@@ -241,11 +241,9 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                 BluetoothDataCenter.getIsDeviceFound().observe(this, Observer {deviceIsFound ->
                     if(deviceIsFound){
                         driverTablet = BluetoothDataCenter.getDriverTablet()
-                        if(driverTablet != null && mSuccessfulSetup){
-                            connectionThread = ConnectThread(driverTablet!!)
-                            if(connectionThread != null && !(connectionThread as ConnectThread).isAlive){
-                                ConnectThread(driverTablet!!).start()
-                            }
+                        val setupComplete = viewModel.isSetUpComplete()
+                        if(driverTablet != null && setupComplete){
+                           ConnectThread(driverTablet!!).start()
                         } else {
                             Log.i("Bluetooth", "Connect thread didn't start. driverTablet: $driverTablet. Setup: $mSuccessfulSetup")
                         }
@@ -257,16 +255,13 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
             }
         })
         BluetoothDataCenter.isBluetoothSocketConnected().observe(this, Observer { socketConnected ->
-            if(isBluetoothOnAWS && socketConnected && mSuccessfulSetup){
+            if(isBluetoothOnAWS && socketConnected){
                 Log.i("Bluetooth", "Socket is connected and aws bluetooth is on. Creating Connected Thread")
                 val socket = BluetoothDataCenter.getBTSocket()
                 if(socket != null){
                     ConnectedThread(socket).start()
                 } else {
-                    Log.i("Bluetooth", "Socket is null. Need to recreate socket connection. Cancelling Connect thread" +
-                            "")
-                    ConnectThread(driverTablet!!).cancelThread()
-                    ConnectedThread(socket).cancel()
+                    Log.i("Bluetooth", "Socket is null. Need to recreate socket connection. Cancelling Connect thread")
                 }
             }
         })
@@ -666,11 +661,13 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
             internetConnectionTimer = object: CountDownTimer(5000, 1000){
                 override fun onTick(millisUntilFinished: Long) {
                     internetConnection = isOnline(context)
-                    subscriptionWatcherDoPimPayment?.cancel()
-                    subscriptionWatcherDoPimPayment = null
-                    vehicleSubscriptionComplete = false
-                    subscriptionWatcherUpdateVehTripStatus?.cancel()
-                    subscriptionWatcherUpdateVehTripStatus = null
+                    if(!internetConnection){
+                        subscriptionWatcherDoPimPayment?.cancel()
+                        subscriptionWatcherDoPimPayment = null
+                        vehicleSubscriptionComplete = false
+                        subscriptionWatcherUpdateVehTripStatus?.cancel()
+                        subscriptionWatcherUpdateVehTripStatus = null
+                    }
                 }
                 override fun onFinish() {
                     if(!internetConnection){

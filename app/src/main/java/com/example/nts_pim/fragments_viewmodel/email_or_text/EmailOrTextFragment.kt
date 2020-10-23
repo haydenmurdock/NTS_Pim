@@ -45,7 +45,7 @@ import java.util.*
 
 class EmailOrTextFragment : ScopedFragment(), KodeinAware {
     override val kodein by closestKodein()
-    private val viewModelFactory: EmailOrTextViewModelFactory by instance()
+    private val viewModelFactory: EmailOrTextViewModelFactory by instance<EmailOrTextViewModelFactory>()
     private lateinit var mJob: Job
     private lateinit var viewModel: EmailOrTextViewModel
     private lateinit var callBackViewModel: CallBackViewModel
