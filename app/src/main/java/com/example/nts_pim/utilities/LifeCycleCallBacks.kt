@@ -61,5 +61,4 @@ class LifeCycleCallBacks : Application.ActivityLifecycleCallbacks {
     override fun onActivityStopped(activity: Activity?) {
 
     }
-
 }

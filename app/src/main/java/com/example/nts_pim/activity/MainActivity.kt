@@ -102,7 +102,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
     private var mBluetoothReceiver: BluetoothReceiver? = null
     private var watchingTripId = ""
     internal var unpairPIMSubscription = false
-    internal var isBluetoothOnAWS = false
+    private var isBluetoothOnAWS = false
     private var driverTablet: BluetoothDevice? = null
     private var connectionThread: Thread? = null
 
@@ -773,7 +773,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
 
     override fun onResume() {
         super.onResume()
-        if(mSuccessfulSetup){
+        if (mSuccessfulSetup) {
             ViewHelper.hideSystemUI(this)
         }
     }

@@ -1,7 +1,6 @@
 package com.example.nts_pim.fragments_viewmodel.trip_review
 
 
-
 import android.content.Context
 import android.media.AudioManager
 import android.os.Bundle
@@ -14,13 +13,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProviders
 import androidx.navigation.Navigation
-import com.amazonaws.amplify.generated.graphql.GetStatusQuery
-import com.amazonaws.amplify.generated.graphql.GetTripQuery
 import com.amazonaws.mobileconnectors.appsync.AWSAppSyncClient
-import com.amazonaws.mobileconnectors.appsync.fetcher.AppSyncResponseFetchers
-import com.apollographql.apollo.GraphQLCall
-import com.apollographql.apollo.api.Response
-import com.apollographql.apollo.exception.ApolloException
 import com.example.nts_pim.R
 import com.example.nts_pim.data.repository.VehicleTripArrayHolder
 import com.example.nts_pim.data.repository.model_objects.CurrentTrip
@@ -51,12 +44,10 @@ class CashOrCardFragment : ScopedFragment(), KodeinAware {
     private lateinit var viewModel: TripReviewViewModel
     private lateinit var callbackViewModel: CallBackViewModel
     private var mAWSAppSyncClient: AWSAppSyncClient? = null
-
     var vehicleId = ""
     var tripID = ""
     var tripTotal = 0.0
     var cardInfo = ""
-
     private val decimalFormatter = DecimalFormat("####00.00")
     private val tripTotalDFUnderTen = DecimalFormat("###0.00")
     private var removeWaitScreenTimer: CountDownTimer? = null
@@ -116,27 +107,26 @@ class CashOrCardFragment : ScopedFragment(), KodeinAware {
                 Log.i("TTS", "Initialization success.")
             }
         })
-        val audioManager = context?.getSystemService(Context.AUDIO_SERVICE) as AudioManager
         //If the microphone is muted, the square connection is still taking place.
-        if (!audioManager.isMicrophoneMute) {
-            val currentTrip = ModelPreferences(requireContext())
-                .getObject(SharedPrefEnum.CURRENT_TRIP.key, CurrentTrip::class.java)
-            if (currentTrip?.tripID != "" &&
-                currentTrip != null
-            ) {
-                getPimPayAndPimPaidAmountQuery(currentTrip.tripID)
-                showPleaseWaitScreen()
-                startRemoveWaitScreenTimer()
-            } else {
-                getTripId(vehicleId)
-                showPleaseWaitScreen()
-                //we will start Remove Wait screen timer when we get tripId from callback
-            }
-        } else {
-            checkIfPIMNeedsToTakePayment(pimPayAmount, pimPaidAmount)
-            val pimPaidAmountToString = pimPaidAmount.toString()
-            playTripTotalAmount(pimPaidAmountToString)
-        }
+//        if (!audioManager.isMicrophoneMute) {
+//            val currentTrip = ModelPreferences(requireContext())
+//                .getObject(SharedPrefEnum.CURRENT_TRIP.key, CurrentTrip::class.java)
+//            if (currentTrip?.tripID != "" &&
+//                currentTrip != null
+//            ) {
+//                getPimPayAndPimPaidAmountQuery(currentTrip.tripID)
+//                showPleaseWaitScreen()
+//                startRemoveWaitScreenTimer()
+//            } else {
+//                getTripId(vehicleId)
+//                showPleaseWaitScreen()
+//                //we will start Remove Wait screen timer when we get tripId from callback
+//            }
+
+        checkIfPIMNeedsToTakePayment(pimPayAmount, pimPaidAmount)
+        val pimPaidAmountToString = pimPaidAmount.toString()
+        playTripTotalAmount(pimPaidAmountToString)
+
         cash_btn.setOnTouchListener((View.OnTouchListener { v, event ->
             when (event?.action) {
                 MotionEvent.ACTION_DOWN -> {
@@ -461,64 +451,64 @@ class CashOrCardFragment : ScopedFragment(), KodeinAware {
         }
     }
 
-    private fun getPimPayAndPimPaidAmountQuery(tripId: String) = launch(Dispatchers.IO) {
-        mAWSAppSyncClient?.query(GetTripQuery.builder().tripId(tripId).build())
-            ?.responseFetcher(AppSyncResponseFetchers.CACHE_AND_NETWORK)
-            ?.enqueue(getTripQueryCallBack)
-    }
+//    private fun getPimPayAndPimPaidAmountQuery(tripId: String) = launch(Dispatchers.IO) {
+//        mAWSAppSyncClient?.query(GetTripQuery.builder().tripId(tripId).build())
+//            ?.responseFetcher(AppSyncResponseFetchers.CACHE_AND_NETWORK)
+//            ?.enqueue(getTripQueryCallBack)
+//    }
 
-    private var getTripQueryCallBack = object : GraphQLCall.Callback<GetTripQuery.Data>() {
-        override fun onResponse(response: Response<GetTripQuery.Data>) {
-            if (response.data()?.trip != null) {
-                val initialPimPayAmt = response.data()!!.trip.pimPayAmt()
-                val initialPimPaidAmount = response.data()!!.trip.pimPaidAmt()
-                if (initialPimPayAmt != null) {
-                    pimPayAmount = initialPimPayAmt
-                    if (initialPimPaidAmount != null) {
-                        pimPaidAmount = initialPimPaidAmount
-                    }
-                    launch(Dispatchers.Main) {
-                        updateTripInfo()
-                        callbackViewModel.addTripId(tripID, context!!)
-                        startRemoveWaitScreenTimer()
-                    }
-                }
-            }
-        }
+//    private var getTripQueryCallBack = object : GraphQLCall.Callback<GetTripQuery.Data>() {
+//        override fun onResponse(response: Response<GetTripQuery.Data>) {
+//            if (response.data()?.trip != null) {
+//                val initialPimPayAmt = response.data()!!.trip.pimPayAmt()
+//                val initialPimPaidAmount = response.data()!!.trip.pimPaidAmt()
+//                if (initialPimPayAmt != null) {
+//                    pimPayAmount = initialPimPayAmt
+//                    if (initialPimPaidAmount != null) {
+//                        pimPaidAmount = initialPimPaidAmount
+//                    }
+//                    launch(Dispatchers.Main) {
+//                        updateTripInfo()
+//                        callbackViewModel.addTripId(tripID, context!!)
+//
+//                    }
+//                }
+//            }
+//        }
+//
+//        override fun onFailure(e: ApolloException) {
+//            Log.e("ERROR", e.toString())
+//        }
+//    }
 
-        override fun onFailure(e: ApolloException) {
-            Log.e("ERROR", e.toString())
-        }
-    }
+//    private fun getTripId(vehicleId: String) = launch(Dispatchers.IO) {
+//        if (mAWSAppSyncClient == null) {
+//            mAWSAppSyncClient = ClientFactory.getInstance(requireContext())
+//        }
+//        mAWSAppSyncClient?.query(GetStatusQuery.builder().vehicleId(vehicleId).build())
+//            ?.responseFetcher(AppSyncResponseFetchers.CACHE_AND_NETWORK)
+//            ?.enqueue(vehicleIdCallBack)
+//    }
+//
+//    private var vehicleIdCallBack = object : GraphQLCall.Callback<GetStatusQuery.Data>() {
+//        override fun onResponse(response: Response<GetStatusQuery.Data>) {
+//            if (response.data() != null) {
+//                if (response.data()!!.status.tripId() != null || response.data()!!.status.tripId() != "") {
+//                    val tripId = response.data()!!.status.tripId()
+//                    if (tripId != null) {
+//                        tripID = tripId
+//                        launch(Dispatchers.IO) {
+//                            getPimPayAndPimPaidAmountQuery(tripId)
+//                        }
+//                    }
+//                }
+//            }
+//        }
 
-    private fun getTripId(vehicleId: String) = launch(Dispatchers.IO) {
-        if (mAWSAppSyncClient == null) {
-            mAWSAppSyncClient = ClientFactory.getInstance(requireContext())
-        }
-        mAWSAppSyncClient?.query(GetStatusQuery.builder().vehicleId(vehicleId).build())
-            ?.responseFetcher(AppSyncResponseFetchers.CACHE_AND_NETWORK)
-            ?.enqueue(vehicleIdCallBack)
-    }
-
-    private var vehicleIdCallBack = object : GraphQLCall.Callback<GetStatusQuery.Data>() {
-        override fun onResponse(response: Response<GetStatusQuery.Data>) {
-            if (response.data() != null) {
-                if (response.data()!!.status.tripId() != null || response.data()!!.status.tripId() != "") {
-                    val tripId = response.data()!!.status.tripId()
-                    if (tripId != null) {
-                        tripID = tripId
-                        launch(Dispatchers.IO) {
-                            getPimPayAndPimPaidAmountQuery(tripId)
-                        }
-                    }
-                }
-            }
-        }
-
-        override fun onFailure(e: ApolloException) {
-            Log.e("ERROR", e.toString())
-        }
-    }
+//        override fun onFailure(e: ApolloException) {
+//            Log.e("ERROR", e.toString())
+//        }
+//    }
 
     override fun onPause() {
         super.onPause()
