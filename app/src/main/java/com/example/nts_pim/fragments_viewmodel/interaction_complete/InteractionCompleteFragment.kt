@@ -34,6 +34,7 @@ import org.kodein.di.android.x.closestKodein
 import org.kodein.di.generic.instance
 import java.time.LocalDateTime
 import java.util.*
+import kotlin.math.log
 
 class InteractionCompleteFragment : ScopedFragment(), KodeinAware {
     override val kodein by closestKodein()
@@ -43,11 +44,13 @@ class InteractionCompleteFragment : ScopedFragment(), KodeinAware {
     private var tripNumber = 0
     private var transactionId = ""
     private var transactionType = ""
+    private var paymentMethod: String? = null
     private var mAWSAppSyncClient: AWSAppSyncClient? = null
     private lateinit var callbackViewModel: CallBackViewModel
     private lateinit var viewModel: InteractionCompleteViewModel
     private val logFragment = "Thank you screen"
     private var tripStatus:String? = ""
+    private val payByApp = "PAY_BY_APP"
 
     private val restartAppTimer = object: CountDownTimer(10000, 1000) {
         override fun onTick(millisUntilFinished: Long) {
@@ -85,10 +88,16 @@ class InteractionCompleteFragment : ScopedFragment(), KodeinAware {
         transactionId = callbackViewModel.getTransactionId()
         transactionType = VehicleTripArrayHolder.paymentTypeSelected
         tripStatus = callbackViewModel.getTripStatus().value
+        paymentMethod = VehicleTripArrayHolder.getPaymentMethod()
+
         if(transactionId == ""){
             transactionId = UUID.randomUUID().toString()
         }
-        sendDriverReceipt()
+        if(paymentMethod != payByApp){
+            LoggerHelper.writeToLog("$logFragment, $paymentMethod was set for payment method. Sent request to backend to send receipt with none as sendMethod" )
+            sendDriverReceipt()
+        }
+
         runEndTripMutation()
         thank_you_textView.isVisible = false
         checkIfTransactionIsComplete()
@@ -97,6 +106,7 @@ class InteractionCompleteFragment : ScopedFragment(), KodeinAware {
         changeEndTripInternalBool()
         updatePaymentDetailsAPI()
         restartAppTimer.start()
+        callbackViewModel.setPaymentMethod("none")
     }
 
     private fun updatePaymentDetailsAPI() = launch(Dispatchers.IO){
@@ -160,7 +170,10 @@ class InteractionCompleteFragment : ScopedFragment(), KodeinAware {
     }
 
     override fun onDestroy() {
-        restartAppTimer.cancel()
         super.onDestroy()
+        restartAppTimer.cancel()
+        if(this::callbackViewModel.isInitialized){
+            callbackViewModel.clearAllTripValues()
+        }
     }
 }

@@ -93,6 +93,10 @@ object VehicleTripArrayHolder {
     var pimStartTime:String? = null
     var pimOverHeat:String? = null
 
+    private var paymentMethod = "none"
+
+    private val logFragment = "Vehicle Trip Array Holder"
+
 // Adds the status from the main activity app sync subscription. It goes to a live data array to be watched for changes. There is only 1 status in the array at all times.
 //E.g. "Trip_On_Site", "Trip_Assigned", "Trip_Picked_UP"
 
@@ -213,6 +217,7 @@ object VehicleTripArrayHolder {
         paymentTypeSelected = "none"
         driverId = 0
         tripIdForPayment = ""
+        paymentMethod = "none"
         Log.i("Results", "All Trip Information has been cleared")
         LoggerHelper.writeToLog("All Trip Information has been cleared")
     }
@@ -416,6 +421,17 @@ object VehicleTripArrayHolder {
 
     internal fun setPIMStartTime(startTime: String){
         pimStartTime = startTime
+    }
+
+    internal fun insertPaymentMethod(mPaymentMethod: String){
+        if(mPaymentMethod != paymentMethod){
+            LoggerHelper.writeToLog("$logFragment, payment method was updated from $paymentMethod to $mPaymentMethod")
+            paymentMethod = mPaymentMethod
+        }
+    }
+
+    internal fun getPaymentMethod(): String {
+        return paymentMethod
     }
 }
 

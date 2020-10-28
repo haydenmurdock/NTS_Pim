@@ -136,5 +136,9 @@ class CallBackViewModel(
         vehicleTripArrayHolder.setPIMStartTime(startTime)
     }
 
+    internal fun setPaymentMethod(paymentMethod: String){
+        VehicleTripArrayHolder.insertPaymentMethod(paymentMethod)
+    }
+
 
 }

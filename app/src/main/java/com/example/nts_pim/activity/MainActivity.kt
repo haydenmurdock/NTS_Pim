@@ -430,6 +430,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
             val transactionId = response.data()?.onDoPimPayment()?.pimTransId()
             val pimPaidAmount = response.data()?.onDoPimPayment()?.pimPaidAmt()
             val driverId = response.data()?.onDoPimPayment()?.driverId()
+            val paymentType = response.data()?.onDoPimPayment()?.paymentType()
 
             if (tripNumber != null){
                 insertTripNumber(tripNumber)
@@ -453,6 +454,9 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
             }
             if(driverId != null){
                 insertDriverId(driverId)
+            }
+            if(paymentType != null){
+                insertPaymentType(paymentType)
             }
         }
 
@@ -569,6 +573,9 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
     }
     private fun insertPimPairedChange(change: Boolean) = launch {
         callbackViewModel.pimPairingValueChangedViaFMP(change)
+    }
+    private fun insertPaymentType(paymentType: String){
+        callbackViewModel.setPaymentMethod(paymentType)
     }
 
     private fun sendPIMStatus() = launch{
