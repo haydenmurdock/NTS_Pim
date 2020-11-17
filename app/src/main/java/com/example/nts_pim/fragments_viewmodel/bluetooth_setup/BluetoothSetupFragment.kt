@@ -10,7 +10,7 @@ import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import android.widget.Toast
 import androidx.lifecycle.Observer
-import androidx.lifecycle.ViewModelProviders
+import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.NavController
 import androidx.navigation.Navigation
 import com.amazonaws.mobileconnectors.appsync.AWSAppSyncClient
@@ -75,18 +75,16 @@ class BluetoothSetupFragment: ScopedFragment(), KodeinAware {
 
     private val authCallback = AuthorizeCallback{authorized ->
         Log.i(logtag, "authorizeCallBack: $authorized")
-        if(authorized.isSuccess){
+        if(!authorized.isSuccess){
             if (numberOfReaderFailedAttempts <= 2){
                 Log.i(logtag, "Reader was authorized $numberOfReaderFailedAttempts number of times. Starting square card reader check")
                 startSquareCardReaderCheck()
                 numberOfReaderFailedAttempts += 1
             } else {
-                val cal = Calendar.getInstance()
                 PIMMutationHelper.updateReaderStatus(
                     vehicleId!!,
                     VehicleTripArrayHolder.cardReaderStatus,
-                    mAWSAppSyncClient!!,
-                    cal)
+                    mAWSAppSyncClient!!)
                 toBluetoothPairing()
             }
         }
@@ -103,15 +101,13 @@ class BluetoothSetupFragment: ScopedFragment(), KodeinAware {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         val callBackFactory = InjectorUtiles.provideCallBackModelFactory()
-        viewModel = ViewModelProviders.of(this, viewModelFactory)
+        viewModel = ViewModelProvider(this, viewModelFactory)
             .get(VehicleSetupViewModel::class.java)
-        callBackViewModel = ViewModelProviders.of(this, callBackFactory)
+        callBackViewModel = ViewModelProvider(this, callBackFactory)
             .get(CallBackViewModel::class.java)
         readerSettingsCallbackRef =
             readerManager.addReaderSettingsActivityCallback(this::onReaderSettingsResultBTSetup)
-        val pairedDevices = BlueToothHelper.getPairedDevicesAndRegisterBTReceiver(requireActivity())
         mAWSAppSyncClient = ClientFactory.getInstance(context)
-        val btAdapter = BluetoothAdapter.getDefaultAdapter()
         setUpSquareAuthCallbacks()
         vehicleId = viewModel.getVehicleID()
         devices = ArrayList()
@@ -126,36 +122,19 @@ class BluetoothSetupFragment: ScopedFragment(), KodeinAware {
         })
         callBackViewModel.isReaderConnected().observe(this.viewLifecycleOwner, Observer {connected ->
             if(connected){
-                Log.i("Square", "last reader check == $lastCheckStatus. Internal status of reader is ${VehicleTripArrayHolder.cardReaderStatus}")
-                if(VehicleTripArrayHolder.cardReaderStatus != "default" || lastCheckStatus != VehicleTripArrayHolder.cardReaderStatus){
-                    val cal = Calendar.getInstance()
-                    PIMMutationHelper.updateReaderStatus(
-                        vehicleId!!,
-                        VehicleTripArrayHolder.cardReaderStatus,
-                        mAWSAppSyncClient!!,
-                        cal)
-                } else { Log.i("Square", "last reader check == $lastCheckStatus. Internal status of reader is ${VehicleTripArrayHolder.cardReaderStatus}. Did Not update AWS for Second reader check.")
-                 LoggerHelper.writeToLog("last reader check == $lastCheckStatus. Internal status of reader is ${VehicleTripArrayHolder.cardReaderStatus}. Did Not update AWS for Second reader check.")
-                }
+//                Log.i("Square", "last reader check == $lastCheckStatus. Internal status of reader is ${VehicleTripArrayHolder.cardReaderStatus}")
+//                if(VehicleTripArrayHolder.cardReaderStatus != "default" || lastCheckStatus != VehicleTripArrayHolder.cardReaderStatus){
+//                    PIMMutationHelper.updateReaderStatus(
+//                        vehicleId!!,
+//                        VehicleTripArrayHolder.cardReaderStatus,
+//                        mAWSAppSyncClient!!)
+//                } else {
+//                    Log.i("Square", "last reader check == $lastCheckStatus. Internal status of reader is ${VehicleTripArrayHolder.cardReaderStatus}. Did Not update AWS for Second reader check.")
+//                   LoggerHelper.writeToLog("last reader check == $lastCheckStatus. Internal status of reader is ${VehicleTripArrayHolder.cardReaderStatus}. Did Not update AWS for Second reader check.")
+//                }
                 toBluetoothPairing()
             }
         })
-        //adding devices to adapter and device array. If there is not a SAMSUNG device bonded it starts the discovery mode.
-        pairedDevices.forEach { device ->
-            devices.add(device.first)
-            mArrayAdapter!!.add((if (device.first != null) device.first else "Unknown") + "\n" + device.second + "\nPaired")
-
-        }
-        pairedDevices.forEach { device ->
-            if(device.first.contains("SAMSUNG")){
-                Log.i("Bluetooth", "Device has been bonded via bluetooth")
-                callBackViewModel.deviceIsBondedViaBT()
-                if(btAdapter.isDiscovering){
-                    Log.i("Bluetooth", "Device has been bonded, canceling discovery")
-                    btAdapter.cancelDiscovery()
-                }
-            }
-        }
     }
     private fun getArgs(){
         lastCheckStatus = arguments?.getString("lastCheckedStatus")
@@ -212,7 +191,7 @@ class BluetoothSetupFragment: ScopedFragment(), KodeinAware {
                         val convertedObject =
                             gson.fromJson(response.body?.string(), JsonAuthCode::class.java)
                         val authCode = convertedObject.authCode
-                        onAuthorizationCodeRetrieved(authCode, vehicleId)
+                        onAuthorizationCodeRetrieved(authCode)
                         Log.i("LOGGER", "$vehicleId successfully got AuthCode")
                     }
                     if (response.code == 404) {
@@ -242,7 +221,7 @@ class BluetoothSetupFragment: ScopedFragment(), KodeinAware {
             println(e)
         }
     }
-    private fun onAuthorizationCodeRetrieved(authorizationCode: String, vehicleId: String)
+    private fun onAuthorizationCodeRetrieved(authorizationCode: String)
             = launch(Dispatchers.Main.immediate) {
        readerSdk.authorize(authorizationCode)
     }
@@ -256,8 +235,6 @@ class BluetoothSetupFragment: ScopedFragment(), KodeinAware {
     override fun onStop() {
         if(view != null){
             callBackViewModel.getTripStatus().removeObservers(this.viewLifecycleOwner)
-            callBackViewModel.doWeNeedToReAuthorizeSquare().removeObservers(this.viewLifecycleOwner)
-            callBackViewModel.isReaderConnected().removeObservers(this.viewLifecycleOwner)
             readerSettingsCallbackRef?.clear()
         }
         super.onStop()

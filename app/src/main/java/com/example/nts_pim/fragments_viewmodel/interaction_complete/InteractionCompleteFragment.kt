@@ -10,19 +10,22 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.core.view.isVisible
+import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.Navigation
 import com.example.nts_pim.R
 import kotlinx.android.synthetic.main.interaction_complete_screen.*
-import androidx.lifecycle.ViewModelProviders
 import com.example.nts_pim.fragments_viewmodel.callback.CallBackViewModel
 import com.example.nts_pim.fragments_viewmodel.InjectorUtiles
 import com.amazonaws.mobileconnectors.appsync.AWSAppSyncClient
+import com.example.nts_pim.activity.MainActivity
 import com.example.nts_pim.data.repository.TripDetails
 import com.example.nts_pim.data.repository.VehicleTripArrayHolder
 import com.example.nts_pim.data.repository.model_objects.CurrentTrip
 import com.example.nts_pim.data.repository.providers.ModelPreferences
 import com.example.nts_pim.fragments_viewmodel.base.ClientFactory
 import com.example.nts_pim.fragments_viewmodel.base.ScopedFragment
+import com.example.nts_pim.utilities.bluetooth_helper.BluetoothDataCenter
+import com.example.nts_pim.utilities.bluetooth_helper.NTSPimPacket
 import com.example.nts_pim.utilities.driver_receipt.DriverReceiptHelper
 import com.example.nts_pim.utilities.enums.SharedPrefEnum
 import com.example.nts_pim.utilities.enums.VehicleStatusEnum
@@ -34,7 +37,7 @@ import org.kodein.di.android.x.closestKodein
 import org.kodein.di.generic.instance
 import java.time.LocalDateTime
 import java.util.*
-import kotlin.math.log
+
 
 class InteractionCompleteFragment : ScopedFragment(), KodeinAware {
     override val kodein by closestKodein()
@@ -75,8 +78,8 @@ class InteractionCompleteFragment : ScopedFragment(), KodeinAware {
         super.onViewCreated(view, savedInstanceState)
         mAWSAppSyncClient = ClientFactory.getInstance(context)
         val factory = InjectorUtiles.provideCallBackModelFactory()
-        callbackViewModel = ViewModelProviders.of(this,factory).get(CallBackViewModel::class.java)
-        viewModel = ViewModelProviders.of(this, viewModelFactory).get(InteractionCompleteViewModel::class.java)
+        callbackViewModel = ViewModelProvider(this,factory).get(CallBackViewModel::class.java)
+        viewModel = ViewModelProvider(this, viewModelFactory).get(InteractionCompleteViewModel::class.java)
         val tripIdForPayment = VehicleTripArrayHolder.getTripIdForPayment()
         tripId = if(tripIdForPayment != ""){
             tripIdForPayment
@@ -95,7 +98,11 @@ class InteractionCompleteFragment : ScopedFragment(), KodeinAware {
         }
         if(paymentMethod != payByApp){
             LoggerHelper.writeToLog("$logFragment, $paymentMethod was set for payment method. Sent request to backend to send receipt with none as sendMethod" )
+            Log.i("paymentType", "$paymentMethod was set for payment method. Driver receipt sent")
             sendDriverReceipt()
+        } else {
+            LoggerHelper.writeToLog("$logFragment, $paymentMethod was set for payment method. No receipt sent")
+            Log.i("paymentType", "$paymentMethod was set for payment method. No receipt sent")
         }
 
         runEndTripMutation()

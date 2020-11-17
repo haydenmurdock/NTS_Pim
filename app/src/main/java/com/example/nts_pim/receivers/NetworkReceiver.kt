@@ -34,10 +34,11 @@ class NetworkReceiver:BroadcastReceiver() {
             val cm =
                 context?.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
             val netInfo = cm.activeNetworkInfo
+            // val netInfo = cm.activeNetwork
             //should check null because in airplane mode it will be null
             netInfo != null && netInfo.isConnected
         } catch (e: NullPointerException) {
-            e.printStackTrace()
+           LoggerHelper.writeToLog("$logFragment, error for network receiver. $e")
             false
         }
     }

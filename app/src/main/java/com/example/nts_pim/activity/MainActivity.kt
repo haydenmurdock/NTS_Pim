@@ -42,9 +42,7 @@ import com.example.nts_pim.fragments_viewmodel.vehicle_setup.VehicleSetupViewMod
 import com.example.nts_pim.receivers.BatteryPowerReceiver
 import com.example.nts_pim.receivers.BluetoothReceiver
 import com.example.nts_pim.receivers.NetworkReceiver
-import com.example.nts_pim.utilities.bluetooth_helper.BluetoothDataCenter
-import com.example.nts_pim.utilities.bluetooth_helper.ConnectThread
-import com.example.nts_pim.utilities.bluetooth_helper.ConnectedThread
+import com.example.nts_pim.utilities.bluetooth_helper.*
 import com.example.nts_pim.utilities.driver_receipt.DriverReceiptHelper
 import com.example.nts_pim.utilities.enums.MeterEnum
 import com.example.nts_pim.utilities.enums.PIMStatusEnum
@@ -61,6 +59,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import org.json.JSONObject
 import org.kodein.di.KodeinAware
 import org.kodein.di.android.closestKodein
 import org.kodein.di.generic.instance
@@ -104,7 +103,8 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
     internal var unpairPIMSubscription = false
     private var isBluetoothOnAWS = false
     private var driverTablet: BluetoothDevice? = null
-    private var connectionThread: Thread? = null
+    private var bluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
+    private var blueToothAddressDriverTablet: String? = null
 
     companion object  {
         lateinit var mainActivity: MainActivity
@@ -179,7 +179,9 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                     navController.currentDestination?.id != R.id.checkVehicleInfoFragment
                     && !resync) {
                     val currentTripId = callbackViewModel.getTripId()
-                    getMeterOwedQuery(currentTripId)
+                    if(!isBluetoothOnAWS){
+                        getMeterOwedQuery(currentTripId)
+                    }
                     LoggerHelper.writeToLog("${logFragment}, New trip was started by the driver while the pim trip was not finished")
                     callbackViewModel.getMeterState().observe(this, Observer { meterValue ->
                         if(meterValue == MeterEnum.METER_ON.state){
@@ -207,6 +209,11 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                             .subscribeOn(Schedulers.io())
                             .observeOn(AndroidSchedulers.mainThread())
                             .subscribe{(LoggerHelper.writeToLog("Overheating email sent: overheat timeStamp:$overheat"))
+                                VehicleTripArrayHolder.updateInternalPIMStatus(PIMStatusEnum.OVERHEATING.status)
+                                val dataObject = NTSPimPacket.PimStatusObj()
+                                val statusObj =  NTSPimPacket(NTSPimPacket.Command.PIM_STATUS, dataObject)
+                                Log.i("Bluetooth", "status request packet to be sent == $statusObj")
+                                sendBluetoothPacket(statusObj)
                             }
                     }
                 }
@@ -228,7 +235,9 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                 subscribeToUpdateVehTripStatus(vehicleId)
                 if(navigationController.currentDestination?.id == R.id.live_meter_fragment ||
                     navigationController.currentDestination?.id == R.id.trip_review_fragment){
-                    getMeterOwedQuery(tripId)
+                    if(!isBluetoothOnAWS){
+                        getMeterOwedQuery(tripId)
+                    }
                 }
                 subscribeToUpdatePimSettings()
             }
@@ -240,7 +249,16 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                 clearAllSubscriptions()
                 BluetoothDataCenter.getIsDeviceFound().observe(this, Observer {deviceIsFound ->
                     if(deviceIsFound){
-                        driverTablet = BluetoothDataCenter.getDriverTablet()
+                        val bAdapter = bluetoothAdapter
+                        if(bAdapter != null) {
+                            blueToothAddressDriverTablet = BluetoothDataCenter.getDriverTabletAddress()
+                            if(blueToothAddressDriverTablet != "" && blueToothAddressDriverTablet != null){
+                                driverTablet = bAdapter.getRemoteDevice(blueToothAddressDriverTablet)
+                            } else {
+                                Log.i("Bluetooth", "Issue with driver's bluetooth address. It is either blank or null when fetched to setup driver tablet connection. Driver Bt address == $blueToothAddressDriverTablet")
+                                LoggerHelper.writeToLog("Bluetooth, Issue with driver's bluetooth address. It is either blank or null when fetched to setup driver tablet connection. Driver Bt address == $blueToothAddressDriverTablet")
+                            }
+                        }
                         val setupComplete = viewModel.isSetUpComplete()
                         if(driverTablet != null && setupComplete){
                            ConnectThread(driverTablet!!).start()
@@ -272,6 +290,43 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
         BluetoothDataCenter.isConnectedToDriverTablet().observe(this, Observer {
 
         })
+    }
+
+    fun sendBluetoothPacket(ntsPimPacket: NTSPimPacket){
+        Log.i("Bluetooth", "Sending packed to driver tablet. ${ntsPimPacket.command}")
+       val byteArrayToSend = toBytes(ntsPimPacket)
+        val socket = BluetoothDataCenter.getBTSocket()
+        ConnectedThread(socket).write(byteArrayToSend)
+
+    }
+
+
+    private fun toBytes(ntsPimPacket: NTSPimPacket): ByteArray? {
+        var packet: ByteArray? = null
+        val json: JSONObject
+        val JSON_COMMAND = "Command"
+        val JSON_DATA = "Data"
+        val STX = 0x02
+        val ETX = 0x03
+        // First, create a JSON object that contains the command.
+        try {
+            json = JSONObject()
+            json.put(JSON_COMMAND, ntsPimPacket.command)
+
+            // If this packet has additional data, add it as a JSON object.
+            if (ntsPimPacket.packetData != null) {
+                json.put(JSON_DATA, ntsPimPacket.packetData!!.toJson())
+            }
+
+            // Convert JSON to string and then bytes and add to byte araay plus 2 bytes for STX and ETX.
+            val data = json.toString().toByteArray()
+            packet = ByteArray(data.size + 2)
+            packet[0] = STX.toByte()
+            System.arraycopy(data, 0, packet, 1, data.size)
+            packet[1 + data.size] = ETX.toByte()
+        } catch (e: Exception) {
+        }
+        return packet
     }
 
     private fun clearAllSubscriptions(){
@@ -306,8 +361,6 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
         callbackViewModel.addMeterState(string)
     }
     private fun subscribeToUpdateVehTripStatus(vehicleId: String){
-        val isVehicleSubscriptionComplete = vehicleSubscriptionComplete
-
         if(!vehicleSubscriptionComplete && isOnline(applicationContext)) {
             vehicleSubscriptionComplete = true
             val subscription =
@@ -362,8 +415,10 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                     if(currentTrip != null){
                         tripId = currentTrip.tripID
                         insertTripId(currentTrip.tripID)
-                        getMeterOwedQuery(tripId)
-                        subscribeToDoPIMPayment(currentTrip.tripID)
+                        if(!isBluetoothOnAWS){
+                            getMeterOwedQuery(tripId)
+                            subscribeToDoPIMPayment(currentTrip.tripID)
+                        }
                         Log.i("test", "trip subscription awsTripId was null so we needed to use the last trip Id to subscribe to")
                     }
                 }
@@ -525,7 +580,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
             mAWSAppSyncClient = ClientFactory.getInstance(this@MainActivity.applicationContext)
         }
         mAWSAppSyncClient?.query(GetTripQuery.builder().tripId(tripId).build())
-            ?.responseFetcher(AppSyncResponseFetchers.NETWORK_FIRST)
+            ?.responseFetcher(AppSyncResponseFetchers.NETWORK_ONLY)
             ?.enqueue(getTripQueryCallBack)
     }
     private var getTripQueryCallBack = object: GraphQLCall.Callback<GetTripQuery.Data>() {

@@ -6,7 +6,7 @@ import android.provider.Settings
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.lifecycle.ViewModelProviders
+import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.Navigation
 import com.example.nts_pim.R
 import com.example.nts_pim.data.repository.VehicleTripArrayHolder
@@ -42,7 +42,7 @@ class TaxiNumberFragment : ScopedFragment(), KodeinAware {
         super.onViewCreated(view, savedInstanceState)
         // we init the viewModel here for a lateinit, this gives us all the functions inside the repo.
 
-        viewModel = ViewModelProviders.of(this, viewModelFactory)
+        viewModel = ViewModelProvider(this, viewModelFactory)
             .get(TaxiNumberViewModel::class.java)
         val settings = viewModel.getVehicleSettings()
         if (settings != null){

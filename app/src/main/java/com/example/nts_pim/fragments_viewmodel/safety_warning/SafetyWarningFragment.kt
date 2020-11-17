@@ -76,12 +76,12 @@ class SafetyWarningFragment : Fragment() {
     }
     private fun playSafetyMessage(){
         val mediaPlayer = MediaPlayer.create(context, R.raw.saftey_message_test)
-        mediaPlayer.setOnCompletionListener { mediaPlayer ->
+        mediaPlayer.setOnCompletionListener { mP ->
             if(view != null){
                 navigate()
             }
             LoggerHelper.writeToLog("$logFragment: Finished Safety Message")
-            mediaPlayer.release()
+            mP.release()
         }
         mediaPlayer.start()
         LoggerHelper.writeToLog("$logFragment: Started Safety Message")

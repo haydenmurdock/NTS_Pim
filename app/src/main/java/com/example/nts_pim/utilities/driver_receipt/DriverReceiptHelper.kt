@@ -6,6 +6,7 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONException
 import org.json.JSONObject
 import java.net.URL
@@ -31,8 +32,8 @@ object DriverReceiptHelper {
             Log.i("ERROR", "JSON error $e")
         }
 
-        val body = RequestBody.create(JSON, json.toString())
-        Log.i("URL","Json body :  ${json}")
+        val body = json.toString().toRequestBody(JSON)
+        Log.i("URL","Json body :  $json")
         val url = URL("https://5s27urxc78.execute-api.us-east-2.amazonaws.com/prod/sendReceipt")
 
         val request = Request.Builder()
@@ -57,7 +58,7 @@ object DriverReceiptHelper {
         } catch (e: Error){
             TripDetails.isReceiptSent = false
             TripDetails.receiptCode = e.hashCode()
-            TripDetails.receiptMessage = e.localizedMessage
+            TripDetails.receiptMessage = e.localizedMessage ?: ""
         }
     }
 }

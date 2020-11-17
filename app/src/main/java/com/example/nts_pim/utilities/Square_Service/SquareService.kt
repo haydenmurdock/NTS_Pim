@@ -83,7 +83,6 @@ class SquareService : OnLayoutChangeListener,
     fun processActivityResume(activity: Activity) {
         fullScreenMode(activity)
         Log.d(TAG, activity.localClassName)
-        val rootView = activity.findViewById<View>(android.R.id.content)
 
         // Figure our it this onResume call is for the square activity
         val name = activity.localClassName
@@ -213,11 +212,10 @@ class SquareService : OnLayoutChangeListener,
                     val tripTotal = VehicleTripArrayHolder.getAmountForSquareDisplay().toDouble()
                     val decimalFormatter = DecimalFormat("####00.00")
                     val decimalFormatterUnderTen = DecimalFormat("###0.00")
-                    var tripTotalFormatted = ""
-                    if(tripTotal < 10){
-                        tripTotalFormatted = decimalFormatterUnderTen.format(tripTotal)
+                    val tripTotalFormatted = if(tripTotal < 10){
+                        decimalFormatterUnderTen.format(tripTotal)
                     } else{
-                        tripTotalFormatted = decimalFormatter.format(tripTotal)
+                        decimalFormatter.format(tripTotal)
                     }
                     val tripTotalTextView = activity.findViewById<TextView>(R.id.insert_card_pay_price_textView)
                     if(tripTotalTextView != null){
@@ -399,11 +397,17 @@ class SquareService : OnLayoutChangeListener,
                 override fun onFinish() {
                     val newViewGroup =
                         squareActivity?.findViewById<TextView>(com.squareup.sdk.reader.api.R.id.reader_message_bar_current_text_view)
-                    val squareReaderState = newViewGroup?.text
-                    if (squareReaderState == null){
+                    val squareReaderState = newViewGroup?.text ?: ""
+                    if (squareReaderState.contains("Reader Ready")) {
+                        VehicleTripArrayHolder.updateReaderStatus(ReaderStatusEnum.CONNECTED.status)
+                        VehicleTripArrayHolder.squareHasBeenSetUp = true
+                        removeSquareReaderView()
+                        return
+                    }
+                    if(squareReaderState == ""){
                         Log.i(tag, "Reader checked via readerCheckTimer. Text view was null but timer was still going")
                         LoggerHelper.writeToLog("$tag, Reader checked via readerCheckTimer. Timer has finished and there is no text view to read.")
-                        return
+                        removeSquareReaderView()
                     }
                     if(squareReaderState.contains("Reader Not Ready")){
                         Log.i(tag, "Reader checked via readerCheckTimer. Reader has failed")

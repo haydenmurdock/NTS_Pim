@@ -16,7 +16,7 @@ import android.text.TextWatcher
 import android.util.Log
 import android.view.MotionEvent
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.ViewModelProviders
+import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.Navigation
 import com.amazonaws.amplify.generated.graphql.SavePaymentDetailsMutation
 import com.amazonaws.amplify.generated.graphql.UpdateTripMutation
@@ -24,11 +24,14 @@ import com.amazonaws.mobileconnectors.appsync.AWSAppSyncClient
 import com.apollographql.apollo.GraphQLCall
 import com.apollographql.apollo.api.Response
 import com.apollographql.apollo.exception.ApolloException
+import com.example.nts_pim.activity.MainActivity
 import com.example.nts_pim.data.repository.TripDetails
 import com.example.nts_pim.data.repository.VehicleTripArrayHolder
 import com.example.nts_pim.fragments_viewmodel.InjectorUtiles
 import com.example.nts_pim.fragments_viewmodel.base.ClientFactory
 import com.example.nts_pim.fragments_viewmodel.callback.CallBackViewModel
+import com.example.nts_pim.utilities.bluetooth_helper.BluetoothDataCenter
+import com.example.nts_pim.utilities.bluetooth_helper.NTSPimPacket
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import com.example.nts_pim.utilities.simple_email_helper.EmailHelper
 import com.example.nts_pim.utilities.view_helper.ViewHelper
@@ -74,9 +77,9 @@ class ReceiptInformationEmailFragment: ScopedFragment(), KodeinAware {
         mJob = Job()
         mAWSAppSyncClient = ClientFactory.getInstance(context)
         val callBackFactory = InjectorUtiles.provideCallBackModelFactory()
-        viewModel = ViewModelProviders.of(this, viewModelFactory)
+        viewModel = ViewModelProvider(this, viewModelFactory)
             .get(ReceiptInformationViewModel::class.java)
-        callBackViewModel = ViewModelProviders.of(this, callBackFactory)
+        callBackViewModel = ViewModelProvider(this, callBackFactory)
             .get(CallBackViewModel::class.java)
         vehicleId = viewModel.getVehicleID()
         transactionId = callBackViewModel.getTransactionId()
@@ -109,17 +112,15 @@ class ReceiptInformationEmailFragment: ScopedFragment(), KodeinAware {
                 closeSoftKeyboard()
             }
         }
-        view.setOnTouchListener(object : View.OnTouchListener {
-            override fun onTouch(v: View?, event: MotionEvent?): Boolean {
-                when (event?.action) {
-                    MotionEvent.ACTION_DOWN -> {
-                            inactiveScreenTimer?.cancel()
-                            inactiveScreenTimer?.start()
-                    }
+        view.setOnTouchListener { v, event ->
+            when (event?.action) {
+                MotionEvent.ACTION_DOWN -> {
+                    inactiveScreenTimer?.cancel()
+                    inactiveScreenTimer?.start()
                 }
-                return v?.onTouchEvent(event) ?: true
             }
-        })
+            v?.onTouchEvent(event) ?: true
+        }
         send_email_btn_receipt.setOnTouchListener((View.OnTouchListener { v, event ->
             when(event?.action) {
                 MotionEvent.ACTION_DOWN -> {
@@ -171,6 +172,7 @@ class ReceiptInformationEmailFragment: ScopedFragment(), KodeinAware {
             toThankYou()
         }
     }
+
     private fun getTripDetails(){
         val tripIdForPayment = VehicleTripArrayHolder.getTripIdForPayment()
         tripId = if(tripIdForPayment != ""){

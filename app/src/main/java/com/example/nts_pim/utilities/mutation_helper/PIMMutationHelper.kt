@@ -48,7 +48,7 @@ object PIMMutationHelper {
         }
     }
 
-    fun updateReaderStatus(vehicleId: String, readerStatus: String, appSyncClient: AWSAppSyncClient, calendar: Calendar){
+    fun updateReaderStatus(vehicleId: String, readerStatus: String, appSyncClient: AWSAppSyncClient){
 
         val formattedObject = getCurrentDateFormattedDateUtcIso()
         val updatePimStatusInput = UpdateVehTripStatusInput.builder()

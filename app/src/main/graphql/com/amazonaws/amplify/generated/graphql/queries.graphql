@@ -77,6 +77,19 @@ query GetMeterRates($rateId: String!, $rateNbr: Int) {
     timeRate
   }
 }
+query GetFeesAndSpecials($siteFleet: String!) {
+  getFeesAndSpecials(siteFleet: $siteFleet) {
+    feeAmt
+    flatRate
+    id
+    isAirport
+    isVehicleSpecific
+    minRate
+    name
+    siteFleet
+    vehicles
+  }
+}
 query GetPimSettings(
   $deviceId: String!
   $pin: String
@@ -104,6 +117,9 @@ query GetPimSettings(
     paired
     pimStartedTimeStamp
     overheatedTimeStamp
+    adChanged
+    adRemoved
+    vehBtAddr
   }
 }
 query GetSettings(
@@ -112,6 +128,7 @@ query GetSettings(
   $appVersion: String
   $phoneNbr: String
   $firmwareVersion: String
+  $vehBtAddr: String
 ) {
   getSettings(
     deviceId: $deviceId
@@ -119,6 +136,7 @@ query GetSettings(
     appVersion: $appVersion
     phoneNbr: $phoneNbr
     firmwareVersion: $firmwareVersion
+    vehBtAddr: $vehBtAddr
   ) {
     airportControl
     appVersion
@@ -166,6 +184,8 @@ query GetSettings(
     sendPort
     serverIP
     uploadLogs
+    useBluetoothPIM
+    vehBtAddr
     vehicleId
     vehicleNbr
     verifone
@@ -184,6 +204,7 @@ query GetStatus($vehicleId: String!) {
     driverId
     error
     errorCode
+    feesAndSpecialsSet
     gpsDirection
     lat
     lng
@@ -465,6 +486,9 @@ query GetLoggingSettings($deviceId: String!) {
     paired
     pimStartedTimeStamp
     overheatedTimeStamp
+    adChanged
+    adRemoved
+    vehBtAddr
   }
 }
 query GetPimInfo($vehicleId: String!) {
@@ -482,5 +506,17 @@ query GetPimInfo($vehicleId: String!) {
     paired
     pimStartedTimeStamp
     overheatedTimeStamp
+    adChanged
+    adRemoved
+    vehBtAddr
+  }
+}
+query GetPimAdvertisement($vehicleId: String!) {
+  getPIMAdvertisement(vehicleId: $vehicleId) {
+    error
+    errorCode
+    advertisement
+    adContentType
+    adDuration
   }
 }

@@ -11,10 +11,11 @@ import android.view.*
 import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.Observer
-import androidx.lifecycle.ViewModelProviders
+import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.Navigation
 import com.amazonaws.mobileconnectors.appsync.AWSAppSyncClient
 import com.example.nts_pim.R
+import com.example.nts_pim.activity.MainActivity
 import com.example.nts_pim.data.repository.VehicleTripArrayHolder
 import com.example.nts_pim.data.repository.model_objects.CurrentTrip
 import com.example.nts_pim.data.repository.providers.ModelPreferences
@@ -24,6 +25,8 @@ import com.example.nts_pim.fragments_viewmodel.base.ClientFactory
 import com.example.nts_pim.fragments_viewmodel.base.ScopedFragment
 import com.example.nts_pim.utilities.mutation_helper.PIMMutationHelper
 import com.example.nts_pim.utilities.Square_Service.SquareService
+import com.example.nts_pim.utilities.bluetooth_helper.BluetoothDataCenter
+import com.example.nts_pim.utilities.bluetooth_helper.NTSPimPacket
 import com.example.nts_pim.utilities.enums.*
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import com.example.nts_pim.utilities.view_helper.ViewHelper
@@ -52,8 +55,7 @@ class CashOrCardFragment : ScopedFragment(), KodeinAware {
     private val tripTotalDFUnderTen = DecimalFormat("###0.00")
     private var removeWaitScreenTimer: CountDownTimer? = null
     private var inactiveScreenTimer: CountDownTimer? = null
-    private var pimMeterValue: Double = 00.00
-    private var pimPayAmount: Double = 00.00
+    private var pimPayAmount: Double? = null
     private var pimPaidAmount: Double = 00.00
     private val currentFragmentId = R.id.trip_review_fragment
     private var doesPimNeedToTakePayment = true
@@ -73,10 +75,10 @@ class CashOrCardFragment : ScopedFragment(), KodeinAware {
         super.onViewCreated(view, savedInstanceState)
         val factory = InjectorUtiles.provideCallBackModelFactory()
 
-        callbackViewModel = ViewModelProviders.of(this, factory)
+        callbackViewModel = ViewModelProvider(this, factory)
             .get(CallBackViewModel::class.java)
 
-        viewModel = ViewModelProviders.of(this, viewModelFactory)
+        viewModel = ViewModelProvider(this, viewModelFactory)
             .get(TripReviewViewModel::class.java)
 
         mAWSAppSyncClient = ClientFactory.getInstance(context)
@@ -85,13 +87,13 @@ class CashOrCardFragment : ScopedFragment(), KodeinAware {
         pimPaidAmount = callbackViewModel.getPimPaidAmount()
 
         //we check this value for updating the Trip Review
-        pimMeterValue = callbackViewModel.getMeterOwed().value ?: 0.0
         pimPayAmount = callbackViewModel.getPimPayAmount()
-        tripTotal = pimPayAmount
+        tripTotal = pimPayAmount!!.toDouble()
         currentTrip = ModelPreferences(requireContext())
             .getObject(SharedPrefEnum.CURRENT_TRIP.key, CurrentTrip::class.java)
         Log.i("Trip Review","Pim Pay amount at the start of page was $pimPayAmount")
         updatePimStatus()
+        updateTripInfo()
         textToSpeech = TextToSpeech(context, TextToSpeech.OnInitListener {
             if (it == TextToSpeech.SUCCESS) {
                 val language = textToSpeech?.setLanguage(Locale.US)
@@ -101,32 +103,16 @@ class CashOrCardFragment : ScopedFragment(), KodeinAware {
                     Log.e("TTS", "The Language is not supported!")
                 } else {
                     Log.i("TTS", "Language Supported.")
-                    val formattedNumber = decimalFormatter.format(pimPayAmount)
+                    val formattedNumber = decimalFormatter.format(pimPayAmount!!)
                     playTripTotalAmount(formattedNumber)
                 }
                 Log.i("TTS", "Initialization success.")
             }
         })
-        //If the microphone is muted, the square connection is still taking place.
-//        if (!audioManager.isMicrophoneMute) {
-//            val currentTrip = ModelPreferences(requireContext())
-//                .getObject(SharedPrefEnum.CURRENT_TRIP.key, CurrentTrip::class.java)
-//            if (currentTrip?.tripID != "" &&
-//                currentTrip != null
-//            ) {
-//                getPimPayAndPimPaidAmountQuery(currentTrip.tripID)
-//                showPleaseWaitScreen()
-//                startRemoveWaitScreenTimer()
-//            } else {
-//                getTripId(vehicleId)
-//                showPleaseWaitScreen()
-//                //we will start Remove Wait screen timer when we get tripId from callback
-//            }
 
-        checkIfPIMNeedsToTakePayment(pimPayAmount, pimPaidAmount)
+        checkIfPIMNeedsToTakePayment(pimPayAmount!!, pimPaidAmount)
         val pimPaidAmountToString = pimPaidAmount.toString()
         playTripTotalAmount(pimPaidAmountToString)
-
         cash_btn.setOnTouchListener((View.OnTouchListener { v, event ->
             when (event?.action) {
                 MotionEvent.ACTION_DOWN -> {
@@ -169,7 +155,7 @@ class CashOrCardFragment : ScopedFragment(), KodeinAware {
                 }
             }
         }))
-        updateTripInfo()
+
         //To Tip Screen
         debit_credit_btn.setOnClickListener {
             ViewHelper.disableButton(debit_credit_btn)
@@ -214,43 +200,48 @@ class CashOrCardFragment : ScopedFragment(), KodeinAware {
                 if(textToSpeech!= null){
                     if(textToSpeech!!.isSpeaking){
                         textToSpeech!!.stop()
-                        val formattedNumber = decimalFormatter.format(pimPayAmount)
+                        val formattedNumber = decimalFormatter.format(pimPayAmount!!)
                         playTripTotalAmount(formattedNumber)
                         Log.i("Trip Review", "TTS was stopped and started again with new pim pay amount")
                     } else {
-                        val formattedNumber = decimalFormatter.format(pimPayAmount)
+                        val formattedNumber = decimalFormatter.format(pimPayAmount!!)
                         playTripTotalAmount(formattedNumber)
                         Log.i("Trip Review", "TTS was started with new pim pay amount")
                     }
                 }
             }
         })
+        sendPimStatusBluetooth()
+    }
+    private fun sendPimStatusBluetooth(){
+        val isBluetoothOn = BluetoothDataCenter.isBluetoothOn().value ?: false
+        if(isBluetoothOn){
+            val dataObject = NTSPimPacket.PimStatusObj()
+            val statusObj =  NTSPimPacket(NTSPimPacket.Command.PIM_STATUS, dataObject)
+            Log.i("Bluetooth", "status request packet to be sent == $statusObj")
+            (activity as MainActivity).sendBluetoothPacket(statusObj)
+        }
     }
 
     private fun updateTripInfo() {
-        if (resources.getBoolean(R.bool.isDevModeOn)) {
-            val dollar = 1.25
-            val formattedArgs = tripTotalDFUnderTen.format(dollar)
-            tripTotal = formattedArgs.toDouble()
-            val tripTotalToString = formattedArgs.toString()
-            trip_total_for_tip_text_view.text = "$$tripTotalToString"
-        } else {
-            if (pimPayAmount < 10) {
-                val formattedArgs = tripTotalDFUnderTen.format(pimPayAmount)
+            if(pimPayAmount == null){
+                return
+            }
+            if (pimPayAmount!! < 10) {
+                val formattedArgs = tripTotalDFUnderTen.format(pimPayAmount!!)
                 tripTotal = formattedArgs.toDouble()
                 val tripTotalToString = formattedArgs.toString()
                 if (trip_total_for_tip_text_view != null){
                     trip_total_for_tip_text_view.text = "$$tripTotalToString"
                 }
             } else {
-                val formattedArgs = decimalFormatter.format(pimPayAmount)
+                val formattedArgs = decimalFormatter.format(pimPayAmount!!)
                 tripTotal = formattedArgs.toDouble()
                 val tripTotalToString = formattedArgs.toString()
                 if (trip_total_for_tip_text_view != null){
                     trip_total_for_tip_text_view.text = "$$tripTotalToString"
                 }
             }
-        }
         val args = arguments?.getFloat("meterOwedPrice")?.toDouble()
         if (args != null) {
             Log.i("TripReview", "The meterValue passed along was$args")
@@ -278,33 +269,6 @@ class CashOrCardFragment : ScopedFragment(), KodeinAware {
         ).show()
         debit_credit_btn.isEnabled = true
     }
-    private fun showPleaseWaitScreen() {
-        debit_credit_btn.visibility = View.INVISIBLE
-        cash_btn.visibility = View.INVISIBLE
-        credit_card_imageView.visibility = View.INVISIBLE
-        dollar_sign_imageView.visibility = View.INVISIBLE
-        credit_textView.visibility = View.INVISIBLE
-        cash_textView.visibility = View.INVISIBLE
-        pleaseWaitScrollView.visibility = View.VISIBLE
-        if (progressBar3 != null) {
-            progressBar3.animate()
-        }
-    }
-    private fun removePleaseWaitScreen() {
-        changeBackToRegularUI(debit_credit_btn)
-        changeBackToRegularUI(cash_btn)
-        changeBackToRegularUI(credit_card_imageView)
-        changeBackToRegularUI(dollar_sign_imageView)
-        changeBackToRegularUI(credit_textView)
-        changeBackToRegularUI(cash_textView)
-        if (pleaseWaitScrollView != null) {
-            pleaseWaitScrollView.visibility = View.INVISIBLE
-        }
-        if (progressBar3 != null) {
-            progressBar3.visibility = View.GONE
-            progressBar3.clearAnimation()
-        }
-    }
 
     private fun updatePimStatus() {
         PIMMutationHelper.updatePIMStatus(
@@ -320,7 +284,7 @@ class CashOrCardFragment : ScopedFragment(), KodeinAware {
             textToSpeech!!.speak(
                 "Amount Owed $$messageToSpeak",
                 TextToSpeech.QUEUE_FLUSH,
-                null
+                null,null
             )
             LoggerHelper.writeToLog("$logFragment,  Pim Read $messageToSpeak to customer")
         } else {
@@ -354,6 +318,7 @@ class CashOrCardFragment : ScopedFragment(), KodeinAware {
             PIMStatusEnum.SQUARE_PAYMENT_COMPLETE.status,
             mAWSAppSyncClient!!
         )
+        sendPimStatusBluetooth()
         val tripTotalFloat = tripTotal.toFloat()
         val actionComplete = CashOrCardFragmentDirections.toEmailOrText(tripTotalFloat, "CARD")
             .setTripTotal(tripTotalFloat)
@@ -411,25 +376,6 @@ class CashOrCardFragment : ScopedFragment(), KodeinAware {
             navController.navigate(action)
         }
     }
-    private fun startRemoveWaitScreenTimer() {
-        removeWaitScreenTimer = object : CountDownTimer(30000, 1000) {
-            //we will show this screen for 30 seconds just in case something makes square take a while to come up
-            val audioManager = context?.getSystemService(Context.AUDIO_SERVICE) as AudioManager
-
-            override fun onTick(millisUntilFinished: Long) {
-                if (audioManager.isMicrophoneMute) {
-                    LoggerHelper.writeToLog("$logFragment,  Removed Please wait screen early because microphone was muted")
-                    removeWaitScreenTimer?.onFinish()
-                }
-            }
-
-            override fun onFinish() {
-                removePleaseWaitScreen()
-                LoggerHelper.writeToLog("$logFragment,  Removed Please wait screen")
-                checkIfPIMNeedsToTakePayment(pimPayAmount, pimPaidAmount)
-            }
-        }.start()
-    }
     private fun startInactivityTimer() {
         inactiveScreenTimer = object : CountDownTimer(60000, 1000) {
             //1 min inactivity timer
@@ -438,77 +384,11 @@ class CashOrCardFragment : ScopedFragment(), KodeinAware {
             }
 
             override fun onFinish() {
-                if (!resources.getBoolean(R.bool.isSquareBuildOn)) {
-                    toInterActionComplete()
-                }
+                toInterActionComplete()
             }
         }.start()
     }
 
-    private fun changeBackToRegularUI(view: View?) {
-        if (view != null) {
-            view.visibility = View.VISIBLE
-        }
-    }
-
-//    private fun getPimPayAndPimPaidAmountQuery(tripId: String) = launch(Dispatchers.IO) {
-//        mAWSAppSyncClient?.query(GetTripQuery.builder().tripId(tripId).build())
-//            ?.responseFetcher(AppSyncResponseFetchers.CACHE_AND_NETWORK)
-//            ?.enqueue(getTripQueryCallBack)
-//    }
-
-//    private var getTripQueryCallBack = object : GraphQLCall.Callback<GetTripQuery.Data>() {
-//        override fun onResponse(response: Response<GetTripQuery.Data>) {
-//            if (response.data()?.trip != null) {
-//                val initialPimPayAmt = response.data()!!.trip.pimPayAmt()
-//                val initialPimPaidAmount = response.data()!!.trip.pimPaidAmt()
-//                if (initialPimPayAmt != null) {
-//                    pimPayAmount = initialPimPayAmt
-//                    if (initialPimPaidAmount != null) {
-//                        pimPaidAmount = initialPimPaidAmount
-//                    }
-//                    launch(Dispatchers.Main) {
-//                        updateTripInfo()
-//                        callbackViewModel.addTripId(tripID, context!!)
-//
-//                    }
-//                }
-//            }
-//        }
-//
-//        override fun onFailure(e: ApolloException) {
-//            Log.e("ERROR", e.toString())
-//        }
-//    }
-
-//    private fun getTripId(vehicleId: String) = launch(Dispatchers.IO) {
-//        if (mAWSAppSyncClient == null) {
-//            mAWSAppSyncClient = ClientFactory.getInstance(requireContext())
-//        }
-//        mAWSAppSyncClient?.query(GetStatusQuery.builder().vehicleId(vehicleId).build())
-//            ?.responseFetcher(AppSyncResponseFetchers.CACHE_AND_NETWORK)
-//            ?.enqueue(vehicleIdCallBack)
-//    }
-//
-//    private var vehicleIdCallBack = object : GraphQLCall.Callback<GetStatusQuery.Data>() {
-//        override fun onResponse(response: Response<GetStatusQuery.Data>) {
-//            if (response.data() != null) {
-//                if (response.data()!!.status.tripId() != null || response.data()!!.status.tripId() != "") {
-//                    val tripId = response.data()!!.status.tripId()
-//                    if (tripId != null) {
-//                        tripID = tripId
-//                        launch(Dispatchers.IO) {
-//                            getPimPayAndPimPaidAmountQuery(tripId)
-//                        }
-//                    }
-//                }
-//            }
-//        }
-
-//        override fun onFailure(e: ApolloException) {
-//            Log.e("ERROR", e.toString())
-//        }
-//    }
 
     override fun onPause() {
         super.onPause()

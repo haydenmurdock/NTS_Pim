@@ -11,7 +11,6 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
-import androidx.lifecycle.ViewModelProviders
 import androidx.navigation.Navigation
 import com.amazonaws.mobileconnectors.appsync.AWSAppSyncClient
 import com.example.nts_pim.R
@@ -21,17 +20,21 @@ import org.kodein.di.KodeinAware
 import org.kodein.di.android.x.closestKodein
 import org.kodein.di.generic.instance
 import androidx.lifecycle.Observer
+import androidx.lifecycle.ViewModelProvider
 import com.amazonaws.amplify.generated.graphql.GetTripQuery
 import com.amazonaws.mobileconnectors.appsync.fetcher.AppSyncResponseFetchers
 import com.apollographql.apollo.GraphQLCall
 import com.apollographql.apollo.api.Response
 import com.apollographql.apollo.exception.ApolloException
+import com.example.nts_pim.activity.MainActivity
 import com.example.nts_pim.fragments_viewmodel.callback.CallBackViewModel
 import com.example.nts_pim.fragments_viewmodel.InjectorUtiles
 import java.text.DecimalFormat
 import com.example.nts_pim.data.repository.TripDetails
 import com.example.nts_pim.data.repository.model_objects.CurrentTrip
 import com.example.nts_pim.data.repository.providers.ModelPreferences
+import com.example.nts_pim.utilities.bluetooth_helper.BluetoothDataCenter
+import com.example.nts_pim.utilities.bluetooth_helper.NTSPimPacket
 import com.example.nts_pim.utilities.enums.*
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import com.example.nts_pim.utilities.mutation_helper.PIMMutationHelper
@@ -76,28 +79,33 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
         currentFragment = this
         mAWSAppSyncClient = ClientFactory.getInstance(activity?.applicationContext)
         val callbackFactory = InjectorUtiles.provideCallBackModelFactory()
-        viewModel = ViewModelProviders.of(this, viewModelFactory)
+        viewModel = ViewModelProvider(this, viewModelFactory)
             .get(LiveMeterViewModel::class.java)
         callbackViewModel =
-            ViewModelProviders.of(this, callbackFactory).get(CallBackViewModel::class.java)
+            ViewModelProvider(this, callbackFactory).get(CallBackViewModel::class.java)
         vehicleId = viewModel.getVehicleID()
         audioManager = context?.getSystemService(Context.AUDIO_SERVICE) as AudioManager
         currentTrip = ModelPreferences(requireContext())
             .getObject(SharedPrefEnum.CURRENT_TRIP.key, CurrentTrip::class.java)
         tripId = callbackViewModel.getTripId()
         textToSpeechMode = TripDetails.textToSpeechActivated
+        val isBluetoothOn = BluetoothDataCenter.isBluetoothOn().value ?: false
         if(tripId == "" &&
                 currentTrip != null){
             tripId = currentTrip!!.tripID
-            getMeterOwedQuery(tripId)
+            if(!isBluetoothOn){
+                getMeterOwedQuery(tripId)
+            }
             LoggerHelper.writeToLog("$logFragment: had to query Meter Owed for $tripId")
         }
 
         checkCurrentTrip()
         updatePIMStatus()
         updateMeterFromTripReview()
-        getMeterOwedQuery(tripId)
-        meterValue = callbackViewModel.getMeterOwed().value.toString()
+        if(!isBluetoothOn){
+            getMeterOwedQuery(tripId)
+        }
+        meterValue = callbackViewModel.getPimPayAmount().toString()
         meterState = callbackViewModel.getMeterState().value.toString()
         if(meterState == "off"){
             callbackViewModel.addMeterState("ON")
@@ -137,6 +145,16 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
                 toEmailText()
             }
         })
+        sendPimStatusBluetooth()
+    }
+    private fun sendPimStatusBluetooth(){
+        val isBluetoothOn = BluetoothDataCenter.isBluetoothOn().value ?: false
+        if(isBluetoothOn){
+            val dataObject = NTSPimPacket.PimStatusObj()
+            val statusObj =  NTSPimPacket(NTSPimPacket.Command.PIM_STATUS, dataObject)
+            Log.i("Bluetooth", "status request packet to be sent == $statusObj")
+            (activity as MainActivity).sendBluetoothPacket(statusObj)
+        }
     }
 
     private fun toTripReview()=launch(Dispatchers.Main.immediate) {
@@ -159,9 +177,12 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
     }
 
     private fun toEmailText(){
-        if(!meterValue.isNullOrBlank()){
-            val priceAsFloat = meterValue.toFloat()
+        if(meterValue != ""){
+            var priceAsFloat = meterValue.toFloatOrNull()
             val paymentType = PaymentTypeEnum.CARD.paymentType
+            if(priceAsFloat == null){
+                priceAsFloat = 00.00.toFloat()
+            }
             val action = LiveMeterFragmentDirections.toEmailorTextFromLiveMeter(priceAsFloat, paymentType).setPaymentType(paymentType).setTripTotal(priceAsFloat)
             val navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment)
             if(navController.currentDestination?.id == R.id.live_meter_fragment){
@@ -175,8 +196,6 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
         val checkAgainst = 00.00.toFloat()
         if(args != null && args != checkAgainst){
             Log.i("Live Meter", "The Data is coming from Trip Review")
-            val formattedArgs = decimalFormatter.format(args)
-
             initialMeterValueSet = true
         }
     }
@@ -197,7 +216,7 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
                 mAWSAppSyncClient = ClientFactory.getInstance(requireContext())
             }
            mAWSAppSyncClient?.query(GetTripQuery.builder().tripId(tripId).build())
-                ?.responseFetcher(AppSyncResponseFetchers.CACHE_AND_NETWORK)
+                ?.responseFetcher(AppSyncResponseFetchers.NETWORK_ONLY)
                 ?.enqueue(getTripQueryCallBack)
     }
 

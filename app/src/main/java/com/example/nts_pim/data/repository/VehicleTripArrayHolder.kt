@@ -95,7 +95,11 @@ object VehicleTripArrayHolder {
 
     private var paymentMethod = "none"
 
-    private val logFragment = "Vehicle Trip Array Holder"
+    private var transDate: String? = null
+    private var cardInfo: String? = null
+    private var declinedMessageForTrip: String? = null
+
+    private val logFragment = "Vehicle_Trip_Array_Holder"
 
 // Adds the status from the main activity app sync subscription. It goes to a live data array to be watched for changes. There is only 1 status in the array at all times.
 //E.g. "Trip_On_Site", "Trip_Assigned", "Trip_Picked_UP"
@@ -111,7 +115,7 @@ object VehicleTripArrayHolder {
    fun addStatus(appsyncTripStatus: String){
         if(appsyncTripStatus != tripStatus){
             tripStatus = appsyncTripStatus
-            tripStatusMutableLiveData.value = tripStatus
+            tripStatusMutableLiveData.postValue(tripStatus)
             LoggerHelper.writeToLog("Internal pim status was changed. Trip Status: $tripStatus")
         }
    }
@@ -123,9 +127,9 @@ object VehicleTripArrayHolder {
     // need to add last part of where the meter change status is added for the first time.
     fun addMeterState(meterStateAWS: String) {
     if (meterStatePIM != meterStateAWS){
-        Log.i("Results","METER STATE has changed from $meterStatePIM to $meterStateAWS")
+        Log.i(logFragment,"METER STATE has changed from $meterStatePIM to $meterStateAWS")
         meterStatePIM = meterStateAWS
-        meterStatePIMMutableLiveData.value = meterStatePIM
+        meterStatePIMMutableLiveData.postValue(meterStateAWS)
         LoggerHelper.writeToLog("Internal pim meter was changed. Meter Status: $meterStatePIM")
     }
 }
@@ -158,18 +162,15 @@ object VehicleTripArrayHolder {
         isSquareTransactionStartedMutableLiveData.value = isSquareTransactionStarted
     }
 
-//    fun getIsTransactionStarted() = isSquareTransactionStartedMutableLiveData as LiveData<Boolean>
-
-
     fun addTripId(enteredTripId: String, context: Context){
         if(enteredTripId != tripId &&
                 enteredTripId != ""){
             tripId = enteredTripId
             newTripHasStarted = true
-            newTripHasStartedMutableLiveData.value = newTripHasStarted
+            newTripHasStartedMutableLiveData.postValue(newTripHasStarted)
             createCurrentTrip(false, enteredTripId, "none", context)
             tripEnded = false
-            tripEndedMutableLiveData.value = tripEnded
+            tripEndedMutableLiveData.postValue(tripEnded)
             LoggerHelper.writeToLog("Internal Trip Id was changed. Trip Id: $tripId")
         }
     }
@@ -218,12 +219,19 @@ object VehicleTripArrayHolder {
         driverId = 0
         tripIdForPayment = ""
         paymentMethod = "none"
+        cardInfo = ""
+        transDate = ""
+        declinedMessageForTrip = null
         Log.i("Results", "All Trip Information has been cleared")
         LoggerHelper.writeToLog("All Trip Information has been cleared")
     }
 
     fun updateInternalPIMStatus(pimStatus: String){
-        internalPIMStatus = pimStatus
+        if(pimStatus != internalPIMStatus){
+            internalPIMStatus = pimStatus
+            LoggerHelper.writeToLog("Pim status was updated internally to $internalPIMStatus")
+        }
+
     }
 
     fun getInternalPIMStatus() = internalPIMStatus
@@ -302,7 +310,7 @@ object VehicleTripArrayHolder {
 
     fun setPimPayment(awsPimPayAmount: Double){
         pimPayAmount = awsPimPayAmount
-        pimPayAmountMutableLiveDate.value = pimPayAmount
+        pimPayAmountMutableLiveDate.postValue(pimPayAmount)
         Log.i("pim pay amount", "pim pay amount has changed to $pimPayAmount")
     }
 
@@ -352,14 +360,27 @@ object VehicleTripArrayHolder {
         deviceIsBondedBTMutableLiveData.value = deviceIsBondedBT
     }
 
-//    fun deviceIsNotBondedViaBluetooth(){
-//        deviceIsBondedBT = false
-//        deviceIsBondedBTMutableLiveData.value = deviceIsBondedBT
-//    }
-//
-//    fun isDeviceBondedViaBluetooth(): LiveData<Boolean>{
-//        return deviceIsBondedBTMutableLiveData
-//    }
+    fun setCardInfoPlusDate(info: String, date: String){
+        if(info != cardInfo){
+            cardInfo = info
+            Log.i("$logFragment", "Card info updated internally. Card = $cardInfo")
+        }
+        if(date != transDate){
+            transDate = date
+            Log.i("$logFragment", "Transaction date info updated internally. TransDate = $transDate")
+        }
+    }
+
+
+    fun getCardInfo() = cardInfo
+    fun getTransDate() = transDate
+
+    fun updateDeclinedCardMessage(message: String){
+        if(message != declinedMessageForTrip){
+            declinedMessageForTrip = message
+        }
+    }
+    fun getDeclinedCardMessage() = declinedMessageForTrip
 
     fun updateReaderStatus(status: String){
         cardReaderStatus = status

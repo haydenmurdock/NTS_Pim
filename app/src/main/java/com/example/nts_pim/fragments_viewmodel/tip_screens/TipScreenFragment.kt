@@ -10,15 +10,15 @@ import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.lifecycle.Observer
-import androidx.lifecycle.ViewModelProviders
+import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.Navigation
 import com.amazonaws.amplify.generated.graphql.PimPaymentMadeMutation
-import com.amazonaws.amplify.generated.graphql.UpdateTripMutation
 import com.amazonaws.mobileconnectors.appsync.AWSAppSyncClient
 import com.apollographql.apollo.GraphQLCall
 import com.apollographql.apollo.api.Response
 import com.apollographql.apollo.exception.ApolloException
 import com.example.nts_pim.R
+import com.example.nts_pim.activity.MainActivity
 import com.example.nts_pim.data.repository.VehicleTripArrayHolder
 import com.example.nts_pim.fragments_viewmodel.InjectorUtiles
 import com.example.nts_pim.fragments_viewmodel.base.ClientFactory
@@ -26,10 +26,11 @@ import com.example.nts_pim.fragments_viewmodel.base.ScopedFragment
 import com.example.nts_pim.fragments_viewmodel.callback.CallBackViewModel
 import com.example.nts_pim.fragments_viewmodel.live_meter.LiveMeterViewModel
 import com.example.nts_pim.fragments_viewmodel.live_meter.LiveMeterViewModelFactory
+import com.example.nts_pim.utilities.bluetooth_helper.BlueToothHelper
+import com.example.nts_pim.utilities.bluetooth_helper.BluetoothDataCenter
+import com.example.nts_pim.utilities.bluetooth_helper.NTSPimPacket
 import com.example.nts_pim.utilities.enums.MeterEnum
 import com.example.nts_pim.utilities.enums.PIMStatusEnum
-import com.example.nts_pim.utilities.enums.ReaderStatusEnum
-import com.example.nts_pim.utilities.enums.VehicleStatusEnum
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import com.example.nts_pim.utilities.mutation_helper.PIMMutationHelper
 import com.example.nts_pim.utilities.sound_helper.SoundHelper
@@ -52,7 +53,7 @@ import java.util.*
 
 class TipScreenFragment: ScopedFragment(),KodeinAware {
     override val kodein by closestKodein()
-    private val viewModelFactory: LiveMeterViewModelFactory by instance()
+    private val viewModelFactory: LiveMeterViewModelFactory by instance<LiveMeterViewModelFactory>()
     private var tripTotal = 00.00
     private var tripTotalReset = 00.00
     private var amountForSquare = 00.00
@@ -84,7 +85,7 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
     private var driverId: Int? = null
 
 
-    val screenTimeOutTimer = object: CountDownTimer(30000, 1000) {
+   private val screenTimeOutTimer = object: CountDownTimer(30000, 1000) {
         // this is set to 30 seconds.
         override fun onTick(millisUntilFinished: Long) {
         }
@@ -105,9 +106,9 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
         tripTotalReset = tripTotal
         mAWSAppSyncClient = ClientFactory.getInstance(context)
         val factory = InjectorUtiles.provideCallBackModelFactory()
-        callbackViewModel = ViewModelProviders.of(this, factory)
+        callbackViewModel = ViewModelProvider(this, factory)
             .get(CallBackViewModel::class.java)
-        viewModel = ViewModelProviders.of(this, viewModelFactory)
+        viewModel = ViewModelProvider(this, viewModelFactory)
             .get(LiveMeterViewModel::class.java)
         vehicleId = viewModel.getVehicleID()
         val tripIdForPayment = VehicleTripArrayHolder.getTripIdForPayment()
@@ -122,7 +123,7 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
         checkoutCallbackRef = checkoutManager.addCheckoutActivityCallback(this::onCheckoutResult)
         getArgsFromCustomTipScreen()
         PIMMutationHelper.updatePIMStatus(vehicleId, PIMStatusEnum.TIP_SCREEN.status, mAWSAppSyncClient!!)
-
+        sendPimStatusBluetooth()
         view.setOnTouchListener { v, event ->
             when (event?.action) {
                 MotionEvent.ACTION_DOWN -> {
@@ -317,6 +318,15 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
             }
         })
     }
+    private fun sendPimStatusBluetooth(){
+        val isBluetoothOn = BluetoothDataCenter.isBluetoothOn().value ?: false
+        if(isBluetoothOn){
+            val dataObject = NTSPimPacket.PimStatusObj()
+            val statusObj =  NTSPimPacket(NTSPimPacket.Command.PIM_STATUS, dataObject)
+            Log.i("Bluetooth", "status request packet to be sent == $statusObj")
+            (activity as MainActivity).sendBluetoothPacket(statusObj)
+        }
+    }
     private fun updateUI() {
         if(tripTotal < 10.00){
             if (fifteen_percent_text_view != null &&
@@ -456,36 +466,35 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
         val tipAmount = arguments?.getFloat("tipChosenFromCustomTipScreen")
         val hasCustomerPickedPercentage = arguments?.getBoolean("percentagePickedForCustomTip")
         val amountForSquareArgs = tripTotalBeforeTip!! + tipAmount!!.toFloat()
-        if (tripTotalBeforeTip != null &&
-            tipAmount != null) {
-            if (amountForSquare < 10.00) {
-                tripTotal = tripTotalBeforeTip.toDouble()
-                amountForSquare = amountForSquareArgs.toDouble()
-                tipAmountPassedToSquare = tipAmount.toDouble()
-                val formattedArgs = tripTotalDFUnderTen.format(amountForSquare)
-                val tripTotalToString = formattedArgs.toString()
-                tip_screen_trip_total_textView.text = "$$tripTotalToString"
-            } else {
-                tripTotal = tripTotalBeforeTip.toDouble()
-                amountForSquare = amountForSquareArgs.toDouble()
-                tipAmountPassedToSquare = tipAmount.toDouble()
-                val formattedArgs = tripTotalDF.format(amountForSquare)
-                val tripTotalToString = formattedArgs.toString()
-                tip_screen_trip_total_textView.text = "$$tripTotalToString"
+        if (amountForSquare < 10.00) {
+            tripTotal = tripTotalBeforeTip.toDouble()
+            amountForSquare = amountForSquareArgs.toDouble()
+            tipAmountPassedToSquare = tipAmount.toDouble()
+            val formattedArgs = tripTotalDFUnderTen.format(amountForSquare)
+            val tripTotalToString = formattedArgs.toString()
+            tip_screen_trip_total_textView.text = "$$tripTotalToString"
+        } else {
+            tripTotal = tripTotalBeforeTip.toDouble()
+            amountForSquare = amountForSquareArgs.toDouble()
+            tipAmountPassedToSquare = tipAmount.toDouble()
+            val formattedArgs = tripTotalDF.format(amountForSquare)
+            val tripTotalToString = formattedArgs.toString()
+            tip_screen_trip_total_textView.text = "$$tripTotalToString"
+        }
+        if(hasCustomTipBeingPicked!!) {
+            tipAmountPassedToSquare = tipAmount.toDouble()
+            if(hasCustomerPickedPercentage != null && hasCustomerPickedPercentage){
+                tipPercentPicked = tipAmountPassedToSquare/amountForSquare
             }
-            if(hasCustomTipBeingPicked!!) {
-                tipAmountPassedToSquare = tipAmount.toDouble()
-                if(hasCustomerPickedPercentage != null && hasCustomerPickedPercentage){
-                    tipPercentPicked = tipAmountPassedToSquare/amountForSquare
-                }
-                squareCheckout(amountForSquare)
-                lowerAlpha()
-            }
+            squareCheckout(amountForSquare)
+            lowerAlpha()
         }
     }
     private fun squareCheckout(checkOutAmount: Double) = launch {
         //Function for square
         LoggerHelper.writeToLog("$logFragment,  $checkOutAmount send to start square checkout")
+        PIMMutationHelper.updatePIMStatus(vehicleId, PIMStatusEnum.STARTED_SQUARE_PAYMENT.status, mAWSAppSyncClient!!)
+        sendPimStatusBluetooth()
         callbackViewModel.setAmountForSquareDisplay(checkOutAmount)
         val p = checkOutAmount * 100.00
         val checkOutTotal = Math.round(p)
@@ -500,7 +509,7 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
         }
         val checkoutManager = ReaderSdk.checkoutManager()
         checkoutManager.startCheckoutActivity(requireContext(), parametersBuilder.build())
-        PIMMutationHelper.updatePIMStatus(vehicleId, PIMStatusEnum.STARTED_SQUARE_PAYMENT.status, mAWSAppSyncClient!!)
+
     }
     private fun lowerAlpha() {
         val alpha = 0.5f
@@ -600,6 +609,7 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
             LoggerHelper.writeToLog("$logFragment,  Square payment result: Success")
             val checkoutResult = result.successValue
             showCheckoutResult(checkoutResult)
+            BlueToothHelper.sendPaymentInfo(requireActivity())
             ViewHelper.hideSystemUI(requireActivity())
         } else {
             ViewHelper.hideSystemUI(requireActivity())
@@ -612,7 +622,9 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
                     "SDK not authorized",
                     Toast.LENGTH_SHORT
                 ).show()
-                PIMMutationHelper.updatePIMStatus(vehicleId, PIMStatusEnum.PAYMENT_ERROR.status, mAWSAppSyncClient!!)
+                PIMMutationHelper.updatePIMStatus(vehicleId, PIMStatusEnum.SDK_NOT_AUTHORIZED.status, mAWSAppSyncClient!!)
+                sendPimStatusBluetooth()
+                updateInternalInfoDeclinedPayment("${error.message}, ${PIMStatusEnum.SDK_NOT_AUTHORIZED.status}")
                 LoggerHelper.writeToLog("$logFragment,  SDK not authorized for square transaction")
             }
             if (error.code == CheckoutErrorCode.CANCELED) {
@@ -622,6 +634,8 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
                 toast.setGravity(Gravity.TOP, 0,0)
                 toast.show()
                 PIMMutationHelper.updatePIMStatus(vehicleId, PIMStatusEnum.CANCELED_SQUARE_PAYMENT.status, mAWSAppSyncClient!!)
+                sendPimStatusBluetooth()
+                updateInternalInfoDeclinedPayment("${error.message}, ${PIMStatusEnum.CANCELED_SQUARE_PAYMENT.status}")
                 LoggerHelper.writeToLog("$logFragment,  square payment canceled")
             }
             if (error.code ==  CheckoutErrorCode.USAGE_ERROR) {
@@ -629,10 +643,16 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
                     "Usage ERROR: ${error.message}, ErrorDebug Message: ${error.debugMessage}",
                     Toast.LENGTH_SHORT
                 ).show()
-                PIMMutationHelper.updatePIMStatus(vehicleId, PIMStatusEnum.PAYMENT_ERROR.status, mAWSAppSyncClient!!)
+                PIMMutationHelper.updatePIMStatus(vehicleId, PIMStatusEnum.USAGE_ERROR.status,mAWSAppSyncClient!!)
+                sendPimStatusBluetooth()
+                updateInternalInfoDeclinedPayment("${error.message}, ${PIMStatusEnum.USAGE_ERROR.status}")
                 LoggerHelper.writeToLog("$logFragment,  Usage Error from square sdk")
             }
         }
+    }
+    private fun updateInternalInfoDeclinedPayment(message: String){
+        VehicleTripArrayHolder.updateDeclinedCardMessage(message)
+        BlueToothHelper.sendDeclinedCardInfo(requireActivity())
     }
     private fun showCheckoutResult(checkoutResult: CheckoutResult) {
         val tenders = checkoutResult.tenders
@@ -651,6 +671,7 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
             cardInfo = cardName + " " + i.cardDetails.card.lastFourDigits
             tripTotalBackFromSquare = i.totalMoney.amount.toDouble()
         }
+        VehicleTripArrayHolder.setCardInfoPlusDate(cardInfo, updatedTransactionDate)
         LoggerHelper.writeToLog("$logFragment,  transaction id: $transactionId, cardInfo: $cardInfo, trip total back from Square, $tripTotalBackFromSquare")
 
         if(cardInfo != "" ) {

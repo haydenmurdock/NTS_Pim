@@ -14,7 +14,7 @@ import com.example.nts_pim.fragments_viewmodel.base.ScopedFragment
 import kotlinx.android.synthetic.main.custom_tip_screen.*
 import java.text.DecimalFormat
 import android.os.Handler
-import androidx.lifecycle.ViewModelProviders
+import androidx.lifecycle.ViewModelProvider
 import com.example.nts_pim.fragments_viewmodel.InjectorUtiles
 import com.example.nts_pim.fragments_viewmodel.callback.CallBackViewModel
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
@@ -54,7 +54,7 @@ class CustomTipScreenFragment : ScopedFragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         val factory = InjectorUtiles.provideCallBackModelFactory()
-        callbackViewModel = ViewModelProviders.of(this, factory)
+        callbackViewModel = ViewModelProvider(this, factory)
             .get(CallBackViewModel::class.java)
         updateUI()
         screenTimeOutTimer.start()

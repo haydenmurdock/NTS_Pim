@@ -1,3 +1,5 @@
+@file:Suppress("NAME_SHADOWING")
+
 package com.example.nts_pim.utilities.international_phone_number
 
 import okhttp3.*
@@ -23,7 +25,6 @@ object CountryPhoneNumber {
             override fun onResponse(call: Call, response: Response) {
                 response.use {
                     if (!response.isSuccessful) throw IOException("Unexpected code $response")
-
                     for ((name, value) in response.headers) {
                         println("$name: $value")
                     }

@@ -42,6 +42,7 @@ import java.io.IOException
 import java.lang.Error
 import android.widget.AdapterView
 import android.widget.AdapterView.OnItemClickListener
+import androidx.lifecycle.ViewModelProvider
 import com.amazonaws.amplify.generated.graphql.SavePaymentDetailsMutation
 import com.amazonaws.amplify.generated.graphql.UpdateTripMutation
 import com.apollographql.apollo.GraphQLCall
@@ -96,11 +97,11 @@ class ReceiptInformationTextFragment: ScopedFragment(), KodeinAware {
         val callBackFactory = InjectorUtiles.provideCallBackModelFactory()
         val keyboardFactory = InjectorUtiles.provideSettingKeyboardModelFactory()
 
-        viewModel = ViewModelProviders.of(this, viewModelFactory)
+        viewModel = ViewModelProvider(this, viewModelFactory)
             .get(EmailOrTextViewModel::class.java)
-        callBackViewModel = ViewModelProviders.of(this, callBackFactory)
+        callBackViewModel = ViewModelProvider(this, callBackFactory)
             .get(CallBackViewModel::class.java)
-        keyboardViewModel = ViewModelProviders.of(this, keyboardFactory)
+        keyboardViewModel = ViewModelProvider(this, keyboardFactory)
             .get(SettingsKeyboardViewModel::class.java)
         transactionId = callBackViewModel.getTransactionId()
         val tripIdForPayment = VehicleTripArrayHolder.getTripIdForPayment()
@@ -376,26 +377,7 @@ class ReceiptInformationTextFragment: ScopedFragment(), KodeinAware {
                 }
             }
         }))
-        country_code_editText.setOnTouchListener((View.OnTouchListener { v, event ->
-            when(event?.action) {
-                MotionEvent.ACTION_DOWN -> {
-//                    text_editText.performClick()
-//                    countryListIsShowing = !countryListIsShowing
-//                    when(countryListIsShowing){
-//                        true -> listView.visibility = View.VISIBLE
-//                        false -> listView.visibility = View.GONE
-//                    }
-                    true
-                }
-                MotionEvent.ACTION_UP -> {
-//                    v.performClick()
-                    true
-                }
-                else -> {
-                    false
-                }
-            }
-        }))
+
         send_text_btn_receipt.setOnTouchListener((View.OnTouchListener { v, event ->
             when(event?.action) {
                 MotionEvent.ACTION_DOWN -> {
@@ -606,23 +588,19 @@ class ReceiptInformationTextFragment: ScopedFragment(), KodeinAware {
             if (countryCode != "1"){
                    internationalNumber = true
             }
-            if(internationalNumber){
-                //formatting of international numbers if it works.
-//                combinedNumber = countryCode + "." + phoneNumber
-                combinedNumber = countryCode + phoneNumber
-            } else {
-                combinedNumber = countryCode + phoneNumber
-            }
+             combinedNumber = if(internationalNumber){
+            //formatting of international numbers if it works.
+            //combinedNumber = countryCode + "." + phoneNumber
+            countryCode + phoneNumber
+        } else {
+            countryCode + phoneNumber
+        }
             val trimmedPhoneNumber = combinedNumber.replace("-", "").trim()
 
             updateCustomerPhoneNumber(trimmedPhoneNumber)
             toConfirmation()
     }
 
-    private fun checkPhoneNumberAgain(phoneNumber: String): String {
-        Log.i("_", "")
-        return ""
-    }
     private fun updateCustomerPhoneNumber(phoneNumber:String) = launch(Dispatchers.IO) {
         if(isOnline(requireContext())){
             updateCustomerPhoneNumber(vehicleId, phoneNumber,mAWSAppSyncClient!!,tripId)

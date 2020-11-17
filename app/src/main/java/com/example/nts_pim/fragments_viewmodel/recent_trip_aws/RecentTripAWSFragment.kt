@@ -4,7 +4,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.lifecycle.ViewModelProviders
+import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.Navigation
 import com.amazonaws.amplify.generated.graphql.GetTripQuery
 import com.amazonaws.mobileconnectors.appsync.AWSAppSyncClient
@@ -43,7 +43,7 @@ class RecentTripAWSFragment: ScopedFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         val factory = InjectorUtiles.provideCallBackModelFactory()
-        callBackViewModel = ViewModelProviders.of(this, factory)
+        callBackViewModel = ViewModelProvider(this, factory)
             .get(CallBackViewModel::class.java)
         mAWSAppSyncClient = ClientFactory.getInstance(context)
         tripId = ModelPreferences(requireContext())

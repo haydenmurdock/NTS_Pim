@@ -22,15 +22,4 @@ object TripDetails {
         receiptSentTo = ""
     }
 
-//    private fun resetAdvancedTripDetails(){
-//        textToSpeechActivated = false
-//        tripStartTime = LocalDateTime.now()
-//        tripEndTime = LocalDateTime.now()
-//        isReceiptSent = false
-//        receiptCode = 0
-//        receiptMessage = ""
-//        receiptSentTo = ""
-//    }
-
-
 }

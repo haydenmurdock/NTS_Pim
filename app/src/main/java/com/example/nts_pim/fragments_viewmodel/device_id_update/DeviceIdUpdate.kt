@@ -4,7 +4,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.lifecycle.ViewModelProviders
+import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.Navigation
 import com.amazonaws.mobileconnectors.appsync.AWSAppSyncClient
 import com.example.nts_pim.R
@@ -40,8 +40,8 @@ class DeviceIdUpdate: ScopedFragment(), KodeinAware {
         super.onViewCreated(view, savedInstanceState)
         mAWSAppSyncClient = ClientFactory.getInstance(context)
         val factory = InjectorUtiles.provideCallBackModelFactory()
-        callbackViewModel = ViewModelProviders.of(this,factory).get(CallBackViewModel::class.java)
-        viewModel = ViewModelProviders.of(this, viewModelFactory).get(VehicleSetupViewModel::class.java)
+        callbackViewModel = ViewModelProvider(this,factory).get(CallBackViewModel::class.java)
+        viewModel = ViewModelProvider(this, viewModelFactory).get(VehicleSetupViewModel::class.java)
         val isSetUpComplete = viewModel.isSetUpComplete()
         if(isSetUpComplete){
             checkForIMEIAndUpdateDeviceId()

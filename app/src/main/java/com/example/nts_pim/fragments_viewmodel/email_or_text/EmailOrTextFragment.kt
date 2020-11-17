@@ -3,6 +3,7 @@ package com.example.nts_pim.fragments_viewmodel.email_or_text
 import android.annotation.SuppressLint
 import android.os.Bundle
 import android.os.CountDownTimer
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
@@ -17,17 +18,20 @@ import kotlin.coroutines.CoroutineContext
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.lifecycle.Observer
-import androidx.lifecycle.ViewModelProviders
+import androidx.lifecycle.ViewModelProvider
 import com.amazonaws.amplify.generated.graphql.GetTripQuery
 import com.amazonaws.mobileconnectors.appsync.AWSAppSyncClient
 import com.amazonaws.mobileconnectors.appsync.fetcher.AppSyncResponseFetchers
 import com.apollographql.apollo.GraphQLCall
 import com.apollographql.apollo.api.Response
 import com.apollographql.apollo.exception.ApolloException
+import com.example.nts_pim.activity.MainActivity
 import com.example.nts_pim.data.repository.VehicleTripArrayHolder
 import com.example.nts_pim.fragments_viewmodel.InjectorUtiles
 import com.example.nts_pim.fragments_viewmodel.base.ClientFactory
 import com.example.nts_pim.fragments_viewmodel.callback.CallBackViewModel
+import com.example.nts_pim.utilities.bluetooth_helper.BluetoothDataCenter
+import com.example.nts_pim.utilities.bluetooth_helper.NTSPimPacket
 import com.example.nts_pim.utilities.enums.PIMStatusEnum
 import com.example.nts_pim.utilities.enums.VehicleStatusEnum
 import com.example.nts_pim.utilities.international_phone_number.CountryPhoneNumber
@@ -82,13 +86,10 @@ class EmailOrTextFragment : ScopedFragment(), KodeinAware {
         mJob = Job()
         mAWSAppSyncClient = ClientFactory.getInstance(context)
         val callBackFactory = InjectorUtiles.provideCallBackModelFactory()
-
-        viewModel = ViewModelProviders.of(this, viewModelFactory)
+        viewModel = ViewModelProvider(this, viewModelFactory)
             .get(EmailOrTextViewModel::class.java)
-
-        callBackViewModel = ViewModelProviders.of(this, callBackFactory)
+        callBackViewModel = ViewModelProvider(this, callBackFactory)
             .get(CallBackViewModel::class.java)
-
         vehicleId = viewModel.getVehicleID()
         val tripIdForPayment = VehicleTripArrayHolder.getTripIdForPayment()
         tripId = if(tripIdForPayment != ""){
@@ -227,6 +228,7 @@ class EmailOrTextFragment : ScopedFragment(), KodeinAware {
             updatePaymentDetail(transactionId,tripNumber,vehicleId, mAWSAppSyncClient!!,"cash", tripId)
         }
         SoundHelper.turnOnSound(requireContext())
+        sendPimStatusBluetooth()
     }
 
     private fun updatePaymentDetail(transactionId: String, tripNumber: Int, vehicleId: String, awsAppSyncClient: AWSAppSyncClient, paymentType: String, tripID: String) = launch(Dispatchers.IO){
@@ -240,6 +242,16 @@ class EmailOrTextFragment : ScopedFragment(), KodeinAware {
             PIMStatusEnum.RECEIPT_SCREEN.status,
             mAWSAppSyncClient!!
         )
+    }
+
+    private fun sendPimStatusBluetooth(){
+        val isBluetoothOn = BluetoothDataCenter.isBluetoothOn().value ?: false
+        if(isBluetoothOn){
+            val dataObject = NTSPimPacket.PimStatusObj()
+            val statusObj =  NTSPimPacket(NTSPimPacket.Command.PIM_STATUS, dataObject)
+            Log.i("Bluetooth", "status request packet to be sent == $statusObj")
+            (activity as MainActivity).sendBluetoothPacket(statusObj)
+        }
     }
 
     private fun startInactivityTimeout(){

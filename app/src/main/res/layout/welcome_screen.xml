@@ -93,17 +93,5 @@
         </LinearLayout>
     </ScrollView>
 
-    <ImageButton
-            android:id="@+id/welcome_screen_next_screen_button"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginEnd="32dp"
-            android:background="@null"
-            app:layout_constraintBottom_toTopOf="@+id/password_scroll_view"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/open_vehicle_settings_button"
-            app:layout_constraintVertical_bias="0.88"
-            app:srcCompat="@drawable/ic_arrow_point_to_right" />
-
 
 </androidx.constraintlayout.widget.ConstraintLayout>

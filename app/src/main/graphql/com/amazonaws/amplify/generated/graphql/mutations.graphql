@@ -105,6 +105,8 @@ mutation UpdateBluetooth($parameters: updateBluetoothInput) {
     sendPort
     serverIP
     uploadLogs
+    useBluetoothPIM
+    vehBtAddr
     vehicleId
     vehicleNbr
     verifone
@@ -123,6 +125,7 @@ mutation UpdatePimStatus($parameters: updatePimStatusInput) {
     driverId
     error
     errorCode
+    feesAndSpecialsSet
     gpsDirection
     lat
     lng
@@ -193,6 +196,8 @@ mutation UpdateSettings($parameters: updateSettingsInput) {
     sendPort
     serverIP
     uploadLogs
+    useBluetoothPIM
+    vehBtAddr
     vehicleId
     vehicleNbr
     verifone
@@ -211,6 +216,7 @@ mutation UpdateStatus($parameters: updateStatusInput) {
     driverId
     error
     errorCode
+    feesAndSpecialsSet
     gpsDirection
     lat
     lng
@@ -311,6 +317,7 @@ mutation UpdateTripStatus($parameters: updateTripStatusInput) {
     driverId
     error
     errorCode
+    feesAndSpecialsSet
     gpsDirection
     lat
     lng
@@ -381,6 +388,8 @@ mutation UploadSettings($parameters: updateSettingsInput) {
     sendPort
     serverIP
     uploadLogs
+    useBluetoothPIM
+    vehBtAddr
     vehicleId
     vehicleNbr
     verifone
@@ -422,6 +431,9 @@ mutation UpdateDeviceIdToImei($parameters: updateDeviceIdToIMEIInput) {
     paired
     pimStartedTimeStamp
     overheatedTimeStamp
+    adChanged
+    adRemoved
+    vehBtAddr
   }
 }
 mutation UpdateDeviceIdPim($parameters: updateDeviceIdPIMInput) {
@@ -439,6 +451,9 @@ mutation UpdateDeviceIdPim($parameters: updateDeviceIdPIMInput) {
     paired
     pimStartedTimeStamp
     overheatedTimeStamp
+    adChanged
+    adRemoved
+    vehBtAddr
   }
 }
 mutation UpdateTripFare($parameters: updateTripFareInput) {
@@ -592,6 +607,7 @@ mutation UpdateVehTripStatus($parameters: updateVehTripStatusInput) {
     driverId
     error
     errorCode
+    feesAndSpecialsSet
     gpsDirection
     lat
     lng
@@ -775,6 +791,9 @@ mutation ResetReAuthSquare($parameters: resetReAuthSquareInput) {
     paired
     pimStartedTimeStamp
     overheatedTimeStamp
+    adChanged
+    adRemoved
+    vehBtAddr
   }
 }
 mutation UpdatePimSettings($parameters: updatePIMSettingsInput) {
@@ -792,6 +811,9 @@ mutation UpdatePimSettings($parameters: updatePIMSettingsInput) {
     paired
     pimStartedTimeStamp
     overheatedTimeStamp
+    adChanged
+    adRemoved
+    vehBtAddr
   }
 }
 mutation UpdatePimSettingsPortal($parameters: updatePIMSettingsPortalInput) {
@@ -809,6 +831,9 @@ mutation UpdatePimSettingsPortal($parameters: updatePIMSettingsPortalInput) {
     paired
     pimStartedTimeStamp
     overheatedTimeStamp
+    adChanged
+    adRemoved
+    vehBtAddr
   }
 }
 mutation SendMeterErrorEmail($parameters: sendMeterErrorEmailInput) {
@@ -832,5 +857,8 @@ mutation UnpairPim($parameters: unpairPIMInput) {
     paired
     pimStartedTimeStamp
     overheatedTimeStamp
+    adChanged
+    adRemoved
+    vehBtAddr
   }
 }

@@ -59,7 +59,7 @@ object SmsHelper {
               Log.i("Text Receipt", "Send Text receipt unsuccessful. Step 3: Fail. Error")
               TripDetails.isReceiptSent = false
               TripDetails.receiptCode = e.hashCode()
-              TripDetails.receiptMessage = e.localizedMessage
+              TripDetails.receiptMessage = e.localizedMessage ?: ""
           }
     }
 }

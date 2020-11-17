@@ -47,6 +47,8 @@ subscription OnSettingsUpdate($deviceId: String) {
     sendPort
     serverIP
     uploadLogs
+    useBluetoothPIM
+    vehBtAddr
     vehicleId
     vehicleNbr
     verifone
@@ -65,6 +67,7 @@ subscription OnStatusUpdate($vehicleId: String) {
     driverId
     error
     errorCode
+    feesAndSpecialsSet
     gpsDirection
     lat
     lng
@@ -165,6 +168,7 @@ subscription OnUpdatePimStatus($vehicleId: String) {
     driverId
     error
     errorCode
+    feesAndSpecialsSet
     gpsDirection
     lat
     lng
@@ -192,6 +196,7 @@ subscription OnUpdateVehTripStatus($vehicleId: String) {
     driverId
     error
     errorCode
+    feesAndSpecialsSet
     gpsDirection
     lat
     lng
@@ -375,6 +380,9 @@ subscription OnPimSettingsUpdate($deviceId: String) {
     paired
     pimStartedTimeStamp
     overheatedTimeStamp
+    adChanged
+    adRemoved
+    vehBtAddr
   }
 }
 subscription OnPimUnpair($vehicleId: String) {
@@ -392,5 +400,8 @@ subscription OnPimUnpair($vehicleId: String) {
     paired
     pimStartedTimeStamp
     overheatedTimeStamp
+    adChanged
+    adRemoved
+    vehBtAddr
   }
 }

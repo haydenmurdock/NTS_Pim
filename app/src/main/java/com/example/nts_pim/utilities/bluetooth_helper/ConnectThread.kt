@@ -4,11 +4,12 @@ import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothSocket
 import android.content.ContentValues.TAG
+import android.os.ConditionVariable
 import android.util.Log
-import com.example.nts_pim.data.repository.VehicleTripArrayHolder
 import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
+import java.util.concurrent.ConcurrentLinkedQueue
 
 
 class ConnectThread(device: BluetoothDevice) : Thread() {
@@ -16,6 +17,7 @@ class ConnectThread(device: BluetoothDevice) : Thread() {
     private var bluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
     private var mmSocket: BluetoothSocket? = null
     private var hasBeenInit = false
+
     init {
         if(mmSocket == null){
             Log.i("Bluetooth", "Socket was null so created socket")
@@ -38,6 +40,8 @@ class ConnectThread(device: BluetoothDevice) : Thread() {
             } catch (e: IOException){
             Log.i("Bluetooth", "socket error. $e")
             hasBeenInit = false
+           } finally {
+
            }
         }
          fun cancelThread() {
@@ -56,15 +60,12 @@ class ConnectedThread(private var mmSocket: BluetoothSocket?) : Thread() {
     private var mmInStream: InputStream? = mmSocket?.inputStream
     private var mmOutStream: OutputStream? = mmSocket?.outputStream
     private val mmBuffer: ByteArray = ByteArray(1024) // mmBuffer store for the stream
+    private var lastPacketSentSuccessful = true
+    private var _ackWait = ConditionVariable()
+
 
     init {
-        Log.i("bluetooth", "sending request packet")
-        val pimStatus = VehicleTripArrayHolder.getInternalPIMStatus()
-         val statusObject = NTSPimPacket.PimStatusObj()
-        statusObject.pimStatus = pimStatus
-        val ntsPacket = NTSPimPacket(NTSPimPacket.Command.MDT_STATUS, statusObject)
-        val toBytes = ntsPacket.toBytes()
-        write(toBytes)
+
     }
 
     override fun run() {
@@ -80,15 +81,19 @@ class ConnectedThread(private var mmSocket: BluetoothSocket?) : Thread() {
                 break
             }
             val receivedArrayMessage = mmBuffer
-            Log.i("bluetooth", "message Received. $receivedArrayMessage")
            val containsStart = NTSPimPacket.containsPacketStart(receivedArrayMessage)
             if(containsStart){
-                Log.i("bluetooth", "Packet contains a start")
-                val isPacketAck = NTSPimPacket().isAckPacket
-                Log.i("bluetooth", "Is packet received act: $isPacketAck")
+                Log.i("Bluetooth", "Packet contains a start")
+               val isPacketACK = BlueToothHelper.parseBlueToothData(receivedArrayMessage)
+                if(isPacketACK){
+                    lastPacketSentSuccessful = true
+                }
+                if(!isPacketACK){
+                   lastPacketSentSuccessful = false
+                }
                 val isDriverTabletFound = BluetoothDataCenter.isConnectedToDriverTablet().value
                 if(!isDriverTabletFound!!){
-                    Log.i("Bluetooth", "Driver tablet sent back ack but driverTablet connected was false. Updating to connected driver tablet")
+                    Log.i("Bluetooth", "Driver tablet sent. Updating to connected driver tablet value")
                     BluetoothDataCenter.connectedToDriverTablet()
                 }
             }
@@ -96,12 +101,34 @@ class ConnectedThread(private var mmSocket: BluetoothSocket?) : Thread() {
     }
 
     internal fun write(bytes: ByteArray?) {
+        val concurrentList = ConcurrentLinkedQueue<ByteArray>()
+
+        if(!concurrentList.contains(bytes)){
+            concurrentList.add(bytes)
+            Log.i("Bluetooth", "Queue list length is ${concurrentList.size}")
+        }
+        _ackWait.close()
         try {
-            Log.i("bluetooth", "Writing bytes")
-            mmOutStream?.write(bytes)
+            Log.i("Bluetooth", "Writing bytes")
+            mmOutStream?.write(concurrentList.first())
             mmOutStream?.flush()
         } catch (e: IOException) {
-            Log.i("bluetooth", "error writing bytes")
+            Log.i("Bluetooth", "error writing bytes")
+        }
+        finally {
+          if(concurrentList.count() > 0){
+              if(_ackWait.block(3000)){
+                  if(lastPacketSentSuccessful){
+                      concurrentList.remove()
+                      val queueSize = concurrentList.size
+                      Log.i("Bluetooth", "last packet was successful. Removing last element in queue. new size is $queueSize")
+                  } else {
+                      // This means that the last packet was not successfully sent we need to send it again.
+                      Log.i("Bluetooth", "last packet wasn't successful. resending packet")
+                      write(bytes)
+                  }
+              }
+          }
         }
     }
 

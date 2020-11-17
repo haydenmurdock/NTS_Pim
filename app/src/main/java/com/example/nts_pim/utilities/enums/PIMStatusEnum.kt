@@ -11,6 +11,13 @@ enum class PIMStatusEnum(val status: String) {
     SQUARE_PAYMENT_COMPLETE("PAYMENT_COMPLETE|Passenger has completed payment"),
     PAYMENT_ERROR("PAYMENT_ERROR|There was an error during Passenger payment"),
     RECEIPT_SCREEN("RECEIPT_SCREEN| Passenger is viewing a receipt screen"),
-    PIM_PAIRING("PIM_PAIRING: Pim is looking to pair with driver tablet"),
-    ERROR_UPDATING("ERROR| Syncing error. Try again")
+    PIM_PAIRING("PIM_PAIRING| Pim found driver tablet to pair via Bluetooth"),
+    ERROR_UPDATING("ERROR| Syncing error. Try again"),
+    SDK_NOT_AUTHORIZED("ERROR| SDK was not authorized to take a payment"),
+    USAGE_ERROR("ERROR| USAGE ERROR"),
+    OVERHEATING("OVERHEATING| PIM IS OVERHEATING")
 }
+
+
+// wait block for 3 seconds for a response.
+

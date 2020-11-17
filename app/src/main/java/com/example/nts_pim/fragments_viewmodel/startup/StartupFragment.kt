@@ -2,6 +2,7 @@ package com.example.nts_pim.fragments_viewmodel.startup
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.bluetooth.BluetoothAdapter
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -16,10 +17,11 @@ import android.view.ViewGroup
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.ViewModelProviders
+import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.NavController
 import androidx.navigation.Navigation
 import com.amazonaws.amplify.generated.graphql.GetPimInfoQuery
+import com.amazonaws.amplify.generated.graphql.GetPimSettingsQuery
 import com.amazonaws.amplify.generated.graphql.ResetReAuthSquareMutation
 import com.amazonaws.mobileconnectors.appsync.AWSAppSyncClient
 import com.amazonaws.mobileconnectors.appsync.fetcher.AppSyncResponseFetchers
@@ -85,10 +87,10 @@ class StartupFragment: ScopedFragment(), KodeinAware {
     @SuppressLint("HardwareIds", "MissingPermission")
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        viewModel = ViewModelProviders.of(this, viewModelFactory)
+        viewModel = ViewModelProvider(this, viewModelFactory)
             .get(VehicleSetupViewModel::class.java)
         val factory = InjectorUtiles.provideCallBackModelFactory()
-        callBackViewModel = ViewModelProviders.of(this, factory)
+        callBackViewModel = ViewModelProvider(this, factory)
             .get(CallBackViewModel::class.java)
 
         mAWSAppSyncClient = ClientFactory.getInstance(requireActivity().applicationContext)
@@ -116,7 +118,7 @@ class StartupFragment: ScopedFragment(), KodeinAware {
                 vehicleId = viewModel.getVehicleID()
                 deviceId = DeviceIdCheck.getDeviceId()
                 PIMMutationHelper.sendPIMStartTime(deviceId!!, mAWSAppSyncClient!!)
-                checkAWSForLogging(vehicleId!!)
+                checkAWSForLogging(deviceId!!)
         }
         blueToothAddress = getBluetoothAddress()
         appVersionNumber = BuildConfig.VERSION_NAME
@@ -131,25 +133,28 @@ class StartupFragment: ScopedFragment(), KodeinAware {
         if (mAWSAppSyncClient == null) {
             mAWSAppSyncClient = ClientFactory.getInstance(requireActivity().applicationContext)
         }
-        mAWSAppSyncClient?.query(GetPimInfoQuery.builder().vehicleId(deviceId).build())
+
+        mAWSAppSyncClient?.query(GetPimSettingsQuery.builder().deviceId(deviceId).build())
             ?.responseFetcher(AppSyncResponseFetchers.NETWORK_ONLY)
             ?.enqueue(awsLoggingQueryCallBack)
     }
 
-    private var awsLoggingQueryCallBack = object: GraphQLCall.Callback<GetPimInfoQuery.Data>() {
-        override fun onResponse(response: Response<GetPimInfoQuery.Data>) {
+    private var awsLoggingQueryCallBack = object: GraphQLCall.Callback<GetPimSettingsQuery.Data>() {
+        override fun onResponse(response: Response<GetPimSettingsQuery.Data>) {
             Log.i("CheckingAWS", "${response.data()}")
             if (response.data() != null &&
                 !response.hasErrors()
             ) {
-                val isLoggingOn = response.data()?.pimInfo?.log()
-                val awsBluetoothAddress = response.data()?.pimInfo?.btAddress()
-                val appVersion = response.data()?.pimInfo?.appVersion()
-                val reAuth = response.data()?.pimInfo?.reAuthSquare()
-                val awsPhoneNumber = response.data()?.pimInfo?.phoneNbr()
-                val pimPaired = response.data()?.pimInfo?.paired() ?: true
-                val awsDeviceId = response.data()?.pimInfo?.deviceId()
-                val useBluetooth = response.data()?.pimInfo?.useBluetooth()
+                val isLoggingOn = response.data()?.pimSettings?.log()
+                val awsBluetoothAddress = response.data()?.pimSettings?.btAddress()
+                val appVersion = response.data()?.pimSettings?.appVersion()
+                val reAuth = response.data()?.pimSettings?.reAuthSquare()
+                val awsPhoneNumber = response.data()?.pimSettings?.phoneNbr()
+                val pimPaired = response.data()?.pimSettings?.paired() ?: true
+                val awsDeviceId = response.data()?.pimSettings?.deviceId()
+                val useBluetooth = response.data()?.pimSettings?.useBluetooth()
+                val hasAddChanged = response.data()?.pimSettings?.adChanged()
+                val addRemoved = response.data()?.pimSettings?.adRemoved()
 
                 if (!pimPaired){
                 launch {
@@ -303,6 +308,8 @@ class StartupFragment: ScopedFragment(), KodeinAware {
     }
     private fun getBluetoothAddress(): String?{
       // We will use this for BlueTooth setup with the driver tablet
+        val alphabetArray = mutableListOf<String>("A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z")
+        var bluetoothAddress = ""
         try {
             val all: List<NetworkInterface> =
                 Collections.list(NetworkInterface.getNetworkInterfaces())
@@ -316,7 +323,22 @@ class StartupFragment: ScopedFragment(), KodeinAware {
                 if (res1.isNotEmpty()) {
                     res1.deleteCharAt(res1.length - 1)
                 }
-                return res1.toString()
+                val macAddress = res1.toString()
+                val lastChar = macAddress.last()
+                val updatedMacAddress = macAddress.dropLast(1)
+                if(!alphabetArray.contains(lastChar.toString())){
+                    //This means the last part was a number so we need to - by 1
+                    val lastNumber = lastChar.toInt() - 1
+                    bluetoothAddress = updatedMacAddress + lastNumber.toString()
+                    return bluetoothAddress
+                }
+                for((index, letter) in alphabetArray.withIndex()){
+                    if(letter == lastChar.toString()){
+                       bluetoothAddress = updatedMacAddress + alphabetArray[index - 1]
+                        break
+                    }
+                }
+                return bluetoothAddress
             }
         } catch (ex: Exception) {
             com.example.nts_pim.utilities.view_helper.ViewHelper.makeSnackbar(this.requireView(), "Error getting bluetooth address: ex: $ex")

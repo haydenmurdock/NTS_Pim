@@ -82,9 +82,9 @@ class BatteryPowerReceiver : BroadcastReceiver() {
 
     private fun playSafetyMessage(context: Context){
         val mediaPlayer = MediaPlayer.create(context, R.raw.overheating_message)
-        mediaPlayer.setOnCompletionListener { mediaPlayer ->
+        mediaPlayer.setOnCompletionListener { mP ->
             LoggerHelper.writeToLog("${logTag}: Finished overheatWarning")
-            mediaPlayer.release()
+            mP.release()
             if(overheatingProtocolInitiated){
                 overHeatMessageTimer?.cancel()
                 overHeatMessageTimer = null

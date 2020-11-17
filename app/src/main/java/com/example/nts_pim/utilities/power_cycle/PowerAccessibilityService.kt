@@ -2,11 +2,10 @@ package com.example.nts_pim.utilities.power_cycle
 
 import android.Manifest
 import android.accessibilityservice.AccessibilityService
+import android.annotation.SuppressLint
 import android.app.PendingIntent
-import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.provider.Settings
 import android.util.Log
 import android.view.accessibility.AccessibilityEvent
 import android.widget.Toast
@@ -15,6 +14,7 @@ import androidx.core.content.ContextCompat
 import com.example.nts_pim.R
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
 
+@SuppressLint("Registered")
 class PowerAccessibilityService: AccessibilityService() {
 
     private var loggingEnabled = false
@@ -96,33 +96,5 @@ class PowerAccessibilityService: AccessibilityService() {
         }catch (e: Exception) {
             e.printStackTrace()
         }
-    }
-    internal fun isAccessibilitySettingsOn(mContext: Context): Boolean {
-        val TAG = "isAcc"
-        var accessibilityEnabled = 0
-        val service =
-            mContext.getPackageName() + "/" + PowerAccessibilityService::class.java.getCanonicalName()
-        try {
-            accessibilityEnabled = Settings.Secure.getInt(
-                mContext.applicationContext.contentResolver,Settings.Secure.ACCESSIBILITY_ENABLED)
-            Log.v(TAG, "accessibilityEnabled = $accessibilityEnabled")
-        } catch (e: Settings.SettingNotFoundException) {
-            Log.e(TAG, "Error finding setting, default accessibility to not found: " + e.message)
-        }
-        if (accessibilityEnabled == 1) {
-            val settingValue = Settings.Secure.getString(
-                mContext.getApplicationContext().getContentResolver(),
-                Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
-            )
-            val lowerProviders = settingValue.toLowerCase()
-            if (lowerProviders.contains("poweraccessibilityservice")) {
-                Log.i(TAG, "powerAccessibilityService Provider is installed ************")
-                return true
-            } else {
-                Log.v(TAG, "***ACCESSIBILITY IS DISABLED***")
-                return false
-            }
-        }
-        return false
     }
 }

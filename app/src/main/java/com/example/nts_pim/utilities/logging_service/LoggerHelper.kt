@@ -1,8 +1,9 @@
 package com.example.nts_pim.utilities.logging_service
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.SharedPreferences
-import android.preference.PreferenceManager
+import androidx.preference.PreferenceManager
 import android.util.Log
 import androidx.core.content.ContextCompat
 import com.example.nts_pim.PimApplication
@@ -15,6 +16,7 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONException
 import org.json.JSONObject
 import java.io.IOException
@@ -28,7 +30,9 @@ import kotlin.ConcurrentModificationException
 object LoggerHelper {
     var logging = false
     var loggingTime:Long = 3000
+    @SuppressLint("SimpleDateFormat")
     private val dateTimeStamp = SimpleDateFormat("yyyy_MM_dd").format(Date())
+    @SuppressLint("SimpleDateFormat")
     private val timeTimeStamp = SimpleDateFormat("HH:mm:ss")
     val charset = Charsets.UTF_8
     private var logToSendAWS: String? = null
@@ -84,8 +88,8 @@ object LoggerHelper {
         } catch (e: JSONException){
             Log.i("ERROR", "JSON error $e")
         }
-        val body = RequestBody.create(JSON, json.toString())
-        Log.i("LOGGER","Json body :  ${json}")
+        val body = json.toString().toRequestBody(JSON)
+        Log.i("LOGGER","Json body :  $json")
         val url = URL("https://y22euz5gjh.execute-api.us-east-2.amazonaws.com/prod/uploadLogs")
         val request = Request.Builder()
             .url(url)
@@ -119,7 +123,6 @@ object LoggerHelper {
 
     internal fun getOrStartInternalLogs(){
         logArray = getArrayList() ?: arrayListOf()
-        val isLogArrayExist = logArray.isNullOrEmpty()
         saveArrayList(logArray!!)
         Log.i("Logger", "Internal Log Started")
     }

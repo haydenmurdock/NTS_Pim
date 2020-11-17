@@ -12,7 +12,7 @@ object SoundHelper {
         //Making sure the volume is up to hear the sound.
         val maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_SYSTEM)
         val streamVolume = audioManager.getStreamVolume(AudioManager.STREAM_SYSTEM)
-        if (streamVolume != maxVolume){
+        if (streamVolume != maxVolume) {
             audioManager.setStreamVolume(AudioManager.STREAM_SYSTEM, maxVolume, 0)
         }
         audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, maxVolume, 0)
@@ -22,6 +22,7 @@ object SoundHelper {
         val mediaPlayer = MediaPlayer()
         mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC)
     }
+
     fun turnOffSound(context: Context){
         val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
         audioManager.mode = (AudioManager.MODE_NORMAL)

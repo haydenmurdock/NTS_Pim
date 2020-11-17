@@ -56,7 +56,7 @@ object EmailHelper {
             Log.i("Email Receipt", "Not successful: please check Email Helper function")
             TripDetails.isReceiptSent = false
             TripDetails.receiptCode = e.hashCode()
-            TripDetails.receiptMessage = e.localizedMessage
+            TripDetails.receiptMessage = e.localizedMessage ?: ""
         }
     }
 }

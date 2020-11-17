@@ -1,22 +1,13 @@
 package com.example.nts_pim.fragments_viewmodel.check_vehicle_info
 
-import android.app.Activity
-import android.app.AlertDialog
-import android.bluetooth.BluetoothAdapter
-import android.bluetooth.BluetoothDevice
-import android.content.BroadcastReceiver
-import android.content.Context
-import android.content.Intent
-import android.content.IntentFilter
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
-import android.widget.Toast
 import androidx.lifecycle.Observer
-import androidx.lifecycle.ViewModelProviders
+import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.Navigation
 import com.amazonaws.amplify.generated.graphql.GetCompanyNameQuery
 import com.amazonaws.amplify.generated.graphql.GetPimInfoQuery
@@ -26,18 +17,14 @@ import com.apollographql.apollo.GraphQLCall
 import com.apollographql.apollo.api.Response
 import com.apollographql.apollo.exception.ApolloException
 import com.example.nts_pim.R
-import com.example.nts_pim.data.repository.model_objects.DeviceID
 import com.example.nts_pim.data.repository.model_objects.VehicleSettings
 import com.example.nts_pim.data.repository.providers.ModelPreferences
 import com.example.nts_pim.fragments_viewmodel.InjectorUtiles
 import com.example.nts_pim.fragments_viewmodel.base.ClientFactory
 import com.example.nts_pim.fragments_viewmodel.base.ScopedFragment
 import com.example.nts_pim.fragments_viewmodel.callback.CallBackViewModel
-import com.example.nts_pim.utilities.bluetooth_helper.BlueToothHelper
 import com.example.nts_pim.utilities.bluetooth_helper.BluetoothDataCenter
-import com.example.nts_pim.utilities.bluetooth_helper.ConnectThread
 import com.example.nts_pim.utilities.enums.SharedPrefEnum
-import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import com.github.ybq.android.spinkit.style.ThreeBounce
 import kotlinx.android.synthetic.main.check_vehicle_info.*
 import kotlinx.coroutines.Dispatchers
@@ -45,7 +32,6 @@ import kotlinx.coroutines.launch
 import org.kodein.di.KodeinAware
 import org.kodein.di.android.x.closestKodein
 import org.kodein.di.generic.instance
-import java.lang.Exception
 
 class CheckVehicleInfoFragment: ScopedFragment(), KodeinAware {
 
@@ -69,11 +55,11 @@ class CheckVehicleInfoFragment: ScopedFragment(), KodeinAware {
     }
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        viewModel = ViewModelProviders.of(this, viewModelFactory)
+        viewModel = ViewModelProvider(this, viewModelFactory)
             .get(CheckVehicleInfoViewModel::class.java)
         mAWSAppSyncClient = ClientFactory.getInstance(context)
         val callBackFactory = InjectorUtiles.provideCallBackModelFactory()
-        callBackViewModel = ViewModelProviders.of(this, callBackFactory)
+        callBackViewModel = ViewModelProvider(this, callBackFactory)
             .get(CallBackViewModel::class.java)
         mArrayAdapter = ArrayAdapter(this.requireContext(), R.layout.dialog_select_bluetooth_device)
 

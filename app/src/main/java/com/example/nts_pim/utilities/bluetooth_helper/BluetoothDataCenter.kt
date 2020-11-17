@@ -22,7 +22,7 @@ object BluetoothDataCenter {
     private var responseMessage = ""
     private var responseMessageMutableLiveData =  MutableLiveData<String>()
     private var blueToothSocket: BluetoothSocket? = null
-    private var btDriverTablet: BluetoothDevice? = null
+    private var btDriverTabletAddress: String? = null
     private val logtag = "Bluetooth_Data_Center"
 
     init {
@@ -39,10 +39,12 @@ object BluetoothDataCenter {
         }
     }
 
-    internal fun updateDriverTabletBTDevice(device: BluetoothDevice){
-            btDriverTablet = device
-            Log.i("$logtag", "Data Center has been updated with driver tablet for connection.")
-            blueToothDeviceFound()
+    internal fun updateDriverTabletBTDevice(device: String){
+            if(device != btDriverTabletAddress){
+                btDriverTabletAddress = device
+                Log.i("$logtag", "Data Center has been updated with driver tablet for connection.")
+                blueToothDeviceFound()
+            }
     }
     private fun blueToothDeviceFound(){
         driverTabletFound = true
@@ -51,8 +53,8 @@ object BluetoothDataCenter {
 
     internal fun getIsDeviceFound() = driverTabletFoundMLD
 
-    internal fun getDriverTablet(): BluetoothDevice?{
-        return btDriverTablet
+    internal fun getDriverTabletAddress(): String?{
+        return btDriverTabletAddress
     }
     internal fun getBTSocket():BluetoothSocket? = blueToothSocket
 

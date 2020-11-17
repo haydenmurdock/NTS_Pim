@@ -27,10 +27,9 @@ import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.Observer
-import androidx.lifecycle.ViewModelProviders
+import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.Navigation
 import com.amazonaws.amplify.generated.graphql.GetPimSettingsQuery
-import com.amazonaws.amplify.generated.graphql.UpdateDeviceIdPimMutation
 import com.amazonaws.mobileconnectors.appsync.AWSAppSyncClient
 import com.amazonaws.mobileconnectors.appsync.fetcher.AppSyncResponseFetchers
 import com.apollographql.apollo.GraphQLCall
@@ -127,9 +126,9 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
             readerManager.addReaderSettingsActivityCallback(this::onReaderSettingsResult)
         mAWSAppSyncClient = ClientFactory.getInstance(requireContext())
         val keyboardFactory = InjectorUtiles.provideSettingKeyboardModelFactory()
-        viewModel = ViewModelProviders.of(this, viewModelFactory)
+        viewModel = ViewModelProvider(this, viewModelFactory)
             .get(VehicleSetupViewModel::class.java)
-        keyboardViewModel = ViewModelProviders.of(this, keyboardFactory)
+        keyboardViewModel = ViewModelProvider(this, keyboardFactory)
             .get(SettingsKeyboardViewModel::class.java)
         setUpKeyboard()
         allOtherPermissions()

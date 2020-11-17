@@ -12,7 +12,6 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
-import androidx.lifecycle.ViewModelProviders
 import androidx.navigation.Navigation
 import com.example.nts_pim.R
 import com.example.nts_pim.fragments_viewmodel.InjectorUtiles
@@ -33,6 +32,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.util.Log
+import androidx.lifecycle.ViewModelProvider
 import com.amazonaws.amplify.generated.graphql.UnpairPimMutation
 import com.amazonaws.mobileconnectors.appsync.AWSAppSyncClient
 import com.apollographql.apollo.GraphQLCall
@@ -92,9 +92,9 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
 
         mAWSAppSyncClient = ClientFactory.getInstance(context)
         val factory = InjectorUtiles.provideCallBackModelFactory()
-        viewModel = ViewModelProviders.of(this, viewModelFactory)
+        viewModel = ViewModelProvider(this, viewModelFactory)
             .get(VehicleSettingsDetailViewModel::class.java)
-        callBackViewModel = ViewModelProviders.of(this, factory)
+        callBackViewModel = ViewModelProvider(this, factory)
             .get(CallBackViewModel::class.java)
         val readerManager = ReaderSdk.readerManager()
         readerSettingsCallbackRef =
@@ -102,7 +102,7 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
 
         val keyboardFactory = InjectorUtiles.provideSettingKeyboardModelFactory()
 
-        keyboardViewModel = ViewModelProviders.of(this, keyboardFactory)
+        keyboardViewModel = ViewModelProvider(this, keyboardFactory)
             .get(SettingsKeyboardViewModel::class.java)
         vehicleId = viewModel.getVehicleID()
         VehicleTripArrayHolder.readerStatusHasBeenChecked()
@@ -341,11 +341,11 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
         imei_textView.text = "Device Identifier: $deviceId"
         logging_textView.text = "Logging: $isLoggingOn"
         val c = context?.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
-        val bucket = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+        val bucket: Any? = (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             c.appStandbyBucket.toString()
         } else {
-            val bucket = "50"
-        }
+            "50"
+        })
         when(bucket){
             "10" -> power_status_textView.text = "Power Status: Active"
             "20" -> power_status_textView.text = "Power Status:Working Set"

@@ -66,31 +66,32 @@ object OverHeatEmail {
         }
     }
 
+    @SuppressLint("SimpleDateFormat")
     private fun timeBetweenStartAndOverheat(startTime: String, overHeatTime: String): String {
         val format = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss")
         try {
-            val sDate: Date = format.parse(startTime)
-            val oDate: Date = format.parse(overHeatTime)
+            val sDate: Date? = format.parse(startTime)
+            val oDate: Date? = format.parse(overHeatTime)
             return timeDifference(sDate, oDate)
         } catch (e: ParseException) {
             e.printStackTrace()
         }
         return ""
     }
-    private fun timeDifference(startDate: Date, endDate: Date):String {
+    private fun timeDifference(startDate: Date?, endDate: Date?):String {
         //milliseconds
-        var different = endDate.time - startDate.time
+        var different = startDate?.time?.let { endDate?.time?.minus(it) }
         val secondsInMilli: Long = 1000
         val minutesInMilli = secondsInMilli * 60
         val hoursInMilli = minutesInMilli * 60
         val daysInMilli = hoursInMilli * 24
-        val elapsedDays = different / daysInMilli
-        different %= daysInMilli
-        val elapsedHours = different / hoursInMilli
-        different %= hoursInMilli
-        val elapsedMinutes = different / minutesInMilli
-        different %= minutesInMilli
-        val elapsedSeconds = different / secondsInMilli
+        val elapsedDays = different?.div(daysInMilli)
+        different = different?.rem(daysInMilli)
+        val elapsedHours = different?.div(hoursInMilli)
+        different = different?.rem(hoursInMilli)
+        val elapsedMinutes = different?.div(minutesInMilli)
+        different = different?.rem(minutesInMilli)
+        val elapsedSeconds = different?.div(secondsInMilli)
         return "$elapsedDays days, $elapsedHours hours, $elapsedMinutes min, $elapsedSeconds seconds"
     }
 

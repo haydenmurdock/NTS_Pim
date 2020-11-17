@@ -1,6 +1,8 @@
 package com.example.nts_pim.utilities.bluetooth_helper
 
 import android.util.Log
+import com.example.nts_pim.PimApplication
+import com.example.nts_pim.data.repository.VehicleTripArrayHolder
 import org.json.JSONObject
 
 // Right now, all of the commands are 2 characters long.  If this changes, change this constant.
@@ -331,13 +333,37 @@ class NTSPimPacket {
         }
         override fun fromJson(obj: JSONObject) {
             driverId = obj.optInt(JSON_DRIVER_ID)
+            if(driverId != null){
+                VehicleTripArrayHolder.setDriverId(driverId!!)
+            }
             tripNbr = obj.optInt(JSON_TRIP_NBR)
+            if(tripNbr != null){
+                VehicleTripArrayHolder.addTripNumber(tripNbr!!)
+            }
             meterState = obj.optString(JSON_METER_STATE)
+            if(meterState != null){
+                VehicleTripArrayHolder.addMeterState(meterState!!)
+            }
             pimNoReceipt = obj.optString(JSON_PIM_NO_RECEIPT)
+            if(pimNoReceipt != null && pimNoReceipt == "Y"){
+                VehicleTripArrayHolder.pimDoesNotNeedToDoReceipt(true)
+            }
             tripId = obj.optString(JSON_TRIP_ID)
+            if(tripId != null){
+                VehicleTripArrayHolder.addTripId(tripId!!, PimApplication.pimContext)
+            }
             tripStatus = obj.optString(JSON_TRIP_STATUS)
-            owedPrice = obj.optDouble(JSON_OWED_PRICE, 0.0)
-            pimPayAmt = obj.optDouble(JSON_PIM_PAY_AMT, 0.0)
+            if(tripStatus != null){
+                VehicleTripArrayHolder.addStatus(tripStatus!!)
+            }
+            owedPrice = obj.optDouble(JSON_OWED_PRICE)
+            if(owedPrice != null){
+
+            }
+            pimPayAmt = obj.optDouble(JSON_PIM_PAY_AMT)
+            if(pimPayAmt != null){
+                VehicleTripArrayHolder.setPimPayment(pimPayAmt!!)
+            }
         }
 
         override fun toJson(): JSONObject {
@@ -397,6 +423,13 @@ class NTSPimPacket {
 
         override fun toJson(): JSONObject {
             val obj = JSONObject()
+            pimPaidAmt = VehicleTripArrayHolder.getPimPaidAmount()
+            tipAmt = VehicleTripArrayHolder.getTipAmount()
+            cardInfo = VehicleTripArrayHolder.getCardInfo()
+            transDate = VehicleTripArrayHolder.getTransDate()
+            payType = VehicleTripArrayHolder.paymentTypeSelected
+            transId = VehicleTripArrayHolder.getTransactionID()
+            tripId = VehicleTripArrayHolder.getTripId()
             try {
                 if (pimPaidAmt != null) {obj.put(JSON_PAID_AMT, pimPaidAmt!!)}
                 if (tipAmt != null) {obj.put(JSON_TIP_AMT, tipAmt!!)}
@@ -426,14 +459,15 @@ class NTSPimPacket {
      * Class to help send or parse JSON data for Payment Declined packet.  Sent by PIM so driver can see the same
      * error message as the passenger if a payment is declined.
      */
-    class PaymentDeclinedObj : PimDataObj {
-        var declineMsg: String? = null
+    class PaymentDeclinedObj() : PimDataObj {
+        private var declineMsg: String? = null
         override fun fromJson(obj: JSONObject) {
             declineMsg = obj.optString(JSON_DECLINE_MSG)
         }
 
         override fun toJson(): JSONObject {
             val obj = JSONObject()
+            declineMsg = VehicleTripArrayHolder.getDeclinedCardMessage()
             try {
                 if (declineMsg != null) obj.put(
                     JSON_DECLINE_MSG,
@@ -456,14 +490,23 @@ class NTSPimPacket {
      */
     class PimStatusObj : PimDataObj {
         var pimStatus: String? = null
+        var tripId: String? = null
         override fun fromJson(obj: JSONObject) {
             pimStatus = obj.optString(JSON_PIM_STATUS)
+            tripId = obj.optString(JSON_TRIP_ID)
         }
 
         override fun toJson(): JSONObject {
             val obj = JSONObject()
+            pimStatus = VehicleTripArrayHolder.getInternalPIMStatus()
+            tripId = VehicleTripArrayHolder.getTripId()
             try {
-                if (pimStatus != null) obj.put(JSON_PIM_STATUS, pimStatus)
+                if (pimStatus != null){
+                    obj.put(JSON_PIM_STATUS, pimStatus)
+                }
+                if(tripId != null && tripId != ""){
+                    obj.put(JSON_TRIP_ID, tripId)
+                }
             } catch (ignore: Exception) {
             }
             return obj
@@ -471,6 +514,7 @@ class NTSPimPacket {
 
         companion object {
             private const val JSON_PIM_STATUS = "pimStatus"
+            private const val JSON_TRIP_ID = "tripId"
         }
 
     } // end of class PimStatusObj

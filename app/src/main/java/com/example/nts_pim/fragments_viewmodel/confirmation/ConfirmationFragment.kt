@@ -9,6 +9,7 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelProviders
 import androidx.navigation.Navigation
 import com.amazonaws.mobileconnectors.appsync.AWSAppSyncClient
@@ -23,13 +24,11 @@ import com.example.nts_pim.fragments_viewmodel.base.ScopedFragment
 import com.example.nts_pim.fragments_viewmodel.callback.CallBackViewModel
 import com.example.nts_pim.fragments_viewmodel.interaction_complete.InteractionCompleteViewModel
 import com.example.nts_pim.fragments_viewmodel.interaction_complete.InteractionCompleteViewModelFactory
-import com.example.nts_pim.utilities.driver_receipt.DriverReceiptHelper
 import com.example.nts_pim.utilities.enums.SharedPrefEnum
 import com.example.nts_pim.utilities.enums.VehicleStatusEnum
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import com.example.nts_pim.utilities.mutation_helper.PIMMutationHelper
 import kotlinx.android.synthetic.main.confirmation_screen.*
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.kodein.di.KodeinAware
 import org.kodein.di.android.x.closestKodein
@@ -86,8 +85,8 @@ class ConfirmationFragment: ScopedFragment(), KodeinAware {
 
         mAWSAppSyncClient = ClientFactory.getInstance(context)
         val factory = InjectorUtiles.provideCallBackModelFactory()
-        callbackViewModel = ViewModelProviders.of(this,factory).get(CallBackViewModel::class.java)
-        viewModel = ViewModelProviders.of(this, viewModelFactory).get(InteractionCompleteViewModel::class.java)
+        callbackViewModel = ViewModelProvider(this,factory).get(CallBackViewModel::class.java)
+        viewModel = ViewModelProvider(this, viewModelFactory).get(InteractionCompleteViewModel::class.java)
         val tripIdForPayment = VehicleTripArrayHolder.getTripIdForPayment()
         tripId = if(tripIdForPayment != ""){
             tripIdForPayment

@@ -2,7 +2,7 @@ package com.example.nts_pim.data.repository.providers
 
 import android.content.Context
 import android.content.SharedPreferences
-import android.preference.PreferenceManager
+import androidx.preference.PreferenceManager
 
 abstract class PreferenceProvider(context: Context) {
     private val appContext = context.applicationContext
