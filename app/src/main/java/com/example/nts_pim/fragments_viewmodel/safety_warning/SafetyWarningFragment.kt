@@ -11,6 +11,7 @@ import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.navigation.Navigation
 import com.example.nts_pim.R
+import com.example.nts_pim.data.repository.AdInfoHolder
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import kotlinx.android.synthetic.main.safety_warning_screen.*
 import java.util.*
@@ -20,6 +21,9 @@ class SafetyWarningFragment : Fragment() {
     //This Fragment does not need ViewModel/Factory since it doesn't touch the Repo
     val currentFragmentId = R.id.safety_warning_fragment
     val logFragment = "Safety Warning"
+    var showAdd = AdInfoHolder.isThereAnAdd
+
+
     private val safetyScreenWarningTimer = object: CountDownTimer(7000, 1000){
         override fun onTick(millisUntilFinished: Long) {
         }
@@ -27,7 +31,7 @@ class SafetyWarningFragment : Fragment() {
         override fun onFinish() {
             if(view != null){
                 LoggerHelper.writeToLog("$logFragment: Did not play safety message")
-                navigate()
+                toMeterScreen()
             }
         }
     }
@@ -44,17 +48,33 @@ class SafetyWarningFragment : Fragment() {
          checkAnimation()
     }
 
+
     private fun toNextScreen(){
         LoggerHelper.writeToLog("$logFragment: Going to Live Meter Screen")
         Timer().schedule(timerTask {
-            navigate()
+            checkScreenDestination()
         }, 5000)
     }
 
-    private fun navigate(){
+    private fun checkScreenDestination(){
+        if(showAdd){
+            toAdScreen()
+        } else {
+            toMeterScreen()
+        }
+    }
+
+    private fun toMeterScreen(){
         val navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment)
         if (navController.currentDestination?.id == currentFragmentId){
             navController.navigate(R.id.toLiveMeter)
+        }
+    }
+
+    private fun toAdScreen(){
+        val navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment)
+        if (navController.currentDestination?.id == currentFragmentId){
+            navController.navigate(R.id.action_safety_warning_fragment_to_advertisementFragment)
         }
     }
 
@@ -71,14 +91,14 @@ class SafetyWarningFragment : Fragment() {
                 })
             }
         } else {
-            toNextScreen()
+            checkScreenDestination()
         }
     }
     private fun playSafetyMessage(){
         val mediaPlayer = MediaPlayer.create(context, R.raw.saftey_message_test)
         mediaPlayer.setOnCompletionListener { mP ->
             if(view != null){
-                navigate()
+                checkScreenDestination()
             }
             LoggerHelper.writeToLog("$logFragment: Finished Safety Message")
             mP.release()
@@ -98,6 +118,5 @@ class SafetyWarningFragment : Fragment() {
         super.onPause()
         Log.i("Safety Screen", "Safety Screen Timer Canceled")
         safetyScreenWarningTimer.cancel()
-
      }
 }

@@ -153,7 +153,7 @@ class StartupFragment: ScopedFragment(), KodeinAware {
                 val pimPaired = response.data()?.pimSettings?.paired() ?: true
                 val awsDeviceId = response.data()?.pimSettings?.deviceId()
                 val useBluetooth = response.data()?.pimSettings?.useBluetooth()
-                val hasAddChanged = response.data()?.pimSettings?.adChanged()
+                val hasAddChanged = response.data()?.pimSettings?.adChanged() ?: false
                 val addRemoved = response.data()?.pimSettings?.adRemoved()
 
                 if (!pimPaired){
@@ -194,8 +194,11 @@ class StartupFragment: ScopedFragment(), KodeinAware {
                             BluetoothDataCenter.turnOffBlueTooth()
                         }
                     }
+                if(!hasAddChanged){
+                PIMMutationHelper.getAdInformation(vehicleId!!)
                 }
             }
+        }
         override fun onFailure(e: ApolloException) {
         }
     }

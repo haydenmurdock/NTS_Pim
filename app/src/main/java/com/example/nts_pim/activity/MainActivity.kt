@@ -106,6 +106,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
     private var bluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
     private var blueToothAddressDriverTablet: String? = null
 
+
     companion object  {
         lateinit var mainActivity: MainActivity
         lateinit var navigationController: NavController
@@ -277,26 +278,37 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                 Log.i("Bluetooth", "Socket is connected and aws bluetooth is on. Creating Connected Thread")
                 val socket = BluetoothDataCenter.getBTSocket()
                 if(socket != null){
-                    ConnectedThread(socket).start()
-                } else {
-                    Log.i("Bluetooth", "Socket is null. Need to recreate socket connection. Cancelling Connect thread")
+                    ReadThread(socket).start()
+                    WriteThread(socket).start()
+            }
+            if(isBluetoothOnAWS && !socketConnected){
+                val socket = BluetoothDataCenter.getBTSocket()
+                if(socket == null){
+                    Log.i("Bluetooth", "The socket connection hasn't happened for the first time")
+                    ConnectThread(driverTablet!!).cancelThread()
+                    ConnectThread(driverTablet!!).start()
+                    }
                 }
             }
         })
- //           if(isBluetoothOnAWS && !socketConnected && mSuccessfulSetup) {
-//
-//        })
-
-        BluetoothDataCenter.isConnectedToDriverTablet().observe(this, Observer {
-
+        BluetoothDataCenter.isConnectedToDriverTablet().observe(this, Observer { readWriteConnected ->
+            if(!readWriteConnected){
+                val socket = BluetoothDataCenter.getBTSocket()
+                if(socket != null){
+                    Log.i("Bluetooth", "Issue with read/write thread. Tablet lost connection")
+                    ReadThread(socket).cancel()
+                    WriteThread(socket).cancel()
+                    ConnectThread(driverTablet!!).start()
+                }
+            }
         })
     }
 
     fun sendBluetoothPacket(ntsPimPacket: NTSPimPacket){
-        Log.i("Bluetooth", "Sending packed to driver tablet. ${ntsPimPacket.command}")
+        Log.i("Bluetooth", "Sending packed to driver tablet. Command: ${ntsPimPacket.command} Data: ${ntsPimPacket.packetData?.toJson()}")
        val byteArrayToSend = toBytes(ntsPimPacket)
         val socket = BluetoothDataCenter.getBTSocket()
-        ConnectedThread(socket).write(byteArrayToSend)
+       WriteThread(socket).write(byteArrayToSend)
 
     }
 
@@ -772,11 +784,9 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
 
     private fun checkNavBar(){
         val decorView = window.decorView
-        decorView.setOnSystemUiVisibilityChangeListener((object: View.OnSystemUiVisibilityChangeListener{
-            override fun onSystemUiVisibilityChange(visibility: Int) {
-                if(mSuccessfulSetup){
-                    ViewHelper.hideSystemUI(this@MainActivity)
-                }
+        decorView.setOnSystemUiVisibilityChangeListener((View.OnSystemUiVisibilityChangeListener {
+            if(mSuccessfulSetup){
+                ViewHelper.hideSystemUI(this@MainActivity)
             }
         }))
     }

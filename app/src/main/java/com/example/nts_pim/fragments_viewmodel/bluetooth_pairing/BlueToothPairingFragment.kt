@@ -1,6 +1,5 @@
 package com.example.nts_pim.fragments_viewmodel.bluetooth_pairing
 
-import android.bluetooth.BluetoothAdapter
 import android.os.Bundle
 import android.os.CountDownTimer
 import android.util.Log
@@ -12,6 +11,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.NavController
 import androidx.navigation.Navigation
 import com.amazonaws.amplify.generated.graphql.GetPimSettingsQuery
+import com.amazonaws.amplify.generated.graphql.GetStatusQuery
 import com.amazonaws.mobileconnectors.appsync.AWSAppSyncClient
 import com.amazonaws.mobileconnectors.appsync.fetcher.AppSyncResponseFetchers
 import com.apollographql.apollo.GraphQLCall
@@ -30,13 +30,13 @@ import com.example.nts_pim.utilities.device_id_check.DeviceIdCheck
 import com.example.nts_pim.utilities.enums.PIMStatusEnum
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import kotlinx.android.synthetic.main.fragment_blue_tooth_pairing.*
-import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.launch
 import org.kodein.di.KodeinAware
 import org.kodein.di.android.x.closestKodein
 import org.kodein.di.generic.instance
+import java.lang.IllegalStateException
+import kotlin.time.milliseconds
 
 // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
 
@@ -52,6 +52,10 @@ class BlueToothPairingFragment : ScopedFragment(), KodeinAware {
     private var vehicleId: String? = null
     private var isBluetoothOn:Boolean? = null
     private var deviceId: String? = null
+    private var noBTConnectionTimer: CountDownTimer? = null
+    private var noBTView: View? = null
+    private var viewGroup: ViewGroup? = null
+    private var isDriverSignedIn = false
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -69,8 +73,8 @@ class BlueToothPairingFragment : ScopedFragment(), KodeinAware {
         vehicleId = viewModel.getVehicleID()
         deviceId = DeviceIdCheck.getDeviceId() ?: ""
         VehicleTripArrayHolder.updateInternalPIMStatus(PIMStatusEnum.PIM_PAIRING.status)
-        bt_connected_textView.text = "Pair with driver tablet: $isBluetoothOn"
-        bt_description_textView.text = "Searching for $vehicleId..."
+
+        bt_description_textView.text = "Connecting..."
         if(!isBluetoothOn!!){
             Log.i("${logTag}", "Bluetooth pairing is off. Going to welcome screen")
             LoggerHelper.writeToLog("${logTag}, Bluetooth pairing is off. Going to welcome screen")
@@ -78,6 +82,8 @@ class BlueToothPairingFragment : ScopedFragment(), KodeinAware {
         } else {
             Log.i("${logTag}", "Bluetooth pairing is on. Starting pairing process")
             LoggerHelper.writeToLog("${logTag}, Bluetooth pairing is on. Starting pairing process")
+            startBluetoothConnectionTimer()
+            checkIfDriverIsSignedIn(vehicleId!!)
             getDriverTabletBluetoothAddress(deviceId!!)
         }
 
@@ -117,20 +123,76 @@ class BlueToothPairingFragment : ScopedFragment(), KodeinAware {
         }
     }
 
+    private fun checkIfDriverIsSignedIn(vehicleId:String) {
+        if (mAWSAppSyncClient == null) {
+            mAWSAppSyncClient = ClientFactory.getInstance(requireActivity().applicationContext)
+        }
+        mAWSAppSyncClient?.query(GetStatusQuery.builder().vehicleId(vehicleId).build())
+            ?.responseFetcher(AppSyncResponseFetchers.NETWORK_ONLY)
+            ?.enqueue(driverSignedInQuery)
+    }
+    private var driverSignedInQuery = object: GraphQLCall.Callback<GetStatusQuery.Data>(){
+        override fun onResponse(response: Response<GetStatusQuery.Data>) {
+            if(response.hasErrors()){
+                Log.i("Bluetooth", "error from driver signed in query. ${response.errors()}")
+            }
+            response.data()?.status?.signinStatusTimeStamp()
+           val driverId = response.data()?.status?.driverId()
+            if(driverId != 0){
+                isDriverSignedIn = true
+                Log.i("Bluetooth", "Driver is signed in")
+            }
+            if(driverId == 0) {
+                isDriverSignedIn = false
+                Log.i("Bluetooth", "Driver is not signed in. Driver id == $driverId")
+            }
+
+        }
+
+        override fun onFailure(e: ApolloException) {
+
+        }
+    }
+
+    private fun startBluetoothConnectionTimer(){
+        val timerLength = 600000.toLong()
+         viewGroup = activity?.findViewById<View>(R.id.bluetooth_pairing_layout) as ViewGroup
+        if(noBTConnectionTimer == null){
+            noBTConnectionTimer = object: CountDownTimer(timerLength, 60000){
+                override fun onFinish() {
+                    Log.i("Bluetooth", "Displaying no_bluetooth_connection.xml")
+                    try {
+                        noBTView =  View.inflate(activity, R.layout.no_bluetooth_connection, viewGroup)
+                    }catch (e: IllegalStateException){
+                        Log.i("Bluetooth", "Issue with the no_bluetooth_connection inflating. Error: $e")
+                    }
+
+                }
+
+                override fun onTick(p0: Long) {
+                    Log.i("Bluetooth", "Show no connection timer has been running for ${(timerLength - p0)/60000} mins.")
+                }
+            }.start()
+        }
+    }
 
    //Navigation
    private fun toWelcomeScreen() = launch(Dispatchers.Main.immediate){
        if (navController?.currentDestination?.id == currentFragmentId) {
            navController?.navigate(R.id.action_blueToothPairingFragment_to_welcome_fragment)
        }
+       if(noBTView != null){
+           val bluetoothLayout = view?.findViewById<View>(R.id.no_bluetooth_connection_layout)
+           viewGroup?.removeView(bluetoothLayout)
+           viewGroup?.removeView(noBTView)
+       }
+       noBTConnectionTimer?.cancel()
    }
 
     override fun onDestroy() {
         BluetoothDataCenter.isConnectedToDriverTablet().removeObservers(this)
         Log.i(logTag, "Discovery timer canceled")
+        noBTConnectionTimer?.cancel()
         super.onDestroy()
     }
-
-
-
-    }
+}

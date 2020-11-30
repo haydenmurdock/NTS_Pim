@@ -85,14 +85,6 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
     private var driverId: Int? = null
 
 
-   private val screenTimeOutTimer = object: CountDownTimer(30000, 1000) {
-        // this is set to 30 seconds.
-        override fun onTick(millisUntilFinished: Long) {
-        }
-        override fun onFinish() {
-        }
-    }
-
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?,
                               savedInstanceState: Bundle?): View? {
         return inflater.inflate(R.layout.tip_screen,container, false)
@@ -127,8 +119,7 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
         view.setOnTouchListener { v, event ->
             when (event?.action) {
                 MotionEvent.ACTION_DOWN -> {
-                    screenTimeOutTimer.cancel()
-                    screenTimeOutTimer.start()
+                    //If we wanted to anything with the screen timer this would be the place to do it.
                 }
             }
             v?.onTouchEvent(event) ?: true
@@ -248,10 +239,10 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
                 updateTripTotalTextField(tripTotalOption1)
                 tipAmountPassedToSquare = fifteenPercent
                 callbackViewModel.setTipAmount(tipAmountPassedToSquare)
-                if(tripTotal < 10.00){
-                    tipPercentPicked = 0.0
+                tipPercentPicked = if(tripTotal < 10.00){
+                0.0
                 } else {
-                    tipPercentPicked = 00.15
+                00.15
                 }
                 lowerAlpha()
         }
@@ -261,11 +252,11 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
                 updateTripTotalTextField(amountForSquare)
                 tipAmountPassedToSquare = twentyPercent
                 callbackViewModel.setTipAmount(tipAmountPassedToSquare)
-                 if(tripTotal < 10.00){
-                     tipPercentPicked = 0.0
-                 } else {
-                     tipPercentPicked = 00.20
-                 }
+                 tipPercentPicked = if(tripTotal < 10.00){
+                0.0
+                } else {
+                    00.20
+                }
                 lowerAlpha()
         }
         twenty_five_percent_btn.setOnClickListener {
@@ -274,12 +265,11 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
                 updateTripTotalTextField(amountForSquare)
                 tipAmountPassedToSquare = twentyFivePercent
                 callbackViewModel.setTipAmount(tipAmountPassedToSquare)
-                 if(tripTotal < 10.00){
-                    tipPercentPicked = 0.0
-                } else {
-                     tipPercentPicked = 00.25
+                tipPercentPicked = if(tripTotal < 10.00){
+                0.0
+                 } else {
+                00.25
                 }
-
                 lowerAlpha()
 
         }
@@ -289,10 +279,10 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
             updateTripTotalTextField(amountForSquare)
             tipAmountPassedToSquare = thirtyPercent
             callbackViewModel.setTipAmount(tipAmountPassedToSquare)
-            if(tripTotal < 10.00){
-                tipPercentPicked = 0.0
+            tipPercentPicked = if(tripTotal < 10.00){
+                0.0
             } else {
-                tipPercentPicked = 00.30
+                00.30
             }
             lowerAlpha()
         }
@@ -301,8 +291,8 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
             toCustomTip()
         }
         no_tip_btn.setOnClickListener {
-            squareCheckout(tripTotal)
             lowerAlpha()
+            squareCheckout(tripTotal)
         }
 
         callbackViewModel.getMeterState().observe(this.viewLifecycleOwner, Observer { meterState ->
@@ -533,14 +523,11 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
         thirty_percent_btn.isEnabled = isClickable
         customTipAmountBtn.isEnabled = isClickable
         no_tip_btn.isEnabled = isClickable
-        screenTimeOutTimer.cancel()
-        screenTimeOutTimer.start()
         LoggerHelper.writeToLog("$logFragment,  Lowered Alpha for Square payment")
     }
     private fun raiseAlphaUI(){
         val alpha = 1.0f
         val isClickable = true
-        screenTimeOutTimer.cancel()
         //Changes the alpha
         if(fifteen_percent_frameLayout != null){
             fifteen_percent_frameLayout.alpha = alpha
@@ -599,8 +586,6 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
             no_tip_btn.setTextColor(ContextCompat.getColor(requireContext(), R.color.whiteTextColor))
         }
         callbackViewModel.setTipAmount(0.0)
-        screenTimeOutTimer.cancel()
-        screenTimeOutTimer.start()
         LoggerHelper.writeToLog("$logFragment,  Raised Alpha after Square payment")
     }
     private fun onCheckoutResult(result: Result<CheckoutResult, ResultError<CheckoutErrorCode>>) {
@@ -801,7 +786,6 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
     }
     override fun onPause() {
         super.onPause()
-        screenTimeOutTimer.cancel()
         ViewHelper.hideSystemUI(requireActivity())
         callbackViewModel.hasSquareTimedOut().observe(this, Observer { hasSquareTimedOut ->
             if (hasSquareTimedOut) {
@@ -816,7 +800,6 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
     }
     override fun onResume() {
         super.onResume()
-        screenTimeOutTimer.start()
     }
     override fun onDestroy() {
         super.onDestroy()

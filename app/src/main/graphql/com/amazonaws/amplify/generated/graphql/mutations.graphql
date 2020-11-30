@@ -50,11 +50,13 @@ mutation SetMeterRateEncryptData($parameters: setEncryptDataInput) {
     errorCode
     increment
     maxFare
+    maxToll
     minFare
     rateId
     rateNbr
     timeDropFare
     timeRate
+    tollIncrement
   }
 }
 mutation UpdateBluetooth($parameters: updateBluetoothInput) {
@@ -860,5 +862,33 @@ mutation UnpairPim($parameters: unpairPIMInput) {
     adChanged
     adRemoved
     vehBtAddr
+  }
+}
+mutation UpdateDriverSignInStatus($parameters: updateStatusInput) {
+  updateDriverSignInStatus(parameters: $parameters) {
+    driverId
+    error
+    errorCode
+    feesAndSpecialsSet
+    gpsDirection
+    lat
+    lng
+    locationTimeStamp
+    signinStatusTimeStamp
+    meterPaidDist
+    meterRate1Set
+    meterRate2Set
+    meterStatus
+    meterTotalDist
+    meterTotalTrips
+    pimStatus
+    postedStatus
+    readerStatus
+    readerStatusTimeStamp
+    resetMeterStats
+    resetMeterStatsTimeStamp
+    tripId
+    tripStatus
+    vehicleId
   }
 }

@@ -42,6 +42,9 @@
             tools:layout="@layout/safety_warning_screen">
         <action android:id="@+id/toLiveMeter"
                 app:destination="@id/live_meter_fragment"/>
+        <action
+                android:id="@+id/action_safety_warning_fragment_to_advertisementFragment"
+                app:destination="@id/advertisementFragment" />
     </fragment>
 
     <fragment
@@ -310,6 +313,15 @@
         <action
                 android:id="@+id/action_blueToothPairingFragment_to_welcome_fragment"
                 app:destination="@id/welcome_fragment" />
+    </fragment>
+    <fragment
+            android:id="@+id/advertisementFragment"
+            android:name="com.example.nts_pim.fragments_viewmodel.advertisement.AdvertisementFragment"
+            android:label="fragment_advertisement"
+            tools:layout="@layout/fragment_advertisement" >
+        <action
+                android:id="@+id/action_advertisementFragment_to_live_meter_fragment"
+                app:destination="@id/live_meter_fragment" />
     </fragment>
 
 

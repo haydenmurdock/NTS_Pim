@@ -36,14 +36,6 @@ class CustomTipScreenFragment : ScopedFragment() {
     private var cursorTimer: CountDownTimer? = null
     private lateinit var callbackViewModel: CallBackViewModel
 
-    val screenTimeOutTimer = object: CountDownTimer(45000, 1000) {
-        // this is set to 45 seconds.
-        override fun onTick(millisUntilFinished: Long) {
-        }
-        override fun onFinish() {
-        }
-    }
-
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
@@ -57,21 +49,15 @@ class CustomTipScreenFragment : ScopedFragment() {
         callbackViewModel = ViewModelProvider(this, factory)
             .get(CallBackViewModel::class.java)
         updateUI()
-        screenTimeOutTimer.start()
-        view.setOnTouchListener(object : View.OnTouchListener {
-            override fun onTouch(v: View?, event: MotionEvent?): Boolean {
-                when (event?.action) {
-                    MotionEvent.ACTION_DOWN -> {
-                        screenTimeOutTimer.cancel()
-                        screenTimeOutTimer.start()
-                    }
+        view.setOnTouchListener { v, event ->
+            when (event?.action) {
+                MotionEvent.ACTION_DOWN -> {
+                 //If want to do a timer this is the place we would put it
                 }
-                return v?.onTouchEvent(event) ?: true
             }
-        })
+            v?.onTouchEvent(event) ?: true
+        }
 
-        timer = Timer()
-        handler = Handler()
         close_custom_tip_screen_btn.setOnClickListener {
             val noTipChosen = 00.00.toFloat()
             val navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment)
@@ -684,7 +670,5 @@ class CustomTipScreenFragment : ScopedFragment() {
     override fun onDestroy() {
         cursorTimer?.cancel()
         super.onDestroy()
-        timer?.cancel()
-        handler.removeCallbacksAndMessages(null)
     }
 }

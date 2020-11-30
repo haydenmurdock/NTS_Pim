@@ -29,6 +29,7 @@ object BluetoothDataCenter {
         responseMessage = ""
         connectedToDriverTabletMLD.postValue(connectedToDriverTablet)
         useBlueToothMLD.postValue(useBluetooth)
+        bluetoothSocketAcceptedMLD.postValue(blueToothSocketAccepted)
     }
 
 

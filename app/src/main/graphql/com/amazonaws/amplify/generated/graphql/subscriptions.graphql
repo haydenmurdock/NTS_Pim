@@ -405,3 +405,31 @@ subscription OnPimUnpair($vehicleId: String) {
     vehBtAddr
   }
 }
+subscription OnUpdateDriverSignInStatus($vehicleId: String) {
+  onUpdateDriverSignInStatus(vehicleId: $vehicleId) {
+    driverId
+    error
+    errorCode
+    feesAndSpecialsSet
+    gpsDirection
+    lat
+    lng
+    locationTimeStamp
+    signinStatusTimeStamp
+    meterPaidDist
+    meterRate1Set
+    meterRate2Set
+    meterStatus
+    meterTotalDist
+    meterTotalTrips
+    pimStatus
+    postedStatus
+    readerStatus
+    readerStatusTimeStamp
+    resetMeterStats
+    resetMeterStatsTimeStamp
+    tripId
+    tripStatus
+    vehicleId
+  }
+}

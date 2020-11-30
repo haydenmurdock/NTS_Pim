@@ -2,29 +2,18 @@
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
         xmlns:app="http://schemas.android.com/apk/res-auto"
         xmlns:tools="http://schemas.android.com/tools"
-        android:id="@+id/frameLayout3"
+        android:id="@+id/bluetooth_pairing_layout"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:background="@color/screenBackgroundColor"
         tools:context=".fragments_viewmodel.bluetooth_pairing.BlueToothPairingFragment">
 
     <TextView
-            android:id="@+id/bt_connected_textView"
+            android:id="@+id/bt_description_textView"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="16dp"
-            android:layout_marginTop="16dp"
-            android:text="Bluetooth connection"
-            android:textColor="@color/whiteTextColor"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
-
-    <TextView
-            android:id="@+id/bt_description_textView"
-            android:layout_width="747dp"
-            android:layout_height="101dp"
-            android:autoSizeTextType="none"
-            android:autoText="false"
+            android:autoSizeTextType="uniform"
+            android:text="Connecting..."
             android:textColor="@color/whiteTextColor"
             android:textSize="36sp"
             app:layout_constraintBottom_toBottomOf="parent"

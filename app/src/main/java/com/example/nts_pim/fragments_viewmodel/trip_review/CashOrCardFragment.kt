@@ -214,6 +214,7 @@ class CashOrCardFragment : ScopedFragment(), KodeinAware {
         sendPimStatusBluetooth()
     }
     private fun sendPimStatusBluetooth(){
+        VehicleTripArrayHolder.updateInternalPIMStatus(PIMStatusEnum.PAYMENT_SCREEN.status)
         val isBluetoothOn = BluetoothDataCenter.isBluetoothOn().value ?: false
         if(isBluetoothOn){
             val dataObject = NTSPimPacket.PimStatusObj()

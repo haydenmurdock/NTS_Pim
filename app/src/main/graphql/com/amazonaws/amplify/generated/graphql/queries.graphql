@@ -70,18 +70,20 @@ query GetMeterRates($rateId: String!, $rateNbr: Int) {
     errorCode
     increment
     maxFare
+    maxToll
     minFare
     rateId
     rateNbr
     timeDropFare
     timeRate
+    tollIncrement
   }
 }
 query GetFeesAndSpecials($siteFleet: String!) {
   getFeesAndSpecials(siteFleet: $siteFleet) {
     feeAmt
     flatRate
-    id
+    recId
     isAirport
     isVehicleSpecific
     minRate
