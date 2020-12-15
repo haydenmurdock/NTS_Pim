@@ -50,7 +50,11 @@ object BluetoothDataCenter {
     private fun blueToothDeviceFound(){
         driverTabletFound = true
         driverTabletFoundMLD.postValue(driverTabletFound)
-}
+    }
+
+    internal fun restartConnectionWithSameDevice(){
+        blueToothDeviceFound()
+    }
 
     internal fun getIsDeviceFound() = driverTabletFoundMLD
 
@@ -83,9 +87,9 @@ object BluetoothDataCenter {
     }
 
     internal fun blueToothSocketIsDisconnected(){
+        blueToothSocket = null
         blueToothSocketAccepted = false
         bluetoothSocketAcceptedMLD.postValue(blueToothSocketAccepted)
-
     }
 
     internal fun isBluetoothSocketConnected():MutableLiveData<Boolean> = bluetoothSocketAcceptedMLD

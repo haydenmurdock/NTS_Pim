@@ -2,7 +2,6 @@ package com.example.nts_pim.fragments_viewmodel.startup
 
 import android.Manifest
 import android.annotation.SuppressLint
-import android.bluetooth.BluetoothAdapter
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -20,7 +19,6 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.NavController
 import androidx.navigation.Navigation
-import com.amazonaws.amplify.generated.graphql.GetPimInfoQuery
 import com.amazonaws.amplify.generated.graphql.GetPimSettingsQuery
 import com.amazonaws.amplify.generated.graphql.ResetReAuthSquareMutation
 import com.amazonaws.mobileconnectors.appsync.AWSAppSyncClient
@@ -30,6 +28,7 @@ import com.apollographql.apollo.api.Response
 import com.apollographql.apollo.exception.ApolloException
 import com.example.nts_pim.BuildConfig
 import com.example.nts_pim.R
+import com.example.nts_pim.data.repository.AdInfoHolder
 import com.example.nts_pim.data.repository.model_objects.JsonAuthCode
 import com.example.nts_pim.fragments_viewmodel.InjectorUtiles
 import com.example.nts_pim.fragments_viewmodel.base.ClientFactory
@@ -154,7 +153,7 @@ class StartupFragment: ScopedFragment(), KodeinAware {
                 val awsDeviceId = response.data()?.pimSettings?.deviceId()
                 val useBluetooth = response.data()?.pimSettings?.useBluetooth()
                 val hasAddChanged = response.data()?.pimSettings?.adChanged() ?: false
-                val addRemoved = response.data()?.pimSettings?.adRemoved()
+                val addRemoved = response.data()?.pimSettings?.adRemoved() ?: false
 
                 if (!pimPaired){
                 launch {
@@ -188,14 +187,25 @@ class StartupFragment: ScopedFragment(), KodeinAware {
                     PIMMutationHelper.updatePimSettings(blueToothAddress, appVersionNumber, phoneNumber, mAWSAppSyncClient!!, deviceId!!)
                 }
                 if(useBluetooth != null){
+                    LoggerHelper.writeToLog("useBluetooth value at start up: $useBluetooth")
                     if(useBluetooth == true){
                             BluetoothDataCenter.turnOnBlueTooth()
                         } else {
                             BluetoothDataCenter.turnOffBlueTooth()
                         }
                     }
-                if(!hasAddChanged){
-                PIMMutationHelper.getAdInformation(vehicleId!!)
+                if(addRemoved) {
+                    LoggerHelper.writeToLog("Ad removed was true. Trying to delete ads")
+                    AdInfoHolder.deleteAds()
+                }
+                if(!addRemoved){
+                    LoggerHelper.writeToLog("Ad removed was false. checking for internal add info")
+                   AdInfoHolder.checkForInternalAddInfo()
+                }
+                if(hasAddChanged){
+                    LoggerHelper.writeToLog("Ad changed is true. Trying to delete ads. Grabbing ad info from AWS")
+                    AdInfoHolder.deleteAds()
+                    PIMMutationHelper.getAdInformation(vehicleId!!)
                 }
             }
         }

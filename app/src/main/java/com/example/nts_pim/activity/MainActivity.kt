@@ -53,6 +53,7 @@ import com.example.nts_pim.utilities.mutation_helper.PIMMutationHelper
 import com.example.nts_pim.utilities.overheat_email.OverHeatEmail
 import com.example.nts_pim.utilities.sound_helper.SoundHelper
 import com.example.nts_pim.utilities.view_helper.ViewHelper
+import com.google.android.material.internal.ContextUtils.getActivity
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.schedulers.Schedulers
 import kotlinx.coroutines.CoroutineScope
@@ -65,6 +66,7 @@ import org.kodein.di.android.closestKodein
 import org.kodein.di.generic.instance
 import java.util.*
 import kotlin.coroutines.CoroutineContext
+import kotlin.system.exitProcess
 
 open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
     override val kodein by closestKodein()
@@ -105,6 +107,9 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
     private var driverTablet: BluetoothDevice? = null
     private var bluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
     private var blueToothAddressDriverTablet: String? = null
+    private var readThread: Thread? = null
+    private var writeThread: Thread? = null
+    private var connectThread: Thread? = null
 
 
     companion object  {
@@ -233,10 +238,13 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                 !vehicleSubscriptionComplete &&
                 mSuccessfulSetup){
                 watchingTripId = ""
-                subscribeToUpdateVehTripStatus(vehicleId)
+                if(!isBluetoothOnAWS) {
+                    subscribeToUpdateVehTripStatus(vehicleId)
+                }
                 if(navigationController.currentDestination?.id == R.id.live_meter_fragment ||
                     navigationController.currentDestination?.id == R.id.trip_review_fragment){
                     if(!isBluetoothOnAWS){
+
                         getMeterOwedQuery(tripId)
                     }
                 }
@@ -262,7 +270,8 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                         }
                         val setupComplete = viewModel.isSetUpComplete()
                         if(driverTablet != null && setupComplete){
-                           ConnectThread(driverTablet!!).start()
+                          connectThread = ConnectThread(driverTablet!!)
+                            connectThread?.start()
                         } else {
                             Log.i("Bluetooth", "Connect thread didn't start. driverTablet: $driverTablet. Setup: $mSuccessfulSetup")
                         }
@@ -278,15 +287,18 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                 Log.i("Bluetooth", "Socket is connected and aws bluetooth is on. Creating Connected Thread")
                 val socket = BluetoothDataCenter.getBTSocket()
                 if(socket != null){
-                    ReadThread(socket).start()
-                    WriteThread(socket).start()
+                   readThread = ReadThread(socket)
+                    readThread?.start()
+                    writeThread = WriteThread(socket)
+                    writeThread?.start()
             }
             if(isBluetoothOnAWS && !socketConnected){
                 val socket = BluetoothDataCenter.getBTSocket()
                 if(socket == null){
                     Log.i("Bluetooth", "The socket connection hasn't happened for the first time")
-                    ConnectThread(driverTablet!!).cancelThread()
-                    ConnectThread(driverTablet!!).start()
+                    connectThread = null
+                    connectThread = ConnectThread(driverTablet!!)
+                    connectThread?.start()
                     }
                 }
             }
@@ -298,7 +310,9 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                     Log.i("Bluetooth", "Issue with read/write thread. Tablet lost connection")
                     ReadThread(socket).cancel()
                     WriteThread(socket).cancel()
-                    ConnectThread(driverTablet!!).start()
+                    writeThread = null
+                    readThread = null
+                    BluetoothDataCenter.restartConnectionWithSameDevice()
                 }
             }
         })
@@ -551,6 +565,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
     }
 
     private var updatePimSettingsCallback = object : AppSyncSubscriptionCall.Callback<OnPimSettingsUpdateSubscription.Data>{
+        @SuppressLint("RestrictedApi")
         override fun onResponse(response: Response<OnPimSettingsUpdateSubscription.Data>) {
             if(!response.hasErrors()){
                 val awsLog = response.data()?.onPIMSettingsUpdate()?.log()!!
@@ -563,10 +578,23 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                     }
                 }
                 if(useBluetooth != null){
-                    if(useBluetooth == true){
+                    if(!isBluetoothOnAWS && useBluetooth){
+                        Log.i("Bluetooth", "The aws subscription flipped to on for bluetooth. Starting bluetooth setup process.")
+                        LoggerHelper.writeToLog("The aws subscription flipped to on for bluetooth. Starting bluetooth setup process.")
                         BluetoothDataCenter.turnOnBlueTooth()
-                    } else {
+                        BluetoothDataCenter.connectedToDriverTablet()
+                        val deviceId = DeviceIdCheck.getDeviceId() ?: ""
+                        getDriverTabletBluetoothAddress(deviceId)
+                    }
+                    if(isBluetoothOnAWS && !useBluetooth) {
+                        Log.i("Bluetooth", "The aws subscription flipped to OFF for bluetooth. Restarting internet Connection.")
+                        LoggerHelper.writeToLog("The aws subscription flipped to OFF for bluetooth. Restarting internet Connection.")
                         BluetoothDataCenter.turnOffBlueTooth()
+                        isBluetoothOnAWS = false
+                        vehicleSubscriptionComplete = false
+                        tripSubscriptionComplete = false
+                        getActivity(applicationContext)?.finish()
+                        exitProcess(0)
                     }
                 }
                 Log.i("Logging", "Logging == $awsLog from updatePimSettingsCallBack")
@@ -697,8 +725,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                 build()
             }).build()
         }
-        val request = audioManager.requestAudioFocus(focusRequest)
-        when(request) {
+        when(audioManager.requestAudioFocus(focusRequest)) {
             AudioManager.AUDIOFOCUS_REQUEST_GRANTED -> {
                 LoggerHelper.writeToLog("${logFragment}, pim played start up sound")
                 mediaPlayer.start()
@@ -808,6 +835,31 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
             mBluetoothAdapter.enable()
         } else {
             LoggerHelper.writeToLog("${logFragment}, bluetooth was on during start up")
+        }
+    }
+
+    private fun getDriverTabletBluetoothAddress(deviceId: String){
+        if (mAWSAppSyncClient == null) {
+            mAWSAppSyncClient = ClientFactory.getInstance(applicationContext)
+        }
+
+        mAWSAppSyncClient?.query(GetPimSettingsQuery.builder().deviceId(deviceId).build())
+            ?.responseFetcher(AppSyncResponseFetchers.NETWORK_ONLY)
+            ?.enqueue(awsBluetoothAddressCallback)
+    }
+    private var awsBluetoothAddressCallback = object: GraphQLCall.Callback<GetPimSettingsQuery.Data>() {
+        override fun onResponse(response: Response<GetPimSettingsQuery.Data>) {
+            Log.i("Bluetooth", "Bluetooth query response == ${response.data()}")
+
+            val bluetoothAddress = response.data()?.pimSettings?.vehBtAddr()
+
+            if(bluetoothAddress != null){
+                BluetoothDataCenter.updateDriverTabletBTDevice(bluetoothAddress)
+            }
+        }
+
+        override fun onFailure(e: ApolloException) {
+
         }
     }
 

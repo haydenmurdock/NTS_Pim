@@ -73,8 +73,6 @@ class BlueToothPairingFragment : ScopedFragment(), KodeinAware {
         vehicleId = viewModel.getVehicleID()
         deviceId = DeviceIdCheck.getDeviceId() ?: ""
         VehicleTripArrayHolder.updateInternalPIMStatus(PIMStatusEnum.PIM_PAIRING.status)
-
-        bt_description_textView.text = "Connecting..."
         if(!isBluetoothOn!!){
             Log.i("${logTag}", "Bluetooth pairing is off. Going to welcome screen")
             LoggerHelper.writeToLog("${logTag}, Bluetooth pairing is off. Going to welcome screen")

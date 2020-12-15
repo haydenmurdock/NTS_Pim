@@ -137,7 +137,10 @@ object LoggerHelper {
     }
 
     private fun removeAndAddLog(array: ArrayList<String?>?){
-        if(array?.count() == logLimit){
+        if(array == null){
+            return
+        }
+        if(array.count() > logLimit){
         array.removeAt(0)
             Log.i("LOGGER", "Removing log from logging array. Log count is now ${array.count()}")
         } else {

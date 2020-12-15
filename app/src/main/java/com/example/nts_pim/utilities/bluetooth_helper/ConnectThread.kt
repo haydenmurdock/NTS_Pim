@@ -49,7 +49,6 @@ class ConnectThread(device: BluetoothDevice) : Thread() {
             Log.i("Bluetooth", "socket error. $e")
             hasBeenInit = false
             BluetoothDataCenter.blueToothSocketIsDisconnected()
-            cancelThread()
            } finally {
                 if(!mmSocket!!.isConnected){
                     connectThreadHandler.postDelayed(Runnable {
@@ -59,16 +58,6 @@ class ConnectThread(device: BluetoothDevice) : Thread() {
                 }
            }
         }
-         fun cancelThread() {
-             try {
-                 mmSocket?.close()
-                 Log.i("Bluetooth", "socket is closed")
-             } catch (e: IOException) {
-                 Log.e(TAG, "Could not close the client socket", e)
-             }
-         }
-
-
 }
 
 class ReadThread(private var mmSocket: BluetoothSocket?) : Thread() {
@@ -113,7 +102,6 @@ class ReadThread(private var mmSocket: BluetoothSocket?) : Thread() {
         }
     }
 
-//
     /* Call this from the main activity to shutdown the connection */
     fun cancel() {
         try {

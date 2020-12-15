@@ -333,12 +333,12 @@ object PIMMutationHelper {
         val query = GetPimAdvertisementQuery.builder().vehicleId(vehicleId).build()
         mAppSyncClient?.query(query)?.responseFetcher(AppSyncResponseFetchers.NETWORK_ONLY)
             ?.enqueue(adQueryCallBack)
-
     }
 
     private var adQueryCallBack = object : GraphQLCall.Callback<GetPimAdvertisementQuery.Data>() {
         override fun onResponse(response: Response<GetPimAdvertisementQuery.Data>) {
-            Log.i("Ad", "Add Query response = ${response.data()?.pimAdvertisement}")
+            Log.i("Ad", "Ad Query response:${response.data()}")
+            LoggerHelper.writeToLog("Ad Query response: ${response.data()}")
           val adUrl =  response.data()?.pimAdvertisement?.advertisement()
           val adType = response.data()?.pimAdvertisement?.adContentType()
           val adDuration = response.data()?.pimAdvertisement?.adDuration()
@@ -348,10 +348,8 @@ object PIMMutationHelper {
             }
             AdInfoHolder.setAddInformation(adDuration, adType, adUrl)
         }
-
         override fun onFailure(e: ApolloException) {
 
         }
-
     }
 }
