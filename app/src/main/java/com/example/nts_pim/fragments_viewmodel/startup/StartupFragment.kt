@@ -135,12 +135,18 @@ class StartupFragment: ScopedFragment(), KodeinAware {
 
         mAWSAppSyncClient?.query(GetPimSettingsQuery.builder().deviceId(deviceId).build())
             ?.responseFetcher(AppSyncResponseFetchers.NETWORK_ONLY)
-            ?.enqueue(awsLoggingQueryCallBack)
+            ?.enqueue(startUpPIMSettingsQueryCallBack)
     }
 
-    private var awsLoggingQueryCallBack = object: GraphQLCall.Callback<GetPimSettingsQuery.Data>() {
+    private var startUpPIMSettingsQueryCallBack = object: GraphQLCall.Callback<GetPimSettingsQuery.Data>() {
         override fun onResponse(response: Response<GetPimSettingsQuery.Data>) {
             Log.i("CheckingAWS", "${response.data()}")
+            LoggerHelper.writeToLog("GetPimSettingsQuery at start up: ${response.data()}")
+            if(response.data()?.pimSettings?.errorCode() == "1016"){
+                LoggerHelper.writeToLog("Error code 1016. Showing Toast with error message: {${response.data()!!.pimSettings.error()}")
+                Toast.makeText(this@StartupFragment.context, "${response.data()?.pimSettings!!.error()}", Toast.LENGTH_LONG).show()
+            }
+
             if (response.data() != null &&
                 !response.hasErrors()
             ) {
@@ -210,6 +216,7 @@ class StartupFragment: ScopedFragment(), KodeinAware {
             }
         }
         override fun onFailure(e: ApolloException) {
+            LoggerHelper.writeToLog("Failure for Get Pim Settings Query. Request did not reach AWS. Error: $e")
         }
     }
     private fun reauthorizeSquare() = launch(Dispatchers.Main.immediate){

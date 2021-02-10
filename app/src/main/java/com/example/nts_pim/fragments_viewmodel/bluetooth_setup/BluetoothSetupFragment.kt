@@ -234,8 +234,7 @@ class BluetoothSetupFragment: ScopedFragment(), KodeinAware {
 
     override fun onStop() {
         if(view != null){
-            callBackViewModel.getTripStatus().removeObservers(this.viewLifecycleOwner)
-            readerSettingsCallbackRef?.clear()
+          //  readerSettingsCallbackRef?.clear()
         }
         super.onStop()
     }

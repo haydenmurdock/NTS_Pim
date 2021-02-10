@@ -40,6 +40,7 @@ import com.apollographql.apollo.api.Response
 import com.apollographql.apollo.exception.ApolloException
 import com.example.nts_pim.receivers.BatteryPowerReceiver
 import com.example.nts_pim.BuildConfig
+import com.example.nts_pim.activity.MainActivity
 import com.example.nts_pim.data.repository.VehicleTripArrayHolder
 import com.example.nts_pim.data.repository.model_objects.*
 import com.example.nts_pim.data.repository.providers.ModelPreferences
@@ -156,6 +157,7 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
 
         callBackViewModel.isPimPaired().observe(this.viewLifecycleOwner, androidx.lifecycle.Observer { isPaired ->
             if(!isPaired) {
+                (activity as MainActivity).closeBluetoothThreads()
                 readerSettingsCallbackRef?.clear()
                 unPairPim(vehicleId, mAWSAppSyncClient!!)
             }

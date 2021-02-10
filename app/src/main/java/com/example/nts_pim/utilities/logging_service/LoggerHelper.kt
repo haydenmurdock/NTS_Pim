@@ -6,6 +6,7 @@ import android.content.SharedPreferences
 import androidx.preference.PreferenceManager
 import android.util.Log
 import androidx.core.content.ContextCompat
+import com.airbnb.lottie.L
 import com.example.nts_pim.PimApplication
 import com.example.nts_pim.data.repository.model_objects.VehicleID
 import com.example.nts_pim.data.repository.providers.ModelPreferences
@@ -41,7 +42,7 @@ object LoggerHelper {
     private const val logFragmentEndStamp = "-LOG FRAGMENT END-"
     private const val permissionGranted = 0
     private val pimContext = PimApplication.pimContext
-    private var logArray: ArrayList<String?>? = null
+    private var logArray: MutableList<String?>? = null
     private const val logLimit = 201
     private var logSaved = false
 
@@ -122,9 +123,20 @@ object LoggerHelper {
     }
 
     internal fun getOrStartInternalLogs(){
-        logArray = getArrayList() ?: arrayListOf()
-        saveArrayList(logArray!!)
+        logArray = getArrayList()
+       // val logWithSizeCheck = keepTheLogCountLow(logArray)
+        saveArrayList(logArray)
         Log.i("Logger", "Internal Log Started")
+    }
+    private fun keepTheLogCountLow(logArray: MutableList<String?>?): MutableList<String?>?{
+        val mutableList: MutableList<String?>?
+        val count = logArray?.count() ?: 0
+        if(count >  300){
+            mutableList = mutableListOf()
+            mutableList.add("reset logs due to amount of logs saved")
+            return mutableList
+        }
+        return logArray
     }
 
     private fun addLogToInternalLogs(log:String){
@@ -136,7 +148,7 @@ object LoggerHelper {
         }
     }
 
-    private fun removeAndAddLog(array: ArrayList<String?>?){
+    private fun removeAndAddLog(array: MutableList<String?>?){
         if(array == null){
             return
         }
@@ -152,7 +164,10 @@ object LoggerHelper {
         }
     }
 
-    private fun saveArrayList(list: ArrayList<String?>) {
+    private fun saveArrayList(list: MutableList<String?>?) {
+        if(list == null) {
+            return
+        }
         try {
             val prefs: SharedPreferences = PreferenceManager.getDefaultSharedPreferences(
                 PimApplication.pimContext)
@@ -176,10 +191,17 @@ object LoggerHelper {
     }
 
     internal fun addInternalLogsToAWS(vehicleId: String) {
-        for (log in logArray!!.iterator()) {
-            logToSendAWS += log
+        val logArray = logArray ?: mutableListOf<String>()
+       try {
+            logArray.forEach {log ->
+                logToSendAWS += log
+           }
+            logArray.clear()
+       } catch (e: ConcurrentModificationException){
+            Log.i("Error", "Concurrent modification exception when adding and sending logs: $e. ")
         }
-        logArray!!.clear()
+
+
         sendLogToAWS(vehicleId)
     }
 }

@@ -2,6 +2,7 @@ package com.example.nts_pim.utilities.sms_helper
 
 import android.util.Log
 import com.example.nts_pim.data.repository.TripDetails
+import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import okhttp3.*
 import java.util.concurrent.TimeUnit
 import org.json.JSONException
@@ -41,22 +42,25 @@ object SmsHelper {
             .build()
           try {
               client.newCall(request).execute().use { response ->
-                  Log.i("URL","response code : ${response.code} response message: ${response.message}")
+                  Log.i("Test_Receipt","response code : ${response.code} response message: ${response.message}")
+                  LoggerHelper.writeToLog("SMS receiptresponse code : ${response.code} response message: ${response.message}")
                   if (response.isSuccessful){
                       Log.i("Text_Receipt", "Send Text receipt successful. Step 3: Complete")
                       TripDetails.isReceiptSent = true
                       TripDetails.receiptCode = response.code
                       TripDetails.receiptMessage = response.message
                   } else {
-                      Log.i("Text Receipt", "Send Text receipt unsuccessful. Step 3: Fail")
+                      Log.i("Text_Receipt", "Send Text receipt unsuccessful. Step 3: Fail")
+                      LoggerHelper.writeToLog("Send Text receipt unsuccessful. ${response.message} ${response.code}")
                       TripDetails.isReceiptSent = false
                       TripDetails.receiptCode = response.code
                       TripDetails.receiptMessage = response.message
-                      Log.i("Text Receipt", "${response.message} ${response.code}")
+                      Log.i("Text_Receipt", "${response.message} ${response.code}")
                   }
               }
           } catch (e: Error){
               Log.i("Text Receipt", "Send Text receipt unsuccessful. Step 3: Fail. Error")
+              LoggerHelper.writeToLog("Send Text receipt unsuccessful. Client call error: $e")
               TripDetails.isReceiptSent = false
               TripDetails.receiptCode = e.hashCode()
               TripDetails.receiptMessage = e.localizedMessage ?: ""

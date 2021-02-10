@@ -6,6 +6,7 @@ import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.util.Log
 import com.example.nts_pim.activity.MainActivity
+import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import com.google.gson.Gson
 import com.google.gson.JsonObject
 import org.json.JSONObject
@@ -35,9 +36,8 @@ object BlueToothHelper {
 
     internal fun parseBlueToothData(byteArray: ByteArray): Boolean {
         val mutableList = arrayListOf<Byte>()
-        val gson = Gson()
         val endByte = 0x03
-         val JSON_COMMAND = "Command"
+        val JSON_COMMAND = "Command"
         val JSON_DATA = "Data"
         //will take a byte array - set it into a mutable array- remove start byte and remove byte or the substring in-between. turn that into a string and we should get message.
         for ((index,byte) in byteArray.withIndex()){
@@ -69,40 +69,42 @@ object BlueToothHelper {
             "ACK" -> {
             // stop sending previous message
                 Log.i("Bluetooth", "Command was an ACK from data parse")
+                LoggerHelper.writeToLog("Command received was an ACK")
                 return true
             }
             "NACK" -> {
                 // we will want to resend package
                 Log.i("Bluetooth", "Command was a NACK from data parse")
+                LoggerHelper.writeToLog("Command received was a NACK")
                 return false
             }
 
             "MDT_STATUS" -> {
                 if(data != null){
+                    sendACK("MDT_STATUS: Packet: $data")
+                    LoggerHelper.writeToLog("MDT_ Status being received. Status JsonObject: $data")
                    NTSPimPacket.MdtStatusObj(null,null,null,null,null,null,null,null).fromJson(data)
-                    sendACK()
                 }
-
-
             }
-
             "PIM_PAYMENT" -> {
-
+                LoggerHelper.writeToLog("PIM Received PIM_Payment packet. Something is wrong")
             }
 
             "PAYMENT_DECLINED" -> {
-
+                LoggerHelper.writeToLog("PIM Received Payment_declined packet. Something is wrong")
             }
 
 
             "PIM_STATUS"-> {
-
+                LoggerHelper.writeToLog("PIM Received PIM_Status packet. Something is wrong")
             }
 
             "STATUS_REQ" -> {
-                    val dataObject = NTSPimPacket.PimStatusObj()
-                    val statusObj =  NTSPimPacket(NTSPimPacket.Command.PIM_STATUS, dataObject)
-                    MainActivity.mainActivity.sendBluetoothPacket(statusObj)
+                sendACK("STATUS_REQ")
+                val dataObject = NTSPimPacket.PimStatusObj()
+                val statusObj =  NTSPimPacket(NTSPimPacket.Command.PIM_STATUS, dataObject)
+                LoggerHelper.writeToLog("status request being sent: ${statusObj.command}")
+                MainActivity.mainActivity.sendBluetoothPacket(statusObj)
             }
         }
         return false
@@ -114,6 +116,7 @@ object BlueToothHelper {
             val dataObject = NTSPimPacket.PimPaymentObj()
             val statusObj =  NTSPimPacket(NTSPimPacket.Command.PIM_PAYMENT, dataObject)
             Log.i("Bluetooth", "status request packet to be sent == $statusObj")
+            LoggerHelper.writeToLog("Sending Payment Info: ${dataObject}")
             (activity as MainActivity).sendBluetoothPacket(statusObj)
         }
     }
@@ -124,16 +127,20 @@ object BlueToothHelper {
             val dataObject = NTSPimPacket.PaymentDeclinedObj()
             val statusObj =  NTSPimPacket(NTSPimPacket.Command.PAYMENT_DECLINED, dataObject)
             Log.i("Bluetooth", "status request packet to be sent == $statusObj")
+            LoggerHelper.writeToLog("Sending Declined Card Info: $statusObj")
             (activity as MainActivity).sendBluetoothPacket(statusObj)
         }
     }
-    internal fun sendACK() {
+    private fun sendACK(command: String) {
         val data = NTSPimPacket(NTSPimPacket.Command.ACK, null)
-        MainActivity.mainActivity.sendBluetoothPacket(data)
-
+        MainActivity.mainActivity.sendACKPacket(data)
+        LoggerHelper.writeToLog("Sending ACK for $command")
+        Log.i("Bluetooth", "Sending ACK for $command")
     }
+
     internal fun sendNACK(){
         val data = NTSPimPacket(NTSPimPacket.Command.NACK, null)
         MainActivity.mainActivity.sendBluetoothPacket(data)
+        LoggerHelper.writeToLog("Sending ACK")
     }
 }

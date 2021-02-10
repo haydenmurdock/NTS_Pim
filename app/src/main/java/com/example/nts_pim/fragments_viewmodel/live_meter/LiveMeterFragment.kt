@@ -95,8 +95,8 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
             tripId = currentTrip!!.tripID
             if(!isBluetoothOn){
                 getMeterOwedQuery(tripId)
+                LoggerHelper.writeToLog("$logFragment: had to query Meter Owed for $tripId")
             }
-            LoggerHelper.writeToLog("$logFragment: had to query Meter Owed for $tripId")
         }
 
         checkCurrentTrip()
@@ -108,6 +108,7 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
         meterValue = callbackViewModel.getPimPayAmount().toString()
         meterState = callbackViewModel.getMeterState().value.toString()
         if(meterState == "off"){
+            LoggerHelper.writeToLog("$meterState was off so switching internal meter to ON")
             callbackViewModel.addMeterState("ON")
         }
 
@@ -130,7 +131,8 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
         callbackViewModel.getMeterState().observe(this.viewLifecycleOwner, Observer {AWSMeterState ->
             meterState = AWSMeterState
             if (meterState == MeterEnum.METER_TIME_OFF.state){
-                Log.i("Live Meter", "Aws Meter state is Time_Off")
+                Log.i("Live Meter", "Meter Screen: meter state observer changed: $meterState")
+                LoggerHelper.writeToLog("Meter Screen: meter state observer changed: $meterState")
                 if(audioManager!!.isMicrophoneMute && !timeOffSoundPlayed){
                     playTimeOffSound()
                 }
@@ -139,7 +141,7 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
         })
         callbackViewModel.getTripStatus().observe(this.viewLifecycleOwner, Observer {tripStatus ->
             //This is for account trips that have already been paid.
-            if(tripStatus == VehicleStatusEnum.Trip_Closed.status
+            if(tripStatus == VehicleStatusEnum.TRIP_CLOSED.status
                 || tripStatus == VehicleStatusEnum.TRIP_END.status){
                 Log.i("Live Meter", "Trip Status: $tripStatus, pushed to email/text screen")
                 toEmailText()

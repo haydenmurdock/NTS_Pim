@@ -33,6 +33,7 @@ import com.example.nts_pim.fragments_viewmodel.base.ClientFactory
 import com.example.nts_pim.fragments_viewmodel.base.ScopedFragment
 import com.example.nts_pim.fragments_viewmodel.callback.CallBackViewModel
 import com.example.nts_pim.fragments_viewmodel.vehicle_settings.setting_keyboard_viewModels.SettingsKeyboardViewModel
+import com.example.nts_pim.utilities.bluetooth_helper.BlueToothHelper
 import com.example.nts_pim.utilities.bluetooth_helper.BluetoothDataCenter
 import com.example.nts_pim.utilities.bluetooth_helper.NTSPimPacket
 import com.example.nts_pim.utilities.enums.MeterEnum
@@ -55,6 +56,7 @@ import org.kodein.di.android.x.closestKodein
 import org.kodein.di.generic.instance
 import java.time.LocalDateTime
 import java.util.*
+import java.util.logging.Logger
 import kotlin.concurrent.timerTask
 
 
@@ -94,7 +96,7 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
             }
         }
     }
-    private val dimScreenTimer = object : CountDownTimer(120000, 1000) {
+    private val dimScreenTimer = object : CountDownTimer(120000, 60000) {
         //after a status has changed to end we run a 2 min timer to dimScreen
         override fun onTick(millisUntilFinished: Long) {
         }
@@ -105,7 +107,7 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
             }
         }
     }
-    private val restartAppTimer = object: CountDownTimer(30000, 1000){
+    private val restartAppTimer = object: CountDownTimer(30000, 10000){
         override fun onTick(millisUntilFinished: Long) {
             val seconds = millisUntilFinished/1000
             showToastMessage("Restarting:  $seconds", 1000)
@@ -200,17 +202,15 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
         tripIsCurrentlyRunning(isOnActiveTrip)
         callBackViewModel.isPimPaired().observe(this.viewLifecycleOwner, androidx.lifecycle.Observer { isPaired ->
             if(!isPaired){
+
                 toVehicleSettingsDetail()
             }
         })
-        callBackViewModel.getTripStatus().observe(this.viewLifecycleOwner, androidx.lifecycle.Observer { vehicleStatus ->
-            if (vehicleStatus == VehicleStatusEnum.TRIP_PICKED_UP.status){
-                LoggerHelper.writeToLog("$logFragment received Trip_Pick_Up_Status. Leaving welcome screen")
-            }
-        })
+
         callBackViewModel.getMeterState().observe(this.viewLifecycleOwner, androidx.lifecycle.Observer { meterState ->
-            if(meterState == MeterEnum.METER_ON.state){
-                Log.i("$logFragment" , "Meter ON is picked up on welcome screen. Starting trip animation")
+            if(meterState == MeterEnum.METER_ON.state || meterState == MeterEnum.METER_TIME_OFF.state){
+                Log.i("$logFragment" , "Meter $meterState is picked up on welcome screen. Starting trip animation")
+               LoggerHelper.writeToLog( "Meter $meterState is picked up on welcome screen. Starting trip animation")
                 changeScreenBrightness(fullBrightness)
                 checkAnimation()
             }
@@ -218,18 +218,18 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
 
         PIMMutationHelper.updatePIMStatus(vehicleId, PIMStatusEnum.WELCOME_SCREEN.status, mAWSAppSyncClient!!)
         changeLoggingTimer()
-//        checkInternalReaderStatus()
+//       checkInternalReaderStatus()
         sendPimStatusBluetooth()
         SoundHelper.turnOnSound(PimApplication.pimContext)
         VehicleTripArrayHolder.squareHasBeenSetUp = true
 
     }
+
     private fun sendPimStatusBluetooth(){
         val isBluetoothOn = BluetoothDataCenter.isBluetoothOn().value ?: false
         if(isBluetoothOn){
             val dataObject = NTSPimPacket.PimStatusObj()
             val statusObj =  NTSPimPacket(NTSPimPacket.Command.PIM_STATUS, dataObject)
-            Log.i("Bluetooth", "status request packet to be sent == $statusObj")
             (activity as MainActivity).sendBluetoothPacket(statusObj)
         }
     }
@@ -413,12 +413,21 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
                 saveAppBuildVersion()
             }
             lastSavedAppVersion.version != currentBuildVersion -> {
-                Log.i("VERSION", "Build Version is different. Updating ${lastSavedAppVersion.version} to $currentBuildVersion")
-                lastSavedAppVersion.version = currentBuildVersion
-                ModelPreferences(requireContext().applicationContext).putObject(SharedPrefEnum.BUILD_VERSION.key, lastSavedAppVersion)
-                LoggerHelper.writeToLog("${logFragment}: Build Version is different. Updating ${lastSavedAppVersion.version} to $currentBuildVersion. Restarting Tablet")
-                // if we wanted to restart PIM this is where we would write that code.
-                restartAppTimer.start()
+                if(!VehicleTripArrayHolder.flaggedTestVehicles.contains(vehicleId)){
+                    Log.i("VERSION", "Build Version is different. Updating ${lastSavedAppVersion.version} to $currentBuildVersion")
+                    lastSavedAppVersion.version = currentBuildVersion
+                    ModelPreferences(requireContext().applicationContext).putObject(SharedPrefEnum.BUILD_VERSION.key, lastSavedAppVersion)
+                    LoggerHelper.writeToLog("${logFragment}: Build Version is different. Updating ${lastSavedAppVersion.version} to $currentBuildVersion. Restarting Tablet")
+                    // if we wanted to restart PIM this is where we would write that code.
+                    restartAppTimer.start()
+                } else {
+                    lastSavedAppVersion.version = currentBuildVersion
+                    ModelPreferences(requireContext().applicationContext).putObject(SharedPrefEnum.BUILD_VERSION.key, lastSavedAppVersion)
+                    Log.i("VERSION", "This is a test vehicle so restart for new app version ignored.")
+                    LoggerHelper.writeToLog("This is a test vehicle so restart for new app version ignored.")
+                    val toast = Toast.makeText(activity, "Test vehicle: $vehicleId, app version: $currentBuildVersion, restart ignored", Toast.LENGTH_LONG)
+                    toast.show()
+                }
             }
             else -> {
                 Log.i("VERSION", "Build Version is the same as last saved amount")
@@ -431,6 +440,7 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
         val appVersion = AppVersion(buildName)
         ModelPreferences(requireContext().applicationContext).putObject(SharedPrefEnum.BUILD_VERSION.key,appVersion)
         Log.i("VERSION", "Current app version is $buildName. It has been saved to Model Preferences")
+        LoggerHelper.writeToLog("Current app version is $buildName. It has been saved to Model Preferences")
     }
     // Navigation
     private fun toLiveMeterScreen() = launch(Dispatchers.Main.immediate) {
@@ -481,7 +491,6 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
     }
 
     override fun onResume() {
-        Log.i("PimApplication", "OnResume")
         super.onResume()
         ViewHelper.hideSystemUI(requireActivity())
         vehicleId = viewModel.getVehicleId()
@@ -494,9 +503,9 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
     override fun onDestroy() {
         super.onDestroy()
         if(this::callBackViewModel.isInitialized){
-            callBackViewModel.getTripStatus().removeObservers(this)
             callBackViewModel.hasNewTripStarted().removeObservers(this)
             callBackViewModel.isPimPaired().removeObservers(this)
+            callBackViewModel.getMeterState().removeObservers(this)
         }
         failedReaderTimer?.cancel()
         restartAppTimer.cancel()

@@ -1,7 +1,6 @@
 package com.example.nts_pim.fragments_viewmodel.tip_screens
 
 import android.os.Bundle
-import android.os.CountDownTimer
 import android.util.Log
 import android.view.*
 import android.widget.FrameLayout
@@ -310,6 +309,7 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
     }
     private fun sendPimStatusBluetooth(){
         val isBluetoothOn = BluetoothDataCenter.isBluetoothOn().value ?: false
+        VehicleTripArrayHolder.updateInternalPIMStatus(PIMStatusEnum.TIP_SCREEN.status)
         if(isBluetoothOn){
             val dataObject = NTSPimPacket.PimStatusObj()
             val statusObj =  NTSPimPacket(NTSPimPacket.Command.PIM_STATUS, dataObject)
@@ -484,6 +484,7 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
         //Function for square
         LoggerHelper.writeToLog("$logFragment,  $checkOutAmount send to start square checkout")
         PIMMutationHelper.updatePIMStatus(vehicleId, PIMStatusEnum.STARTED_SQUARE_PAYMENT.status, mAWSAppSyncClient!!)
+        VehicleTripArrayHolder.updateInternalPIMStatus(PIMStatusEnum.STARTED_SQUARE_PAYMENT.status)
         sendPimStatusBluetooth()
         callbackViewModel.setAmountForSquareDisplay(checkOutAmount)
         val p = checkOutAmount * 100.00
@@ -593,8 +594,8 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
         if (result.isSuccess) {
             LoggerHelper.writeToLog("$logFragment,  Square payment result: Success")
             val checkoutResult = result.successValue
+
             showCheckoutResult(checkoutResult)
-            BlueToothHelper.sendPaymentInfo(requireActivity())
             ViewHelper.hideSystemUI(requireActivity())
         } else {
             ViewHelper.hideSystemUI(requireActivity())
@@ -628,7 +629,8 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
                     "Usage ERROR: ${error.message}, ErrorDebug Message: ${error.debugMessage}",
                     Toast.LENGTH_SHORT
                 ).show()
-                PIMMutationHelper.updatePIMStatus(vehicleId, PIMStatusEnum.USAGE_ERROR.status,mAWSAppSyncClient!!)
+                LoggerHelper.writeToLog("Usage_Error: ${error.message} ${error.debugMessage}")
+                PIMMutationHelper.updatePIMStatus(vehicleId, PIMStatusEnum.USAGE_ERROR.status, mAWSAppSyncClient!!)
                 sendPimStatusBluetooth()
                 updateInternalInfoDeclinedPayment("${error.message}, ${PIMStatusEnum.USAGE_ERROR.status}")
                 LoggerHelper.writeToLog("$logFragment,  Usage Error from square sdk")
@@ -656,7 +658,9 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
             cardInfo = cardName + " " + i.cardDetails.card.lastFourDigits
             tripTotalBackFromSquare = i.totalMoney.amount.toDouble()
         }
+        callbackViewModel.setPimPaidAmount(amountForSquare)
         VehicleTripArrayHolder.setCardInfoPlusDate(cardInfo, updatedTransactionDate)
+        BlueToothHelper.sendPaymentInfo(requireActivity())
         LoggerHelper.writeToLog("$logFragment,  transaction id: $transactionId, cardInfo: $cardInfo, trip total back from Square, $tripTotalBackFromSquare")
 
         if(cardInfo != "" ) {
@@ -798,9 +802,7 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
             }
         })
     }
-    override fun onResume() {
-        super.onResume()
-    }
+
     override fun onDestroy() {
         super.onDestroy()
         LoggerHelper.writeToLog("On destroy was hit for tip screen")

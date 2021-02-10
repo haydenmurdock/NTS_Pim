@@ -6,7 +6,9 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import com.example.nts_pim.data.repository.model_objects.CurrentTrip
 import com.example.nts_pim.data.repository.providers.ModelPreferences
+import com.example.nts_pim.utilities.enums.MeterEnum
 import com.example.nts_pim.utilities.enums.SharedPrefEnum
+import com.example.nts_pim.utilities.enums.VehicleStatusEnum
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import com.example.nts_pim.utilities.mutation_helper.PIMMutationHelper
 
@@ -101,6 +103,8 @@ object VehicleTripArrayHolder {
 
     private val logFragment = "Vehicle_Trip_Array_Holder"
 
+    var flaggedTestVehicles: MutableList<String> = mutableListOf("ccsi_U_1496", "ccsi_Y_6801")
+
 // Adds the status from the main activity app sync subscription. It goes to a live data array to be watched for changes. There is only 1 status in the array at all times.
 //E.g. "Trip_On_Site", "Trip_Assigned", "Trip_Picked_UP"
 
@@ -112,15 +116,29 @@ object VehicleTripArrayHolder {
         numberOfReaderChecks = 0
     }
 
-   fun addStatus(appsyncTripStatus: String){
-        if(appsyncTripStatus != tripStatus){
-            tripStatus = appsyncTripStatus
-            tripStatusMutableLiveData.postValue(tripStatus)
-            LoggerHelper.writeToLog("Internal pim status was changed. Trip Status: $tripStatus")
+
+   fun addStatus(status: String){
+        if(status != this.tripStatus){
+            val checkForBTValue = checkForBluetoothStatus(status)
+            this.tripStatus = checkForBTValue
+            tripStatusMutableLiveData.postValue(this.tripStatus)
+            LoggerHelper.writeToLog("Internal pim status was changed. Trip Status: ${this.tripStatus}")
         }
    }
 // Returns the trip status as Live Data
     fun getTripStatus() = tripStatusMutableLiveData
+
+    private fun checkForBluetoothStatus(status: String): String {
+       if(status == VehicleStatusEnum.TRIP_CLOSED_BLUETOOTH.status){
+            Log.i("Bluetooth", "Vehicle status: ${VehicleStatusEnum.TRIP_CLOSED_BLUETOOTH.status}. Changing to status: ${VehicleStatusEnum.TRIP_CLOSED.status}")
+           return VehicleStatusEnum.TRIP_CLOSED.status
+       }
+        if(status == VehicleStatusEnum.TRIP_END_BLUETOOTH.status){
+            Log.i("Bluetooth", "Vehicle status: ${VehicleStatusEnum.TRIP_END_BLUETOOTH.status}. Changing to status: ${VehicleStatusEnum.TRIP_END.status}")
+            return VehicleStatusEnum.TRIP_END.status
+        }
+        return status
+    }
 
 //Adds the meter state from the main activity app sync subscription. It goes to live data array to be watched for changes. There is only 1 status in the array at all times.
 //E.g. "ON", "OFF"
@@ -309,10 +327,17 @@ object VehicleTripArrayHolder {
     fun getTipAmount() = tripTipAmount
 
     fun setPimPayment(awsPimPayAmount: Double){
+        val meterState = getMeterState().value
         pimPayAmount = awsPimPayAmount
         pimPayAmountMutableLiveDate.postValue(pimPayAmount)
-        Log.i("pim pay amount", "pim pay amount has changed to $pimPayAmount")
-    }
+        Log.i("Results", "pim pay amount has changed to $pimPayAmount")
+        LoggerHelper.writeToLog("pim pay amount has changed to $pimPayAmount internally. Meter State is $meterState")
+        }
+//    else {
+//            Log.i("Results", "Pim pay amount was not updated internally. meterState == $meterState")
+//            LoggerHelper.writeToLog("Pim pay amount was not updated internally. meterState == $meterState")
+//        }
+
 
     fun getPimPayAmount() = pimPayAmount
 

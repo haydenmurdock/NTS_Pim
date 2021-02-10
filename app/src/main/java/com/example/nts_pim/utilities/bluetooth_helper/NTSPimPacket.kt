@@ -3,6 +3,7 @@ package com.example.nts_pim.utilities.bluetooth_helper
 import android.util.Log
 import com.example.nts_pim.PimApplication
 import com.example.nts_pim.data.repository.VehicleTripArrayHolder
+import com.example.nts_pim.receivers.BatteryPowerReceiver
 import org.json.JSONObject
 
 // Right now, all of the commands are 2 characters long.  If this changes, change this constant.
@@ -332,25 +333,21 @@ class NTSPimPacket {
             pimPayAmt = mPimPayAmt
         }
         override fun fromJson(obj: JSONObject) {
-            driverId = obj.optInt(JSON_DRIVER_ID)
-            if(driverId != null){
-                VehicleTripArrayHolder.setDriverId(driverId!!)
+            tripId = obj.optString(JSON_TRIP_ID)
+            if(tripId != null){
+                VehicleTripArrayHolder.addTripId(tripId!!, PimApplication.pimContext)
+            }
+            pimPayAmt = obj.optDouble(JSON_PIM_PAY_AMT)
+            if(pimPayAmt != null){
+                VehicleTripArrayHolder.setPimPayment(pimPayAmt!!)
             }
             tripNbr = obj.optInt(JSON_TRIP_NBR)
             if(tripNbr != null){
                 VehicleTripArrayHolder.addTripNumber(tripNbr!!)
             }
-            meterState = obj.optString(JSON_METER_STATE)
-            if(meterState != null){
-                VehicleTripArrayHolder.addMeterState(meterState!!)
-            }
             pimNoReceipt = obj.optString(JSON_PIM_NO_RECEIPT)
             if(pimNoReceipt != null && pimNoReceipt == "Y"){
                 VehicleTripArrayHolder.pimDoesNotNeedToDoReceipt(true)
-            }
-            tripId = obj.optString(JSON_TRIP_ID)
-            if(tripId != null){
-                VehicleTripArrayHolder.addTripId(tripId!!, PimApplication.pimContext)
             }
             tripStatus = obj.optString(JSON_TRIP_STATUS)
             if(tripStatus != null){
@@ -360,9 +357,13 @@ class NTSPimPacket {
             if(owedPrice != null){
 
             }
-            pimPayAmt = obj.optDouble(JSON_PIM_PAY_AMT)
-            if(pimPayAmt != null){
-                VehicleTripArrayHolder.setPimPayment(pimPayAmt!!)
+            driverId = obj.optInt(JSON_DRIVER_ID)
+            if(driverId != null){
+                VehicleTripArrayHolder.setDriverId(driverId!!)
+            }
+            meterState = obj.optString(JSON_METER_STATE)
+            if(meterState != null){
+                VehicleTripArrayHolder.addMeterState(meterState!!)
             }
         }
 
@@ -407,7 +408,7 @@ class NTSPimPacket {
         var pimPaidAmt: Double? = null
         var tipAmt: Double? = null
         var cardInfo: String? = null
-        var payType: String? = null
+       private var payType: String? = null
         var transDate: String? = null
         var transId: String? = null
         var tripId: String? = null
@@ -491,21 +492,28 @@ class NTSPimPacket {
     class PimStatusObj : PimDataObj {
         var pimStatus: String? = null
         var tripId: String? = null
+        var pimOverHeat: Boolean? = null
+
         override fun fromJson(obj: JSONObject) {
             pimStatus = obj.optString(JSON_PIM_STATUS)
             tripId = obj.optString(JSON_TRIP_ID)
+            pimOverHeat = obj.optBoolean(JSON_OVER_HEAT)
         }
 
         override fun toJson(): JSONObject {
             val obj = JSONObject()
             pimStatus = VehicleTripArrayHolder.getInternalPIMStatus()
             tripId = VehicleTripArrayHolder.getTripId()
+            pimOverHeat = BatteryPowerReceiver.overHeating
             try {
                 if (pimStatus != null){
                     obj.put(JSON_PIM_STATUS, pimStatus)
                 }
                 if(tripId != null && tripId != ""){
                     obj.put(JSON_TRIP_ID, tripId)
+                }
+                if(pimOverHeat != null){
+                    obj.put(JSON_OVER_HEAT, pimOverHeat!!)
                 }
             } catch (ignore: Exception) {
             }
@@ -515,6 +523,7 @@ class NTSPimPacket {
         companion object {
             private const val JSON_PIM_STATUS = "pimStatus"
             private const val JSON_TRIP_ID = "tripId"
+            private const val JSON_OVER_HEAT = "pimOverheat"
         }
 
     } // end of class PimStatusObj

@@ -1,16 +1,18 @@
 package com.example.nts_pim.utilities.bluetooth_helper
 
-import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothSocket
 import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
+import com.example.nts_pim.utilities.logging_service.LoggerHelper
 
 /**
- * Note_
- * The logic is to see if it is connected to bluetooth in aws during start up. Connect socket during bluetooth pairing if needed. Use connected to Driver tablet value to send/receive and make threads.
+ * The logic is to see if it is connected to bluetooth in aws during start up.
+ * Connect socket during bluetooth pairing if needed.
+ * Uses driver tablet bt socket to make Read/write threads.
  */
 object BluetoothDataCenter {
+    private const val logTag = "Bluetooth_Data_Center"
     internal var useBluetooth:Boolean = false
     private var useBlueToothMLD = MutableLiveData<Boolean>()
     private var blueToothSocketAccepted:Boolean = false
@@ -23,7 +25,9 @@ object BluetoothDataCenter {
     private var responseMessageMutableLiveData =  MutableLiveData<String>()
     private var blueToothSocket: BluetoothSocket? = null
     private var btDriverTabletAddress: String? = null
-    private val logtag = "Bluetooth_Data_Center"
+    private var startupBTPairSuccess = false
+    private var connectThreadInit = false
+    private var numberOfBTAttempts = 0
 
     init {
         responseMessage = ""
@@ -33,17 +37,33 @@ object BluetoothDataCenter {
     }
 
 
-    internal fun updateResponseMessage(message: String){
-        if(message != responseMessage) {
-            responseMessage = message
-            responseMessageMutableLiveData.postValue(responseMessage)
-        }
+
+    internal fun thereWasUnsuccessfulBTConnection(){
+        numberOfBTAttempts += 1
+        Log.i("Bluetooth", "Added to total BT attempts. Total attempts: $numberOfBTAttempts")
+    }
+    internal fun resetBluetoothPairedObserver(){
+        startupBTPairSuccess = false
     }
 
+    internal fun clearNumberOfAttempts(){
+        numberOfBTAttempts = 0
+        Log.i("Bluetooth", "Total BT attempts cleared. Total attempts: $numberOfBTAttempts")
+    }
+
+    internal fun howManyBTAttempts():Int {
+        return numberOfBTAttempts
+    }
+    internal fun startUpBTPairSuccessful(){
+        startupBTPairSuccess = true
+    }
+    internal fun wasBluetoothPaired(): Boolean{
+        return startupBTPairSuccess
+    }
     internal fun updateDriverTabletBTDevice(device: String){
             if(device != btDriverTabletAddress){
                 btDriverTabletAddress = device
-                Log.i("$logtag", "Data Center has been updated with driver tablet for connection.")
+                Log.i("$logTag", "Data Center has been updated with driver tablet for connection.")
                 blueToothDeviceFound()
             }
     }
@@ -66,21 +86,20 @@ object BluetoothDataCenter {
     internal fun turnOnBlueTooth() {
         useBluetooth = true
         useBlueToothMLD.postValue(useBluetooth)
-        Log.i("$logtag", "bluetooth pairing is turning on internally")
+        Log.i("$logTag", "bluetooth pairing is turning on internally")
     }
     internal fun turnOffBlueTooth(){
         useBluetooth = false
         useBlueToothMLD.postValue(useBluetooth)
-        Log.i("$logtag", "bluetooth pairing is turning off internally")
+        Log.i("$logTag", "bluetooth pairing is turning off internally")
     }
 
     internal fun isBluetoothOn():LiveData<Boolean> = useBlueToothMLD
 
     internal fun blueToothSocketIsConnected(socket: BluetoothSocket){
-        if(blueToothSocket == null){
-            blueToothSocket = socket
-            Log.i(logtag, "blueTooth socket set on Bluetooth Data center")
-        }
+        blueToothSocket = socket
+        Log.i("Bluetooth", "bluetooth socket set on Bluetooth Data center")
+        LoggerHelper.writeToLog("bluetooth socket set on Bluetooth Data center")
         blueToothSocketAccepted = true
         bluetoothSocketAcceptedMLD.postValue(blueToothSocketAccepted)
 

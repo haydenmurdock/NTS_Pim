@@ -31,7 +31,8 @@ class SafetyWarningFragment : Fragment() {
         override fun onFinish() {
             if(view != null){
                 LoggerHelper.writeToLog("$logFragment: Did not play safety message")
-                toMeterScreen()
+                Log.i("$logFragment", "Did not play or finish safety message")
+                checkScreenDestination()
             }
         }
     }
@@ -43,7 +44,7 @@ class SafetyWarningFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-
+        playSafetyMessage()
         //checks for animation and Navigates to the next view
          checkAnimation()
     }
@@ -81,7 +82,6 @@ class SafetyWarningFragment : Fragment() {
     private fun checkAnimation() {
         val animationIsOn = resources.getBoolean(R.bool.animationIsOn)
         if (animationIsOn) {
-            playSafetyMessage()
             if (buckle_up_text_view != null){
                 buckle_up_text_view.animate().alpha(1f).setDuration(2500).withEndAction(Runnable {
                     if (buckle_up_text_view != null){
@@ -101,22 +101,24 @@ class SafetyWarningFragment : Fragment() {
                 checkScreenDestination()
             }
             LoggerHelper.writeToLog("$logFragment: Finished Safety Message")
+            Log.i("$logFragment", "Finished Safety message")
             mP.release()
         }
         mediaPlayer.start()
         LoggerHelper.writeToLog("$logFragment: Started Safety Message")
+        Log.i("$logFragment", "Started Safety message")
     }
 
     override fun onResume() {
         super.onResume()
         safetyScreenWarningTimer.cancel()
-        Log.i("Safety Screen", "Safety Screen Timer Started")
+        Log.i("$logFragment", "Safety Screen Timer Started")
         safetyScreenWarningTimer.start()
     }
 
     override fun onPause() {
         super.onPause()
-        Log.i("Safety Screen", "Safety Screen Timer Canceled")
-        safetyScreenWarningTimer.cancel()
+        Log.i("$logFragment", "Safety Screen Timer Canceled")
+      //  safetyScreenWarningTimer.cancel()
      }
 }

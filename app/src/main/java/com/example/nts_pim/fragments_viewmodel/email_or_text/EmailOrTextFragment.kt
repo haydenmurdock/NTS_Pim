@@ -170,7 +170,7 @@ class EmailOrTextFragment : ScopedFragment(), KodeinAware {
         pimStatusUpdate()
         callBackViewModel.getTripStatus().observe(this.viewLifecycleOwner, Observer {tripStatus ->
             if(tripStatus == VehicleStatusEnum.TRIP_END.status ||
-                tripStatus == VehicleStatusEnum.Trip_Closed.status){
+                tripStatus == VehicleStatusEnum.TRIP_CLOSED.status){
                 inactiveScreenTimer
                 tripHasEnded = true
             }

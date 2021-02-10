@@ -91,6 +91,7 @@ class BlueToothPairingFragment : ScopedFragment(), KodeinAware {
                 val statusObj =  NTSPimPacket(NTSPimPacket.Command.PIM_STATUS, dataObject)
                 Log.i("Bluetooth", "status request packet to be sent == $statusObj")
                 (activity as MainActivity).sendBluetoothPacket(statusObj)
+                BluetoothDataCenter.startUpBTPairSuccessful()
                 toWelcomeScreen()
             }
         })

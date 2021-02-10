@@ -395,19 +395,13 @@ class ReceiptInformationTextFragment: ScopedFragment(), KodeinAware {
                 }
             }
         }))
-        listView.onItemClickListener = object : OnItemClickListener {
-
-            override fun onItemClick(
-                parent: AdapterView<*>, view: View,
-                position: Int, id: Long
-            ) {
-                // value of item that is clicked
+        listView.onItemClickListener =
+            OnItemClickListener { parent, view, position, id -> // value of item that is clicked
                 val itemValue = listView.getItemAtPosition(position) as Country
                 val countryCode = itemValue.callingCodes.first().trim()
                 country_code_editText.setText(countryCode)
                 listView.visibility = View.GONE
             }
-        }
 
         //on clickListeners phoneKeyboard
         text_receipt_screen_one_btn.setOnClickListener {

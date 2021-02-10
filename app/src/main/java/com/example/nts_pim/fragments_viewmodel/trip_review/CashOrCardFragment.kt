@@ -1,8 +1,6 @@
 package com.example.nts_pim.fragments_viewmodel.trip_review
 
 
-import android.content.Context
-import android.media.AudioManager
 import android.os.Bundle
 import android.os.CountDownTimer
 import android.speech.tts.TextToSpeech
@@ -30,7 +28,6 @@ import com.example.nts_pim.utilities.bluetooth_helper.NTSPimPacket
 import com.example.nts_pim.utilities.enums.*
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import com.example.nts_pim.utilities.view_helper.ViewHelper
-import kotlinx.android.synthetic.main.please_wait.*
 import kotlinx.android.synthetic.main.trip_review_screen.*
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.Dispatchers
@@ -104,7 +101,9 @@ class CashOrCardFragment : ScopedFragment(), KodeinAware {
                 } else {
                     Log.i("TTS", "Language Supported.")
                     val formattedNumber = decimalFormatter.format(pimPayAmount!!)
-                    playTripTotalAmount(formattedNumber)
+                    if(formattedNumber != "0.0"){
+                        playTripTotalAmount(formattedNumber)
+                    }
                 }
                 Log.i("TTS", "Initialization success.")
             }
@@ -187,12 +186,7 @@ class CashOrCardFragment : ScopedFragment(), KodeinAware {
                 }
             })
 
-        callbackViewModel.getMeterState().observe(this.viewLifecycleOwner, Observer { meterState ->
-            if (meterState == MeterEnum.METER_ON.state) {
-                LoggerHelper.writeToLog("$logFragment: Meter State Change: $meterState. Going Back to Live Meter")
-                backToLiveMeter()
-            }
-        })
+
         callbackViewModel.getPimPaySubscriptionAmount().observe(this.viewLifecycleOwner, Observer {
             if(pimPayAmount != it){
                 pimPayAmount = it
@@ -201,17 +195,24 @@ class CashOrCardFragment : ScopedFragment(), KodeinAware {
                     if(textToSpeech!!.isSpeaking){
                         textToSpeech!!.stop()
                         val formattedNumber = decimalFormatter.format(pimPayAmount!!)
-                        playTripTotalAmount(formattedNumber)
+                        if(formattedNumber != "0.00"){
+                            playTripTotalAmount(formattedNumber)
+                        }
                         Log.i("Trip Review", "TTS was stopped and started again with new pim pay amount")
                     } else {
                         val formattedNumber = decimalFormatter.format(pimPayAmount!!)
-                        playTripTotalAmount(formattedNumber)
+                        if(formattedNumber != "0.00"){
+                            playTripTotalAmount(formattedNumber)
+                        }
                         Log.i("Trip Review", "TTS was started with new pim pay amount")
                     }
                 }
             }
         })
         sendPimStatusBluetooth()
+        callbackViewModel.getTripStatus().observe(this.viewLifecycleOwner, Observer {tripStatus ->
+
+        })
     }
     private fun sendPimStatusBluetooth(){
         VehicleTripArrayHolder.updateInternalPIMStatus(PIMStatusEnum.PAYMENT_SCREEN.status)
@@ -226,6 +227,9 @@ class CashOrCardFragment : ScopedFragment(), KodeinAware {
 
     private fun updateTripInfo() {
             if(pimPayAmount == null){
+                return
+            }
+            if (pimPayAmount == 0.0) {
                 return
             }
             if (pimPayAmount!! < 10) {
@@ -279,8 +283,9 @@ class CashOrCardFragment : ScopedFragment(), KodeinAware {
         )
     }
     private fun playTripTotalAmount(messageToSpeak: String) {
-        if (messageToSpeak != "0.0"){
-            Log.i("TTS", "play Trip Total amount")
+        if (messageToSpeak != "0.0" &&
+            messageToSpeak != "00.00"){
+            Log.i("TTS", "play Trip Total amount. $messageToSpeak")
             textToSpeech?.setSpeechRate(0.8.toFloat())
             textToSpeech!!.speak(
                 "Amount Owed $$messageToSpeak",
@@ -378,7 +383,7 @@ class CashOrCardFragment : ScopedFragment(), KodeinAware {
         }
     }
     private fun startInactivityTimer() {
-        inactiveScreenTimer = object : CountDownTimer(60000, 1000) {
+        inactiveScreenTimer = object : CountDownTimer(120000, 1000) {
             //1 min inactivity timer
             override fun onTick(millisUntilFinished: Long) {
 
@@ -406,10 +411,13 @@ class CashOrCardFragment : ScopedFragment(), KodeinAware {
 
     override fun onResume() {
         super.onResume()
-        callbackViewModel.getTripStatus().observe(this, Observer { tripStatus ->
-            if (tripStatus == VehicleStatusEnum.TRIP_END.status ||
-                tripStatus == VehicleStatusEnum.Trip_Closed.status
-            ) {
+        callbackViewModel.getMeterState().observe(this.viewLifecycleOwner, Observer { meterState ->
+            if (meterState == MeterEnum.METER_ON.state) {
+                LoggerHelper.writeToLog("$logFragment: Meter State Change: $meterState. Going Back to Live Meter")
+                backToLiveMeter()
+            }
+            if (meterState == MeterEnum.METER_OFF.state){
+                LoggerHelper.writeToLog("$logFragment: Meter State Change: $meterState. Starting inactivity timer")
                 startInactivityTimer()
             }
         })
