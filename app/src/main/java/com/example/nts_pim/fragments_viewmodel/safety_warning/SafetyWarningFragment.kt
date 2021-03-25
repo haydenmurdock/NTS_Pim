@@ -12,6 +12,7 @@ import androidx.fragment.app.Fragment
 import androidx.navigation.Navigation
 import com.example.nts_pim.R
 import com.example.nts_pim.data.repository.AdInfoHolder
+import com.example.nts_pim.utilities.enums.LogEnums
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import kotlinx.android.synthetic.main.safety_warning_screen.*
 import java.util.*
@@ -24,14 +25,13 @@ class SafetyWarningFragment : Fragment() {
     var showAdd = AdInfoHolder.isThereAnAdd
 
 
-    private val safetyScreenWarningTimer = object: CountDownTimer(7000, 1000){
+    private val safetyScreenWarningTimer = object: CountDownTimer(10000, 1000){
         override fun onTick(millisUntilFinished: Long) {
         }
 
         override fun onFinish() {
             if(view != null){
-                LoggerHelper.writeToLog("$logFragment: Did not play safety message")
-                Log.i("$logFragment", "Did not play or finish safety message")
+                LoggerHelper.writeToLog("$logFragment: Did not play safety message", LogEnums.TEXT_READER.tag)
                 checkScreenDestination()
             }
         }
@@ -50,12 +50,6 @@ class SafetyWarningFragment : Fragment() {
     }
 
 
-    private fun toNextScreen(){
-        LoggerHelper.writeToLog("$logFragment: Going to Live Meter Screen")
-        Timer().schedule(timerTask {
-            checkScreenDestination()
-        }, 5000)
-    }
 
     private fun checkScreenDestination(){
         if(showAdd){
@@ -97,28 +91,19 @@ class SafetyWarningFragment : Fragment() {
     private fun playSafetyMessage(){
         val mediaPlayer = MediaPlayer.create(context, R.raw.saftey_message_test)
         mediaPlayer.setOnCompletionListener { mP ->
+            LoggerHelper.writeToLog("$logFragment: Finished Safety Message", LogEnums.TEXT_READER.tag)
+            mP.release()
             if(view != null){
                 checkScreenDestination()
             }
-            LoggerHelper.writeToLog("$logFragment: Finished Safety Message")
-            Log.i("$logFragment", "Finished Safety message")
-            mP.release()
         }
         mediaPlayer.start()
-        LoggerHelper.writeToLog("$logFragment: Started Safety Message")
-        Log.i("$logFragment", "Started Safety message")
+        LoggerHelper.writeToLog("$logFragment: Started Safety Message", LogEnums.TEXT_READER.tag)
     }
 
     override fun onResume() {
         super.onResume()
         safetyScreenWarningTimer.cancel()
-        Log.i("$logFragment", "Safety Screen Timer Started")
         safetyScreenWarningTimer.start()
     }
-
-    override fun onPause() {
-        super.onPause()
-        Log.i("$logFragment", "Safety Screen Timer Canceled")
-      //  safetyScreenWarningTimer.cancel()
-     }
 }

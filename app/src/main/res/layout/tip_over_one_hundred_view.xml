@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:app="http://schemas.android.com/apk/res-auto"
+        xmlns:tools="http://schemas.android.com/tools"
+        android:id="@+id/over_oneHunderedContraintLayout"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+    <View
+            android:id="@+id/over_oneHundered_View"
+            android:layout_width="439dp"
+            android:layout_height="322dp"
+            android:background="@drawable/email_or_text_button"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintVertical_bias="0.498" />
+
+    <TextView
+            android:id="@+id/textView10"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="28dp"
+            android:fontFamily="@font/source_sans_pro"
+            android:text="Your tip amount"
+            android:textColor="@color/whiteTextColor"
+            android:textSize="30sp"
+            app:layout_constraintBottom_toTopOf="@+id/over_oneHundred_textView"
+            app:layout_constraintEnd_toEndOf="@+id/over_oneHundred_textView"
+            app:layout_constraintHorizontal_bias="0.254"
+            app:layout_constraintStart_toStartOf="@+id/over_oneHundered_View" />
+
+    <TextView
+            android:id="@+id/over_oneHundred_textView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="@font/source_sans_pro"
+            android:text="$150"
+            android:textColor="@color/whiteTextColor"
+            android:textSize="78sp"
+            app:layout_constraintBottom_toBottomOf="@+id/over_oneHundered_View"
+            app:layout_constraintEnd_toEndOf="@+id/over_oneHundered_View"
+            app:layout_constraintStart_toStartOf="@+id/over_oneHundered_View"
+            app:layout_constraintTop_toTopOf="@+id/over_oneHundered_View" />
+
+    <Button
+            android:id="@+id/over_oneHundred_goBack_btn"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:background="@null"
+            android:text="Go Back"
+            android:textColor="@color/whiteTextColor"
+            android:textSize="18sp"
+            app:layout_constraintEnd_toEndOf="@+id/over_oneHundered_View"
+            app:layout_constraintHorizontal_bias="0.0"
+            app:layout_constraintStart_toStartOf="@+id/over_oneHundred_textView"
+            app:layout_constraintTop_toBottomOf="@+id/over_oneHundred_textView" />
+
+    <Button
+            android:id="@+id/over_OneHundered_confirm_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="76dp"
+            android:background="@null"
+            android:text="CONFIRM"
+            android:textColor="@color/whiteTextColor"
+            android:textSize="18sp"
+            app:layout_constraintStart_toEndOf="@+id/over_oneHundred_goBack_btn"
+            app:layout_constraintTop_toTopOf="@+id/over_oneHundred_goBack_btn" />
+</androidx.constraintlayout.widget.ConstraintLayout>

@@ -2,6 +2,7 @@ package com.example.nts_pim.utilities.mutation_helper
 
 import android.annotation.SuppressLint
 import android.util.Log
+import android.widget.Toast
 import com.amazonaws.amplify.generated.graphql.*
 import com.amazonaws.mobileconnectors.appsync.AWSAppSyncClient
 import com.amazonaws.mobileconnectors.appsync.fetcher.AppSyncResponseFetchers
@@ -12,12 +13,15 @@ import com.example.nts_pim.PimApplication
 import com.example.nts_pim.data.repository.AdInfoHolder
 import com.example.nts_pim.data.repository.VehicleTripArrayHolder
 import com.example.nts_pim.data.repository.model_objects.DeviceID
+import com.example.nts_pim.data.repository.model_objects.PimError
 import com.example.nts_pim.data.repository.providers.ModelPreferences
 import com.example.nts_pim.fragments_viewmodel.base.ClientFactory
 import com.example.nts_pim.utilities.device_id_check.DeviceIdCheck
+import com.example.nts_pim.utilities.enums.LogEnums
 import com.example.nts_pim.utilities.enums.SharedPrefEnum
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import type.*
+import java.lang.StringBuilder
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -25,6 +29,8 @@ object PIMMutationHelper {
 
     private var mAppSyncClient: AWSAppSyncClient? = null
     private var overHeatedTimeStamp: String? = null
+    var stopPimSetup = false
+    var pimError: PimError? = null
 
     init {
         mAppSyncClient = ClientFactory.getInstance(PimApplication.pimContext)
@@ -46,7 +52,7 @@ object PIMMutationHelper {
         )
         // We are setting the internal PIM Status
         VehicleTripArrayHolder.updateInternalPIMStatus(pimStatusUpdate)
-        LoggerHelper.writeToLog("Pim Mutation Helper: sent pim status: $pimStatusUpdate to aws")
+        LoggerHelper.writeToLog("Pim Mutation Helper: sent pim status: $pimStatusUpdate to aws", LogEnums.TRIP_STATUS.tag)
     }
 
     private val mutationCallbackOnPIMStatusUpdate =
@@ -106,7 +112,7 @@ object PIMMutationHelper {
         ).enqueue(
             mutationCallbackPaymentType
         )
-        LoggerHelper.writeToLog("Pim Mutation Helper: updated payment status: payment type: $paymentType for trip id: $tripId to aws")
+        LoggerHelper.writeToLog("Pim Mutation Helper: updated payment status: payment type: $paymentType for trip id: $tripId to aws", LogEnums.BLUETOOTH.tag)
 
     }
 
@@ -136,7 +142,7 @@ object PIMMutationHelper {
         ).enqueue(
             mutationCallbackOnTripStatus
         )
-        LoggerHelper.writeToLog("Pim Mutation Helper: updated trip status: tripStatus: $tripUpdate for trip id: $tripId to aws")
+        LoggerHelper.writeToLog("Pim Mutation Helper: updated trip status: tripStatus: $tripUpdate for trip id: $tripId to aws", LogEnums.BLUETOOTH.tag)
     }
 
     private val mutationCallbackOnTripStatus =
@@ -159,11 +165,7 @@ object PIMMutationHelper {
         paymentMethod: String,
         tripId: String
     ) {
-        Log.i(
-            "Payment AWS",
-            "Trying to send the following to Payment AWS. TransactionId: $transactionId, tripNumber: $tripNumber, vehicleId: $vehicleId, paymentMethod: $paymentMethod, tripID: $tripId"
-        )
-        LoggerHelper.writeToLog("Pim Mutation Helper: updatePaymentDetails: TransactionId: $transactionId, tripNumber: $tripNumber, vehicleId: $vehicleId, paymentMethod: $paymentMethod, tripID: $tripId")
+        LoggerHelper.writeToLog("Pim Mutation Helper: updatePaymentDetails: TransactionId: $transactionId, tripNumber: $tripNumber, vehicleId: $vehicleId, paymentMethod: $paymentMethod, tripID: $tripId", LogEnums.BLUETOOTH.tag)
         val updatePaymentInput =
             SavePaymentDetailsInput.builder().paymentId(transactionId).tripNbr(tripNumber)
                 .vehicleId(vehicleId).paymentMethod(paymentMethod).tripId(tripId).build()
@@ -192,14 +194,14 @@ object PIMMutationHelper {
         }
 
     @SuppressLint("MissingPermission")
-    fun updatePimSettings(
+   fun updatePimSettings(
         blueToothAddress: String?,
         appVersion: String?,
         phoneNumber: String?,
         appSyncClient: AWSAppSyncClient,
         deviceId: String
     ) {
-        var newDeviceId = DeviceIdCheck.getDeviceId() ?: ""
+        val newDeviceId = DeviceIdCheck.getDeviceId() ?: ""
         if (newDeviceId != "") {
             val updatePimSettings = UpdatePIMSettingsInput
                 .builder()
@@ -210,30 +212,33 @@ object PIMMutationHelper {
                 .build()
             appSyncClient.mutate(
                 UpdatePimSettingsMutation.builder().parameters(updatePimSettings).build()
-            )?.enqueue(
-                pimSettingsCallback
-            )
-            LoggerHelper.writeToLog("Pim Mutation Helper: update pim settings: blueToothAddress: $blueToothAddress: AppVersion: $appVersion phoneNumber: $phoneNumber: deviceId:$deviceId to aws")
+            )?.enqueue(pimSettingsCallback)
+            LoggerHelper.writeToLog("Pim Mutation Helper: update pim settings: blueToothAddress: $blueToothAddress: AppVersion: $appVersion phoneNumber: $phoneNumber: deviceId:$deviceId to aws", LogEnums.TRIP_STATUS.tag)
         }
     }
 
     private val pimSettingsCallback =
-        object : GraphQLCall.Callback<UpdatePimSettingsMutation.Data>() {
+        object : GraphQLCall.Callback<UpdatePimSettingsMutation.Data>(){
             override fun onResponse(response: Response<UpdatePimSettingsMutation.Data>) {
-                if (response.hasErrors()) {
-                    Log.e(
-                        "PIM Settings",
-                        "There was an issue updating payment settings: ${response.errors()[0]}"
-                    )
+                if (response.data()?.updatePIMSettings()?.error() != null) {
+                    when(response.data()?.updatePIMSettings()?.errorCode()){
+                        "1016" -> {
+                            val errorMessage = response.data()?.updatePIMSettings()!!.error()
+                            stopPimSetup = true
+                            pimError = PimError(errorMessage)
+                            LoggerHelper.writeToLog("Failed to update pim settings with phone number. Error: $errorMessage", LogEnums.TRIP_STATUS.tag)
+                        }
+                    }
                 }
-
-                Log.i("Response", "response: ${response.data()?.updatePIMSettings().toString()}")
+                LoggerHelper.writeToLog("response: ${response.data()?.updatePIMSettings().toString()}", LogEnums.TRIP_STATUS.tag)
             }
 
             override fun onFailure(e: ApolloException) {
                 Log.i("Response", "response: $e")
             }
         }
+
+
 
     fun updateDeviceId(deviceId: String, appSyncClient: AWSAppSyncClient, vehicleId: String) {
         val input = UpdateDeviceIdPIMInput.builder()
@@ -243,6 +248,7 @@ object PIMMutationHelper {
         appSyncClient.mutate(UpdateDeviceIdPimMutation.builder().parameters(input).build())
             ?.enqueue(updateDeviceIdToIMEICallback)
     }
+
 
     private val updateDeviceIdToIMEICallback =
         object : GraphQLCall.Callback<UpdateDeviceIdPimMutation.Data>() {
@@ -324,8 +330,6 @@ object PIMMutationHelper {
 
     internal fun getCurrentDateFormattedDateUtcIso(): String? {
         val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US)
-        //  sdf.setTimeZone(TimeZone.getTimeZone("UTC"))
-
         return sdf.format(Date().time)
     }
 
@@ -338,7 +342,7 @@ object PIMMutationHelper {
     private var adQueryCallBack = object : GraphQLCall.Callback<GetPimAdvertisementQuery.Data>() {
         override fun onResponse(response: Response<GetPimAdvertisementQuery.Data>) {
             Log.i("Ad", "Ad Query response:${response.data()}")
-            LoggerHelper.writeToLog("Ad Query response: ${response.data()}")
+            LoggerHelper.writeToLog("Ad Query response: ${response.data()}", LogEnums.AD_INFO.tag)
           val adUrl =  response.data()?.pimAdvertisement?.advertisement()
           val adType = response.data()?.pimAdvertisement?.adContentType()
           val adDuration = response.data()?.pimAdvertisement?.adDuration()
@@ -351,5 +355,56 @@ object PIMMutationHelper {
         override fun onFailure(e: ApolloException) {
 
         }
+    }
+    fun unpairPim(vehicleId: String, appSyncClient: AWSAppSyncClient){
+        LoggerHelper.writeToLog("Sending request to unpair previous vehicle $vehicleId", LogEnums.TRIP_STATUS.tag)
+        val unpairPIMInput = UnpairPIMInput.builder().vehicleId(vehicleId).build()
+        appSyncClient.mutate(UnpairPimMutation.builder().parameters(unpairPIMInput).build()).enqueue(
+            mutationCallbackUnpairPim)
+    }
+    private val mutationCallbackUnpairPim = object : GraphQLCall.Callback<UnpairPimMutation.Data>() {
+        override fun onResponse(response: Response<UnpairPimMutation.Data>) {
+            if(response.hasErrors()){
+            LoggerHelper.writeToLog("Error with unPairing previous vehicle tied to phone number.", LogEnums.TRIP_STATUS.tag)
+            }
+            if(response.data()?.unpairPIM()?.paired() == false){
+                LoggerHelper.writeToLog("Successfully unpaired previous pim", LogEnums.TRIP_STATUS.tag)
+            } else {
+                LoggerHelper.writeToLog("Unsuccessfully unpaired previous pim", LogEnums.TRIP_STATUS.tag)
+            }
+
+        }
+
+        override fun onFailure(e: ApolloException) {
+
+        }
+    }
+    private fun getVehicleId(message: String?): String {
+        // "E.g. message: Phone Number is already registered to a different device (ccsi_A_1 Driver Tablet)"
+        // We use this to find previous vehicle to unpair for duplicate phone number error.
+        // Find the start/End index of vehicle id, and append to previous vehicleId String.
+        var startIndex: Int? = null
+        var endIndex: Int? = null
+        var previousVehicleId = ""
+        if(message != null){
+            for ((index,char)  in message.withIndex()) {
+                if (char.toString() == "("){
+                    startIndex = index + 1
+                }
+                if(char.toString() == "D"){
+                    endIndex = index - 2
+                }
+            }
+            for((index, char) in message.withIndex()){
+                if(startIndex != null && endIndex != null){
+                    if (index >= startIndex && index <= endIndex) {
+                        var sb = StringBuilder(previousVehicleId)
+                        sb.insert(0, char)
+                        previousVehicleId = sb.toString()
+                    }
+                }
+            }
+        }
+        return previousVehicleId.reversed()
     }
 }

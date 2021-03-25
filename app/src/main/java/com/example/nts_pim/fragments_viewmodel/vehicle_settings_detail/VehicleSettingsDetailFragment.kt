@@ -48,6 +48,7 @@ import com.example.nts_pim.fragments_viewmodel.base.ClientFactory
 import com.example.nts_pim.utilities.device_id_check.DeviceIdCheck
 import com.example.nts_pim.fragments_viewmodel.vehicle_settings.setting_keyboard_viewModels.SettingsKeyboardViewModel
 import com.example.nts_pim.utilities.bluetooth_helper.BluetoothDataCenter
+import com.example.nts_pim.utilities.enums.LogEnums
 import com.example.nts_pim.utilities.enums.SharedPrefEnum
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import com.google.gson.Gson
@@ -318,7 +319,9 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
             //sound on if square call wasn't successful in turning sound back on
             SoundHelper.turnOnSound(requireContext())
             screenEnabled()
-            activity_indicator_vehicle_detail.visibility = View.INVISIBLE
+            if(activity_indicator_vehicle_detail != null){
+                activity_indicator_vehicle_detail.visibility = View.INVISIBLE
+            }
             val error = result.error
             when (error.code) {
                 ReaderSettingsErrorCode.SDK_NOT_AUTHORIZED -> Toast.makeText(
@@ -427,7 +430,7 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
     private val mutationCallbackUnpairPim = object : GraphQLCall.Callback<UnpairPimMutation.Data>() {
         override fun onResponse(response: Response<UnpairPimMutation.Data>) {
             if(!response.hasErrors()){
-                LoggerHelper.writeToLog("Successfully unpaired PIM")
+                LoggerHelper.writeToLog("Successfully unpaired PIM", LogEnums.TRIP_STATUS.tag)
                 launch(Dispatchers.Main.immediate) {
                     unPair()
                 }

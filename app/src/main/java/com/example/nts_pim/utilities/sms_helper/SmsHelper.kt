@@ -2,6 +2,7 @@ package com.example.nts_pim.utilities.sms_helper
 
 import android.util.Log
 import com.example.nts_pim.data.repository.TripDetails
+import com.example.nts_pim.utilities.enums.LogEnums
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import okhttp3.*
 import java.util.concurrent.TimeUnit
@@ -43,7 +44,7 @@ object SmsHelper {
           try {
               client.newCall(request).execute().use { response ->
                   Log.i("Test_Receipt","response code : ${response.code} response message: ${response.message}")
-                  LoggerHelper.writeToLog("SMS receiptresponse code : ${response.code} response message: ${response.message}")
+                  LoggerHelper.writeToLog("SMS receiptresponse code : ${response.code} response message: ${response.message}", LogEnums.RECEIPT.tag)
                   if (response.isSuccessful){
                       Log.i("Text_Receipt", "Send Text receipt successful. Step 3: Complete")
                       TripDetails.isReceiptSent = true
@@ -51,7 +52,7 @@ object SmsHelper {
                       TripDetails.receiptMessage = response.message
                   } else {
                       Log.i("Text_Receipt", "Send Text receipt unsuccessful. Step 3: Fail")
-                      LoggerHelper.writeToLog("Send Text receipt unsuccessful. ${response.message} ${response.code}")
+                      LoggerHelper.writeToLog("Send Text receipt unsuccessful. ${response.message} ${response.code}", LogEnums.RECEIPT.tag)
                       TripDetails.isReceiptSent = false
                       TripDetails.receiptCode = response.code
                       TripDetails.receiptMessage = response.message
@@ -60,7 +61,7 @@ object SmsHelper {
               }
           } catch (e: Error){
               Log.i("Text Receipt", "Send Text receipt unsuccessful. Step 3: Fail. Error")
-              LoggerHelper.writeToLog("Send Text receipt unsuccessful. Client call error: $e")
+              LoggerHelper.writeToLog("Send Text receipt unsuccessful. Client call error: $e", LogEnums.RECEIPT.tag)
               TripDetails.isReceiptSent = false
               TripDetails.receiptCode = e.hashCode()
               TripDetails.receiptMessage = e.localizedMessage ?: ""

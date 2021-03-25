@@ -32,6 +32,7 @@ import com.example.nts_pim.fragments_viewmodel.base.ClientFactory
 import com.example.nts_pim.fragments_viewmodel.callback.CallBackViewModel
 import com.example.nts_pim.utilities.bluetooth_helper.BluetoothDataCenter
 import com.example.nts_pim.utilities.bluetooth_helper.NTSPimPacket
+import com.example.nts_pim.utilities.enums.LogEnums
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import com.example.nts_pim.utilities.simple_email_helper.EmailHelper
 import com.example.nts_pim.utilities.view_helper.ViewHelper
@@ -108,7 +109,7 @@ class ReceiptInformationEmailFragment: ScopedFragment(), KodeinAware {
         startInactivityTimeout()
         email_editText.setOnFocusChangeListener { _, hasFocus ->
             if(!hasFocus){
-                LoggerHelper.writeToLog("$logFragment, edit text does not have focus. Closing soft keyboard")
+                LoggerHelper.writeToLog("$logFragment, edit text does not have focus. Closing soft keyboard", null)
                 closeSoftKeyboard()
             }
         }
@@ -164,11 +165,11 @@ class ReceiptInformationEmailFragment: ScopedFragment(), KodeinAware {
         }
 
         back_btn_email_receipt.setOnClickListener {
-            LoggerHelper.writeToLog("$logFragment, back button hit")
+            LoggerHelper.writeToLog("$logFragment, back button hit", LogEnums.BUTTON_PRESS.tag)
             backToEmailOrText()
         }
         no_receipt_btn_receipt_email.setOnClickListener {
-            LoggerHelper.writeToLog("$logFragment, no receipt button hit")
+            LoggerHelper.writeToLog("$logFragment, no receipt button hit", LogEnums.BUTTON_PRESS.tag)
             toThankYou()
         }
     }
@@ -202,7 +203,7 @@ class ReceiptInformationEmailFragment: ScopedFragment(), KodeinAware {
         imm.showSoftInput(email_editText, InputMethodManager.SHOW_IMPLICIT)
         email_editText.requestFocus()
         ViewHelper.hideSystemUI(requireActivity())
-        LoggerHelper.writeToLog("$logFragment, Showing Keyboard")
+        LoggerHelper.writeToLog("$logFragment, Showing Keyboard", null)
     }
     private fun closeSoftKeyboard(){
         val imm =
@@ -221,7 +222,7 @@ class ReceiptInformationEmailFragment: ScopedFragment(), KodeinAware {
     private fun isOnline(context: Context): Boolean {
         val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
         val networkInfo = connectivityManager.activeNetworkInfo
-        LoggerHelper.writeToLog("$logFragment, Checked internet Connection. Connection ${networkInfo.isConnected}")
+        LoggerHelper.writeToLog("$logFragment, Checked internet Connection. Connection ${networkInfo.isConnected}", LogEnums.INTERNET_CONNECTION.tag)
         return networkInfo != null && networkInfo.isConnected
 
     }
@@ -243,7 +244,7 @@ class ReceiptInformationEmailFragment: ScopedFragment(), KodeinAware {
     }
 
     private fun updateCustomerEmail(vehicleId: String, custEmail: String, appSyncClient: AWSAppSyncClient, tripId: String){
-        LoggerHelper.writeToLog("$logFragment, entered email: $custEmail")
+        LoggerHelper.writeToLog("$logFragment, entered email: $custEmail", LogEnums.RECEIPT.tag)
         val updatePaymentTypeInput = UpdateTripInput.builder().vehicleId(vehicleId).tripId(tripId).custEmail(custEmail).build()
         if(isOnline(requireContext())){
             appSyncClient.mutate(UpdateTripMutation.builder().parameters(updatePaymentTypeInput).build())
@@ -255,9 +256,9 @@ class ReceiptInformationEmailFragment: ScopedFragment(), KodeinAware {
 
     private val mutationCustomerEmailCallback = object : GraphQLCall.Callback<UpdateTripMutation.Data>() {
         override fun onResponse(response: Response<UpdateTripMutation.Data>) {
-            LoggerHelper.writeToLog("$logFragment, entered email response: ${response.data()}")
+            LoggerHelper.writeToLog("$logFragment, entered email response: ${response.data()}", LogEnums.RECEIPT.tag)
             Log.i("Email Receipt", "Meter Table Updated Customer Email}")
-            LoggerHelper.writeToLog("email callback response: ${response.data()}")
+            LoggerHelper.writeToLog("email callback response: ${response.data()}", LogEnums.RECEIPT.tag)
             val tripId = callBackViewModel.getTripId()
             val transactionId = callBackViewModel.getTransactionId()
 
@@ -269,8 +270,7 @@ class ReceiptInformationEmailFragment: ScopedFragment(), KodeinAware {
                 if (response.data() != null)
                  {
                     launch(Dispatchers.IO) {
-                        Log.i("Email Receipt", "updated custEmail successfully. Step 2: complete")
-                        LoggerHelper.writeToLog("$logFragment, update custEmail successfully. Step 2: complete")
+                        LoggerHelper.writeToLog("$logFragment, update custEmail successfully. Step 2: complete", LogEnums.RECEIPT.tag)
                         EmailHelper.sendEmail(tripId, paymentType, transactionId)
                     }
                 }
@@ -282,9 +282,7 @@ class ReceiptInformationEmailFragment: ScopedFragment(), KodeinAware {
     }
 
     private fun updatePaymentDetails(transactionId: String, tripNumber: Int, vehicleId: String, appSyncClient: AWSAppSyncClient, paymentMethod: String, tripId: String){
-        Log.i("Email Receipts", "Trying to send the following to Payment AWS. TransactionId: $transactionId, tripNumber: $tripNumber, vehicleId: $vehicleId, paymentMethod: $paymentMethod, tripID: $tripId")
         val updatePaymentInput = SavePaymentDetailsInput.builder().paymentId(transactionId).tripNbr(tripNumber).vehicleId(vehicleId).paymentMethod(paymentMethod).tripId(tripId).build()
-
         appSyncClient.mutate(SavePaymentDetailsMutation.builder().parameters(updatePaymentInput).build())
         ?.enqueue(mutationCallbackPaymentDetails)
     }
@@ -292,24 +290,17 @@ class ReceiptInformationEmailFragment: ScopedFragment(), KodeinAware {
         override fun onResponse(response: Response<SavePaymentDetailsMutation.Data>) {
 
             if(!response.hasErrors()){
-                Log.i(
-                    "Email Receipts",
-                    "update payment Api successfully. Step 1: Complete")
-                LoggerHelper.writeToLog("$logFragment, update payment Api successfully. Step 1: Complete")
+                LoggerHelper.writeToLog("$logFragment, update payment Api successfully. Step 1: Complete", LogEnums.RECEIPT.tag)
                 launch(Dispatchers.IO) {
                     sendEmail(email)
                 }
             }else{
-                Log.i(
-                    "Email Receipts",
-                    "update payment Api Unsuccessfully. Step 1: Incomplete")
-                LoggerHelper.writeToLog("$logFragment, update payment unsuccessfully. Step 1: Incomplete")
+                LoggerHelper.writeToLog("$logFragment, update payment unsuccessfully. Step 1: Incomplete", LogEnums.RECEIPT.tag)
             }
         }
 
         override fun onFailure(e: ApolloException) {
-            Log.e("Email Receipts", "There was an issue updating payment api: $e")
-            LoggerHelper.writeToLog("$logFragment, update payment unsuccessfully. Step 1: Incomplete. There was an issue updating payment api: $e")
+            LoggerHelper.writeToLog("$logFragment, update payment unsuccessfully. Step 1: Incomplete. There was an issue updating payment api: $e", LogEnums.RECEIPT.tag)
         }
     }
 
@@ -322,7 +313,7 @@ class ReceiptInformationEmailFragment: ScopedFragment(), KodeinAware {
             override fun onFinish() {
                 if (!resources.getBoolean(R.bool.isSquareBuildOn) &&
                         no_receipt_btn_receipt_email != null) {
-                    LoggerHelper.writeToLog("$logFragment, Inactivity Timer finished")
+                    LoggerHelper.writeToLog("$logFragment, Inactivity Timer finished", null)
                     no_receipt_btn_receipt_email.performClick()
                 }
             }
@@ -364,7 +355,6 @@ class ReceiptInformationEmailFragment: ScopedFragment(), KodeinAware {
 
     override fun onDestroy() {
         inactiveScreenTimer?.cancel()
-        Log.i("Email Receipt", "inactivity timer was canceled")
         closeSoftKeyboard()
         super.onDestroy()
     }

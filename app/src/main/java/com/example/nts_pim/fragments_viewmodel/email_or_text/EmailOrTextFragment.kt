@@ -32,6 +32,7 @@ import com.example.nts_pim.fragments_viewmodel.base.ClientFactory
 import com.example.nts_pim.fragments_viewmodel.callback.CallBackViewModel
 import com.example.nts_pim.utilities.bluetooth_helper.BluetoothDataCenter
 import com.example.nts_pim.utilities.bluetooth_helper.NTSPimPacket
+import com.example.nts_pim.utilities.enums.LogEnums
 import com.example.nts_pim.utilities.enums.PIMStatusEnum
 import com.example.nts_pim.utilities.enums.VehicleStatusEnum
 import com.example.nts_pim.utilities.international_phone_number.CountryPhoneNumber
@@ -182,22 +183,22 @@ class EmailOrTextFragment : ScopedFragment(), KodeinAware {
             }
         })
         email_or_text_back_btn.setOnClickListener {
-            LoggerHelper.writeToLog("$logFragment, Back button hit")
+            LoggerHelper.writeToLog("$logFragment, Back button hit", LogEnums.BUTTON_PRESS.tag)
            backToCreditOrCash()
         }
         //Email Button
         email_btn.setOnClickListener {
-            LoggerHelper.writeToLog("$logFragment, Email button hit")
+            LoggerHelper.writeToLog("$logFragment, Email button hit", LogEnums.BUTTON_PRESS.tag)
            toEmailReceipt()
         }
         //Text Message Button
         text_message_btn.setOnClickListener {
-            LoggerHelper.writeToLog("$logFragment, Text Message button hit")
+            LoggerHelper.writeToLog("$logFragment, Text Message button hit", LogEnums.BUTTON_PRESS.tag)
             toTextReceipt()
         }
         //No Receipt Button
         no_receipt_btn.setOnClickListener {
-            LoggerHelper.writeToLog("$logFragment, No receipt button hit")
+            LoggerHelper.writeToLog("$logFragment, No receipt button hit", LogEnums.BUTTON_PRESS.tag)
            toThankYou()
         }
     }
@@ -232,7 +233,7 @@ class EmailOrTextFragment : ScopedFragment(), KodeinAware {
     }
 
     private fun updatePaymentDetail(transactionId: String, tripNumber: Int, vehicleId: String, awsAppSyncClient: AWSAppSyncClient, paymentType: String, tripID: String) = launch(Dispatchers.IO){
-        LoggerHelper.writeToLog("$logFragment, Cash selected so updated Payment API, $transactionId, $tripNumber, $paymentType")
+        LoggerHelper.writeToLog("$logFragment, Cash selected so updated Payment API, $transactionId, $tripNumber, $paymentType", LogEnums.PAYMENT.tag)
         PIMMutationHelper.updatePaymentDetails(transactionId, tripNumber, vehicleId, awsAppSyncClient, paymentType, tripID)
     }
 
@@ -249,7 +250,7 @@ class EmailOrTextFragment : ScopedFragment(), KodeinAware {
         if(isBluetoothOn){
             val dataObject = NTSPimPacket.PimStatusObj()
             val statusObj =  NTSPimPacket(NTSPimPacket.Command.PIM_STATUS, dataObject)
-            Log.i("Bluetooth", "status request packet to be sent == $statusObj")
+            LoggerHelper.writeToLog("status request packet to be sent == $statusObj", LogEnums.BLUETOOTH.tag)
             (activity as MainActivity).sendBluetoothPacket(statusObj)
         }
     }
@@ -265,7 +266,7 @@ class EmailOrTextFragment : ScopedFragment(), KodeinAware {
             }
             override fun onFinish() {
                 if (!resources.getBoolean(R.bool.isSquareBuildOn)) {
-                    LoggerHelper.writeToLog("$logFragment, Inactivity Timer finished")
+                    LoggerHelper.writeToLog("$logFragment, Inactivity Timer finished", null)
                     toThankYou()
                 }
             }
@@ -287,14 +288,14 @@ class EmailOrTextFragment : ScopedFragment(), KodeinAware {
                 !response.data()?.trip?.custEmail().isNullOrBlank()) {
                 val previousEmailAWS = response.data()?.trip?.custEmail() as String
                 previousEmail = previousEmailAWS
-                LoggerHelper.writeToLog("$logFragment, checked AWS for custEmail. $previousEmail")
+                LoggerHelper.writeToLog("$logFragment, checked AWS for custEmail. $previousEmail", LogEnums.RECEIPT.tag)
             }
 
             if(!response.data()?.trip?.custPhoneNbr().isNullOrEmpty() ||
                 !response.data()?.trip?.custPhoneNbr().isNullOrBlank()) {
                 val previousPhoneNumberAWS = response.data()?.trip?.custPhoneNbr() as String
                 previousPhoneNumber = previousPhoneNumberAWS
-                LoggerHelper.writeToLog("$logFragment, checked AWS for custPhone. $previousPhoneNumber")
+                LoggerHelper.writeToLog("$logFragment, checked AWS for custPhone. $previousPhoneNumber", LogEnums.RECEIPT.tag)
             }
          }
         override fun onFailure(e: ApolloException) {
@@ -304,7 +305,7 @@ class EmailOrTextFragment : ScopedFragment(), KodeinAware {
     private fun receiptCheck(pimNoReceipt: Boolean){
         //True if the customer does not need a receipt
         if(pimNoReceipt){
-            LoggerHelper.writeToLog("$logFragment, PIM does not need to take receipt")
+            LoggerHelper.writeToLog("$logFragment, PIM does not need to take receipt", LogEnums.RECEIPT.tag)
             toThankYou()
         }
     }

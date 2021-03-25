@@ -5,6 +5,7 @@ import android.bluetooth.BluetoothSocket
 import android.os.Handler
 import android.util.Log
 import com.example.nts_pim.activity.MainActivity
+import com.example.nts_pim.utilities.enums.LogEnums
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import java.io.IOException
 import java.io.InputStream
@@ -16,7 +17,6 @@ import java.io.OutputStream
  * If disconnected from driver tablet we do a full socket reconnection process. If we get a socket error we just need to cancel the connect thread and restart it.
  */
 class ConnectThread(device: BluetoothDevice, activity: MainActivity) : Thread() {
-    private val logTag = "Bluetooth_Connect_Thread"
     private var mDevice = device
     private var mmSocket: BluetoothSocket? = null
     private var connectThreadHandler = Handler()
@@ -27,8 +27,7 @@ class ConnectThread(device: BluetoothDevice, activity: MainActivity) : Thread() 
     init {
         if(mmSocket == null){
             this.name = "Connect_Thread"
-            Log.i("Bluetooth", "Socket was null so created socket")
-            LoggerHelper.writeToLog("Connect_Thread, socket was null so created socket with device")
+            LoggerHelper.writeToLog("Connect_Thread, socket was null so created socket with device", LogEnums.BLUETOOTH.tag)
             if(!hasBeenInit){
                 hasBeenInit = true
                 mActivity = activity
@@ -41,21 +40,18 @@ class ConnectThread(device: BluetoothDevice, activity: MainActivity) : Thread() 
         // Cancel discovery because it otherwise slows down the connection.
         isBluetoothON = BluetoothDataCenter.isBluetoothOn().value ?: false
          if(!isBluetoothON){
-             Log.i("Bluetooth", "Went to run connect thread but bluetooth is off")
-             LoggerHelper.writeToLog("Went to run connect thread but bluetooth is off in AWS")
+             LoggerHelper.writeToLog("Went to run connect thread but bluetooth is off in AWS", LogEnums.BLUETOOTH.tag)
              return
          }
         try{
             mmSocket?.connect()
             if(mmSocket!!.isConnected){
                 BluetoothDataCenter.clearNumberOfAttempts()
-                LoggerHelper.writeToLog("Connected_Thread: Socket is connected")
-                Log.i("Bluetooth", "Connect_ Thread is connected. Passing socket to BluetoothDataCenter/MainActivity to create write/read/ack threads")
+                LoggerHelper.writeToLog("Connected_Thread: Socket is connected", LogEnums.BLUETOOTH.tag)
                 BluetoothDataCenter.blueToothSocketIsConnected(mmSocket!!)
             }
             } catch (e: IOException){
-            Log.i("Bluetooth", "socket error. $e")
-            LoggerHelper.writeToLog("Driver tablet bluetooth error: $e")
+            LoggerHelper.writeToLog("Driver tablet bluetooth error: $e", LogEnums.BLUETOOTH.tag)
             hasBeenInit = false
 
            } finally {
@@ -63,13 +59,11 @@ class ConnectThread(device: BluetoothDevice, activity: MainActivity) : Thread() 
                     BluetoothDataCenter.thereWasUnsuccessfulBTConnection()
                     val numberOfAttempts = BluetoothDataCenter.howManyBTAttempts()
                     if(BluetoothDataCenter.wasBluetoothPaired() && numberOfAttempts == 6){
-                        Log.i("Bluetooth", "There has been 6 unsuccessful attempts for socket connection. Turning on AWS Connection")
-                        LoggerHelper.writeToLog("There has been 6 unsuccessful attempts (1:00 min) for socket  re-connection. Turning on AWS Connection")
+                        LoggerHelper.writeToLog("There has been 6 unsuccessful attempts (1:00 min) for socket  re-connection. Turning on AWS Connection", LogEnums.BLUETOOTH.tag)
                         (mActivity as MainActivity).restartDriverTabletAWSConnection()
                     }
                     connectThreadHandler.postDelayed(Runnable {
-                        Log.i("Bluetooth", "Trying to re-connect socket via connect thread handler")
-                        LoggerHelper.writeToLog("Trying to re-connect socket via connect thread handler")
+                        LoggerHelper.writeToLog("Trying to re-connect socket via connect thread handler", LogEnums.BLUETOOTH.tag)
                         ConnectThread(mDevice, mActivity!!).start()
                     }, 10000)
                 }
@@ -79,9 +73,7 @@ class ConnectThread(device: BluetoothDevice, activity: MainActivity) : Thread() 
         try {
             connectThreadHandler.removeCallbacksAndMessages(null)
             mmSocket?.close()
-            Log.i("Bluetooth", "Closing socket on connect thread")
         } catch (e: IOException) {
-            Log.i("Bluetooth", "Issue closing bt socket on ${this.name}. ")
         }
     }
 }
@@ -95,7 +87,6 @@ class ReadThread(private var mmSocket: BluetoothSocket?, activity: MainActivity)
 
     init {
         this.name = "Read_Thread"
-        Log.i("Bluetooth", "${this.name} initialized" )
         mActivity = activity
     }
 
@@ -106,8 +97,7 @@ class ReadThread(private var mmSocket: BluetoothSocket?, activity: MainActivity)
             try {
                 mmInStream?.read(mmBuffer)
             } catch (e: IOException) {
-                Log.i("Bluetooth", "Input stream was disconnected", e)
-                LoggerHelper.writeToLog("Input stream was disconnected, $e")
+                LoggerHelper.writeToLog("Input stream was disconnected, $e", LogEnums.BLUETOOTH.tag)
                 BluetoothDataCenter.disconnectedToDriverTablet()
                 break
             }
@@ -115,8 +105,7 @@ class ReadThread(private var mmSocket: BluetoothSocket?, activity: MainActivity)
             val containsStart = NTSPimPacket.containsPacketStart(receivedArrayMessage)
             resetReceivedPacket()
             if(containsStart){
-                Log.i("Bluetooth", "Packet contains a start")
-                LoggerHelper.writeToLog("Packet was received from, contained start byte. Starting parse of data")
+                LoggerHelper.writeToLog("Packet was received from, contained start byte. Starting parse of data", LogEnums.BLUETOOTH.tag)
                val isPacketACK = BlueToothHelper.parseBlueToothData(receivedArrayMessage)
                 if(isPacketACK){
                     lastPacketSentSuccessful = true
@@ -126,11 +115,10 @@ class ReadThread(private var mmSocket: BluetoothSocket?, activity: MainActivity)
                 }
                 val isDriverTabletFound = BluetoothDataCenter.isConnectedToDriverTablet().value
                 if(!isDriverTabletFound!!){
-                    Log.i("Bluetooth", "Driver tablet sent. Updating to connected driver tablet value")
                     BluetoothDataCenter.connectedToDriverTablet()
                 }
             } else {
-                LoggerHelper.writeToLog("Received packet from driver tablet, but didn't contain a start byte")
+                LoggerHelper.writeToLog("Received packet from driver tablet, but didn't contain a start byte", LogEnums.BLUETOOTH.tag)
             }
         }
     }
@@ -140,17 +128,16 @@ class ReadThread(private var mmSocket: BluetoothSocket?, activity: MainActivity)
         try {
             testConnectionHandler.removeCallbacksAndMessages(null)
             mmSocket?.close()
-            LoggerHelper.writeToLog("${this.name} bt socket closed.")
-            Log.i("Bluetooth", "${this.name} bt socket closed. Most likely closed by a main activity")
+            LoggerHelper.writeToLog("${this.name} bt socket closed.", LogEnums.BLUETOOTH.tag)
         } catch (e: IOException) {
-            LoggerHelper.writeToLog("Error closing ${this.name} socket. $e")
+            LoggerHelper.writeToLog("Error closing ${this.name} socket. $e", LogEnums.BLUETOOTH.tag)
         }
     }
     private fun resetReceivedPacket(){
         testConnectionHandler.removeCallbacksAndMessages(null)
-        LoggerHelper.writeToLog("test connection handler removed messages and callbacks. Resetting test connection handler")
+        LoggerHelper.writeToLog("test connection handler removed messages and callbacks. Resetting test connection handler", LogEnums.BLUETOOTH.tag)
         testConnectionHandler.postDelayed({
-            LoggerHelper.writeToLog("Packet timer hit 1 min without getting a packet. Requesting driver tablet status.")
+            LoggerHelper.writeToLog("Packet timer hit 1 min without getting a packet. Requesting driver tablet status.", LogEnums.BLUETOOTH.tag)
             mActivity?.requestDriverTabletStatus()
         },60000)
     }
@@ -162,22 +149,18 @@ class WriteThread(private var mmSocket: BluetoothSocket?, activity: MainActivity
 
     init {
         this.name = "Write_Thread"
-        Log.i("Bluetooth", "${this.name} initialized")
         mActivity = activity
     }
 
     internal fun write(bytes: ByteArray?) {
         try {
-            Log.i("Bluetooth", "Writing bytes")
             mmOutStream?.write(bytes)
             mmOutStream?.flush()
         } catch (e: IOException) {
-            Log.i("Bluetooth", "Output stream was disconnected", e)
-            LoggerHelper.writeToLog("Output stream was disconnected. $e")
+            LoggerHelper.writeToLog("Output stream was disconnected. $e", LogEnums.BLUETOOTH.tag)
             val readThread = mActivity?.readThread?.isAlive ?: false
             if(readThread){
-                Log.i("Bluetooth", "read thread is active, but write thread threw $e. Running disconnected to driver tablet protocol via Write Thread")
-                LoggerHelper.writeToLog("read thread is active, but write thread threw $e. Running disconnected to driver tablet protocol via Write Thread")
+                LoggerHelper.writeToLog("read thread is active, but write thread threw $e. Running disconnected to driver tablet protocol via Write Thread", LogEnums.BLUETOOTH.tag)
                 BluetoothDataCenter.disconnectedToDriverTablet()
             }
         }
@@ -187,9 +170,9 @@ class WriteThread(private var mmSocket: BluetoothSocket?, activity: MainActivity
     fun cancel() {
         try {
             mmSocket?.close()
-            LoggerHelper.writeToLog("${this.name} bt socket closed.")
+            LoggerHelper.writeToLog("${this.name} bt socket closed.", LogEnums.BLUETOOTH.tag)
         } catch (e: IOException) {
-            LoggerHelper.writeToLog("Error closing ${this.name} socket. $e")
+            LoggerHelper.writeToLog("Error closing ${this.name} socket. $e", LogEnums.BLUETOOTH.tag)
         }
     }
 }
@@ -198,26 +181,23 @@ class ACKThread(private var mmSocket: BluetoothSocket?, activity: MainActivity):
 
     init {
         this.name = "ACK_Thread"
-        Log.i("Bluetooth", "${this.name} initialized")
     }
 
     internal fun write(bytes: ByteArray?) {
         try {
-            Log.i("Bluetooth", "Writing bytes")
             mmOutStream?.write(bytes)
             mmOutStream?.flush()
         } catch (e: IOException) {
-            Log.i("Bluetooth", "ACK/NACK stream was disconnected", e)
-            LoggerHelper.writeToLog("ACK/NACK  was disconnected. $e")
+            LoggerHelper.writeToLog("ACK/NACK  was disconnected. $e", LogEnums.BLUETOOTH.tag)
         }
     }
 
   fun cancel() {
         try {
             mmSocket?.close()
-            LoggerHelper.writeToLog("${this.name} bt socket closed.")
+            LoggerHelper.writeToLog("${this.name} bt socket closed.", LogEnums.BLUETOOTH.tag)
         } catch (e: IOException) {
-            LoggerHelper.writeToLog("Error closing ${this.name} socket. $e")
+            LoggerHelper.writeToLog("Error closing ${this.name} socket. $e", LogEnums.BLUETOOTH.tag)
         }
     }
 }

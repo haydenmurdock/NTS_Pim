@@ -1,5 +1,6 @@
 package com.example.nts_pim.fragments_viewmodel.welcome
 
+import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.os.BatteryManager
@@ -14,6 +15,7 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
+import android.view.inputmethod.InputMethodManager
 import android.widget.Toast
 import androidx.core.view.isVisible
 import androidx.lifecycle.ViewModelProvider
@@ -33,30 +35,26 @@ import com.example.nts_pim.fragments_viewmodel.base.ClientFactory
 import com.example.nts_pim.fragments_viewmodel.base.ScopedFragment
 import com.example.nts_pim.fragments_viewmodel.callback.CallBackViewModel
 import com.example.nts_pim.fragments_viewmodel.vehicle_settings.setting_keyboard_viewModels.SettingsKeyboardViewModel
-import com.example.nts_pim.utilities.bluetooth_helper.BlueToothHelper
 import com.example.nts_pim.utilities.bluetooth_helper.BluetoothDataCenter
 import com.example.nts_pim.utilities.bluetooth_helper.NTSPimPacket
+import com.example.nts_pim.utilities.enums.LogEnums
 import com.example.nts_pim.utilities.enums.MeterEnum
 import com.example.nts_pim.utilities.enums.PIMStatusEnum
 import com.example.nts_pim.utilities.enums.SharedPrefEnum
-import com.example.nts_pim.utilities.enums.VehicleStatusEnum
 import com.example.nts_pim.utilities.keyboards.PhoneKeyboard
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import com.example.nts_pim.utilities.mutation_helper.PIMMutationHelper
 import com.example.nts_pim.utilities.sound_helper.SoundHelper
 import com.example.nts_pim.utilities.view_helper.ViewHelper
-import com.squareup.sdk.reader.ReaderSdk
 import kotlinx.android.synthetic.main.welcome_screen.*
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import org.kodein.di.KodeinAware
 import org.kodein.di.android.x.closestKodein
 import org.kodein.di.generic.instance
 import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 import java.util.*
-import java.util.logging.Logger
 import kotlin.concurrent.timerTask
 
 
@@ -70,7 +68,6 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
     private lateinit var callBackViewModel: CallBackViewModel
     private var mAWSAppSyncClient: AWSAppSyncClient? = null
     private var failedReaderTimer: CountDownTimer? = null
-    private var readerSdk = ReaderSdk.authorizationManager()
     private var vehicleId = ""
     private var tripId = ""
     private var cabNumber = ""
@@ -80,15 +77,14 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
     private val fullBrightness = 255
     private val dimBrightness = 10
     private var isOnActiveTrip = false
-    private var lastReaderStatus:String? = null
     private var lastTrip:Pair<Boolean?, String> = Pair(false, "")
+    private val emojiCode: Int = 0x1F44B
     private val currentFragmentId = R.id.welcome_fragment
     private val logFragment = "Welcome_Screen"
 
     private val batteryCheckTimer = object : CountDownTimer( 600000, 60000) {
         //Every 10 minutes  we are doing a battery check.
-        override fun onTick(millisUntilFinished: Long) {
-        }
+        override fun onTick(millisUntilFinished: Long) {}
 
         override fun onFinish() {
             if (!resources.getBoolean(R.bool.isSquareBuildOn)){
@@ -98,8 +94,7 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
     }
     private val dimScreenTimer = object : CountDownTimer(120000, 60000) {
         //after a status has changed to end we run a 2 min timer to dimScreen
-        override fun onTick(millisUntilFinished: Long) {
-        }
+        override fun onTick(millisUntilFinished: Long) {}
 
         override fun onFinish() {
             if (!resources.getBoolean(R.bool.isSquareBuildOn)){
@@ -147,7 +142,7 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
             isOnActiveTrip = lastTrip.first!!
             tripId = lastTrip.second
         }
-
+        getTimeOfDayAndUpdateUI()
         viewModel.isSetupComplete()
         vehicleId = viewModel.getVehicleId()
         updateVehicleInfoUI()
@@ -202,15 +197,13 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
         tripIsCurrentlyRunning(isOnActiveTrip)
         callBackViewModel.isPimPaired().observe(this.viewLifecycleOwner, androidx.lifecycle.Observer { isPaired ->
             if(!isPaired){
-
                 toVehicleSettingsDetail()
             }
         })
 
         callBackViewModel.getMeterState().observe(this.viewLifecycleOwner, androidx.lifecycle.Observer { meterState ->
             if(meterState == MeterEnum.METER_ON.state || meterState == MeterEnum.METER_TIME_OFF.state){
-                Log.i("$logFragment" , "Meter $meterState is picked up on welcome screen. Starting trip animation")
-               LoggerHelper.writeToLog( "Meter $meterState is picked up on welcome screen. Starting trip animation")
+               LoggerHelper.writeToLog( "Meter $meterState is picked up on welcome screen. Starting trip animation", LogEnums.TRIP_STATUS.tag)
                 changeScreenBrightness(fullBrightness)
                 checkAnimation()
             }
@@ -218,44 +211,11 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
 
         PIMMutationHelper.updatePIMStatus(vehicleId, PIMStatusEnum.WELCOME_SCREEN.status, mAWSAppSyncClient!!)
         changeLoggingTimer()
-//       checkInternalReaderStatus()
         sendPimStatusBluetooth()
         SoundHelper.turnOnSound(PimApplication.pimContext)
         VehicleTripArrayHolder.squareHasBeenSetUp = true
-
     }
 
-    private fun sendPimStatusBluetooth(){
-        val isBluetoothOn = BluetoothDataCenter.isBluetoothOn().value ?: false
-        if(isBluetoothOn){
-            val dataObject = NTSPimPacket.PimStatusObj()
-            val statusObj =  NTSPimPacket(NTSPimPacket.Command.PIM_STATUS, dataObject)
-            (activity as MainActivity).sendBluetoothPacket(statusObj)
-        }
-    }
-    private fun changeLoggingTimer(){
-        LoggerHelper.loggingTime = 180000
-        Log.i(tag,"Logging time was set to ${LoggerHelper.loggingTime}")
-    }
-    private fun checkInternalReaderStatus(){
-       lastReaderStatus = VehicleTripArrayHolder.cardReaderStatus
-        val numberOfReaderChecks = VehicleTripArrayHolder.numberOfReaderChecks
-        // 1 hour = 3600000
-        if(numberOfReaderChecks < 2){
-            failedReaderTimer = object: CountDownTimer(3600000, 6000){
-                override fun onTick(millisUntilFinished: Long) {
-                }
-                override fun onFinish() {
-                    Log.i(tag, "checking reader status again. Going back to bluetooth fragment to check reader status")
-                    VehicleTripArrayHolder.readerStatusNeedsToBeCheckedAgain()
-                    VehicleTripArrayHolder.squareHasBeenSetUp = false
-                    backToBlueToothCheck()
-                }
-            }.start()
-        } else{
-         Log.i("Square", "number of reader checks: $numberOfReaderChecks so didn't check reader again")
-        }
-    }
     private fun checkAnimation() {
         val animationIsOn = resources.getBoolean(R.bool.animationIsOn)
         if (animationIsOn) {
@@ -277,19 +237,59 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
             toNextScreen()
         }
     }
+
+    private fun getEmojiByUnicode(unicode: Int): String? {
+        return String(Character.toChars(unicode))
+    }
+
+    private fun getTimeOfDayAndUpdateUI() {
+        val currentDate = LocalDateTime.now()
+        val formatter =
+            DateTimeFormatter.ofPattern("HH")
+        val hour = currentDate.format(formatter).toInt()
+        Log.i("Hour", "$hour")
+        val emoji = getEmojiByUnicode(emojiCode)
+        val morning = 4.rangeTo(11)
+        val afternoon = 12.rangeTo(16)
+        val evening = 17.rangeTo(24)
+        val earlyEvening = 0.rangeTo(3)
+        if(morning.contains(hour)){
+            greetings_textView.text = "Good Morning! $emoji"
+        }
+        if(afternoon.contains(hour)){
+            greetings_textView.text = "Good Afternoon! $emoji"
+        }
+        if(evening.contains(hour)){
+            greetings_textView.text = "Good Evening! $emoji"
+        }
+        if(earlyEvening.contains(hour)) {
+            greetings_textView.text = "Good Evening! $emoji"
+        }
+    }
+
+    private fun sendPimStatusBluetooth(){
+        val isBluetoothOn = BluetoothDataCenter.isBluetoothOn().value ?: false
+        if(isBluetoothOn){
+            val dataObject = NTSPimPacket.PimStatusObj()
+            val statusObj =  NTSPimPacket(NTSPimPacket.Command.PIM_STATUS, dataObject)
+            (activity as MainActivity).sendBluetoothPacket(statusObj)
+        }
+    }
+    private fun changeLoggingTimer(){
+        LoggerHelper.loggingTime = 180000
+        Log.i(tag,"Logging time was set to ${LoggerHelper.loggingTime}")
+    }
+
     private fun tripIsCurrentlyRunning(isTripActive: Boolean){
         if (!isTripActive){
-            LoggerHelper.writeToLog("$logFragment. Trip Check: Last saved trip is not active")
+            LoggerHelper.writeToLog("$logFragment. Trip Check: Last saved trip is not active", null)
             return
         }
-        val tripId = lastTrip.second
         changeScreenBrightness(fullBrightness)
-        Log.i("Welcome Screen", "Trip Active: $isActive Trip Id: $tripId")
-        LoggerHelper.writeToLog("$logFragment Trip Check: Last saved trip is active. To Meter Screen")
+        LoggerHelper.writeToLog("$logFragment Trip Check: Last saved trip is active. To Meter Screen", null)
         toLiveMeterScreen()
     }
     private fun updateUI(companyName: String) {
-        thank_you_text_view.text = "Thank you for choosing $companyName"
         password_editText.isClickable = false
         password_editText.isFocusable = false
     }
@@ -304,7 +304,7 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
     private fun markPimStartTime(){
         val time = LocalDateTime.now()
         TripDetails.tripStartTime = time
-        LoggerHelper.writeToLog("$logFragment: PimMarkStartTime")
+        LoggerHelper.writeToLog("$logFragment: StartTime of trip on pim: $time", LogEnums.TRIP_STATUS.tag)
     }
     private fun checkPassword() {
         if (password_editText.text.toString() == password) {
@@ -337,7 +337,7 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
         val isCharging: Boolean = status == BatteryManager.BATTERY_STATUS_CHARGING
                 || status == BatteryManager.BATTERY_STATUS_FULL
         if (!isCharging) {
-            LoggerHelper.writeToLog("$logFragment: Battery Check: is charging: $isCharging, sending request for shutdown")
+            LoggerHelper.writeToLog("$logFragment: Battery Check: is charging: $isCharging, sending request for shutdown", LogEnums.OVERHEATING.tag)
             val action =  "com.claren.tablet_control.shutdown"
             val p = "com.claren.tablet_control"
             val intent = Intent()
@@ -348,7 +348,7 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
         }
 
         if (isCharging) {
-            LoggerHelper.writeToLog("$logFragment: Battery Check: is charging: $isCharging")
+            LoggerHelper.writeToLog("$logFragment: Battery Check: is charging: $isCharging", LogEnums.OVERHEATING.tag)
             batteryCheckTimer.cancel()
             batteryCheckTimer.start()
         }
@@ -372,7 +372,6 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
         val lp = activity?.window?.attributes
         lp?.screenBrightness = br.toFloat() / 255
         activity?.window?.attributes = lp
-        LoggerHelper.writeToLog("$logFragment: Screen set to Max Brightness")
     }
 
     private fun checkToSeeIfOnTrip(): Pair<Boolean?, String>{
@@ -414,24 +413,21 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
             }
             lastSavedAppVersion.version != currentBuildVersion -> {
                 if(!VehicleTripArrayHolder.flaggedTestVehicles.contains(vehicleId)){
-                    Log.i("VERSION", "Build Version is different. Updating ${lastSavedAppVersion.version} to $currentBuildVersion")
                     lastSavedAppVersion.version = currentBuildVersion
                     ModelPreferences(requireContext().applicationContext).putObject(SharedPrefEnum.BUILD_VERSION.key, lastSavedAppVersion)
-                    LoggerHelper.writeToLog("${logFragment}: Build Version is different. Updating ${lastSavedAppVersion.version} to $currentBuildVersion. Restarting Tablet")
+                    LoggerHelper.writeToLog("${logFragment}: Build Version is different. Updating ${lastSavedAppVersion.version} to $currentBuildVersion. Restarting Tablet", LogEnums.TRIP_STATUS.tag)
                     // if we wanted to restart PIM this is where we would write that code.
                     restartAppTimer.start()
                 } else {
                     lastSavedAppVersion.version = currentBuildVersion
                     ModelPreferences(requireContext().applicationContext).putObject(SharedPrefEnum.BUILD_VERSION.key, lastSavedAppVersion)
-                    Log.i("VERSION", "This is a test vehicle so restart for new app version ignored.")
-                    LoggerHelper.writeToLog("This is a test vehicle so restart for new app version ignored.")
+                    LoggerHelper.writeToLog("This is a test vehicle so restart for new app version ignored.", LogEnums.TRIP_STATUS.tag)
                     val toast = Toast.makeText(activity, "Test vehicle: $vehicleId, app version: $currentBuildVersion, restart ignored", Toast.LENGTH_LONG)
                     toast.show()
                 }
             }
             else -> {
-                Log.i("VERSION", "Build Version is the same as last saved amount")
-                LoggerHelper.writeToLog("${logFragment}: Build Version is the same from last startup. Build version $currentBuildVersion")
+                LoggerHelper.writeToLog("${logFragment}: Build Version is the same from last startup. Build version $currentBuildVersion", LogEnums.TRIP_STATUS.tag)
             }
         }
     }
@@ -439,8 +435,7 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
         val buildName = BuildConfig.VERSION_NAME
         val appVersion = AppVersion(buildName)
         ModelPreferences(requireContext().applicationContext).putObject(SharedPrefEnum.BUILD_VERSION.key,appVersion)
-        Log.i("VERSION", "Current app version is $buildName. It has been saved to Model Preferences")
-        LoggerHelper.writeToLog("Current app version is $buildName. It has been saved to Model Preferences")
+        LoggerHelper.writeToLog("Current app version is $buildName. It has been saved to Model Preferences", null)
     }
     // Navigation
     private fun toLiveMeterScreen() = launch(Dispatchers.Main.immediate) {
@@ -465,13 +460,7 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
             navController.navigate(R.id.toVehicleSettingsDetail)
         }
     }
-    private fun backToBlueToothCheck(){
-        val navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment)
-        if (navController.currentDestination?.id == currentFragmentId) {
-            val action = WelcomeFragmentDirections.actionWelcomeFragmentToBluetoothSetupFragment(lastReaderStatus).setLastCheckedStatus(lastReaderStatus)
-            navController.navigate(action)
-        }
-    }
+
     override fun onStop() {
         super.onStop()
         Log.i("PimApplication", "OnStop")
@@ -510,4 +499,7 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
         failedReaderTimer?.cancel()
         restartAppTimer.cancel()
     }
+
+
+
 }

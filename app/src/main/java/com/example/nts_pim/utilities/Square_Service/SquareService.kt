@@ -25,6 +25,7 @@ import com.example.nts_pim.activity.MainActivity
 import com.example.nts_pim.data.repository.VehicleTripArrayHolder
 import com.example.nts_pim.data.repository.model_objects.SetupComplete
 import com.example.nts_pim.data.repository.providers.ModelPreferences
+import com.example.nts_pim.utilities.enums.LogEnums
 import com.example.nts_pim.utilities.view_walker.ViewWalker
 import com.example.nts_pim.utilities.enums.MeterEnum
 import com.example.nts_pim.utilities.enums.ReaderStatusEnum
@@ -190,7 +191,7 @@ class SquareService : OnLayoutChangeListener,
             // Entering newState
             when (newState) {
                 SqUIState.SWIPE_STATE -> {
-                    Log.i(tag, "Square is in swipe state")
+                    LoggerHelper.writeToLog("Square is in a new state: $newState", LogEnums.SQUARE.tag)
                     turnUpVolume()
                     SoundHelper.turnOffSound(activity.applicationContext)
                     val navController = MainActivity.navigationController
@@ -228,32 +229,30 @@ class SquareService : OnLayoutChangeListener,
 
                 }
                 SqUIState.SUCCESSFUL_PAYMENT -> {
-                    Log.i(tag, "Square is in successful payment state")
+                    LoggerHelper.writeToLog("Square is in a new state: $newState", LogEnums.SQUARE.tag)
                     turnUpVolume()
                     stopTimeout()
                     addRemoveCardScreen(activity)
                 }
                SqUIState.DECLINE_STATE -> {
-                    Log.i(tag, "Square is in decline state")
+                   LoggerHelper.writeToLog("Square is in a new state: $newState", LogEnums.SQUARE.tag)
                     stopTimeout()
                     startTimeout()
                     playCardDeclinedSound()
                 }
                 SqUIState.SIGNATURE_STATE -> {
-                    Log.i(tag, "Square is in signature state")
+                    LoggerHelper.writeToLog("Square is in a new state: $newState", LogEnums.SQUARE.tag)
                     stopTimeout()
                     startTimeout()
                 }
                 SqUIState.REMOVE_CARD_STATE -> {
-                    Log.i(tag, "Square is remove card state")
-
+                    LoggerHelper.writeToLog("Square is in a new state: $newState", LogEnums.SQUARE.tag)
                     if (removeCardView == null) {
                         // if the view did not inflate we will inflate it now
                         removeCardView = View.inflate(activity,R.layout.activity_remove_card,viewGroup)
                         val imageView = activity.findViewById<ImageView>(R.id.remove_card_ImageView)
                         Glide.with(activity.applicationContext)
                             .load(R.raw.remove_card).into(imageView)
-                        Log.i(tag, "Remove card view was null so Remove_card_state tried to inflate it")
                     }
                     turnUpVolume()
                     startRemoveCardTimer()
@@ -261,14 +260,13 @@ class SquareService : OnLayoutChangeListener,
                 }
 
                 SqUIState.NO_INTERNET_STATE -> {
-                    Log.i(tag, "Square is in no internet state")
-                    Log.i(tag,  "Reader is not connected since internet is not connected")
+                    LoggerHelper.writeToLog("Square is in a new state: $newState", LogEnums.SQUARE.tag)
                     stopTimeout()
                     startTimeout()
                 }
 
                 SqUIState.RECEIPT_STATE -> {
-                    Log.i(tag, "Square is in Receipt State")
+                    LoggerHelper.writeToLog("Square is in a new state: $newState", LogEnums.SQUARE.tag)
                     pressNoReceipt()
                     userHasRemovedCard = true
                     // this will turn off the sound
@@ -278,59 +276,47 @@ class SquareService : OnLayoutChangeListener,
                     VehicleTripArrayHolder.squareTransactionChange()
                 }
                 SqUIState.INSERT_TRY_AGAIN_STATE -> {
-                    Log.i(tag, "Square is in Insert try again state")
+                    LoggerHelper.writeToLog("Square is in a new state: $newState", LogEnums.SQUARE.tag)
                     turnUpVolume()
                     playCardDeclinedSound()
                     stopTimeout()
                     startTimeout()
                 }
                 SqUIState.CHIP_ERROR_STATE -> {
-                    Log.i(tag, "Square is in Chip Error State")
+                    LoggerHelper.writeToLog("Square is in a new state: $newState", LogEnums.SQUARE.tag)
                     turnUpVolume()
                     playCardDeclinedSound()
                     stopTimeout()
                     startTimeout()
                 }
                 SqUIState.PAYMENT_CANCELED_STATE -> {
-                    Log.i(tag, "Square is in Payment Canceled State")
+                    LoggerHelper.writeToLog("Square is in a new state: $newState", LogEnums.SQUARE.tag)
                     turnUpVolume()
                     stopTimeout()
                     startTimeout()
                 }
                 SqUIState.AUTHORIZING -> {
-                    Log.i(tag, "Square is in Authorized State")
                     stopTimeout()
                     startTimeout()
                 }
                 SqUIState.CARD_READER_LIST -> {
-                    Log.i(tag, "Square is in CARD_READER_LIST state")
+                    LoggerHelper.writeToLog("Square is in a new state: $newState", LogEnums.SQUARE.tag)
                     if(!VehicleTripArrayHolder.cardReaderStatusHasBeenChecked) {
                         stopTimeout()
                         // This is where we check the reader status bar to find if we too reauthorize square for a failed reader status
                         cardReaderCheckView = View.inflate(activity,R.layout.card_reader_check_screen, viewGroup)
                         SoundHelper.turnOffSound(activity.applicationContext)
-                        Log.i(tag, "Reader has not been check. Inflating view over reader list")
                         val newViewGroup =
                             squareActivity?.findViewById<TextView>(com.squareup.sdk.reader.api.R.id.reader_message_bar_current_text_view)
                         val squareReaderState = newViewGroup?.text
-                        Log.i(tag, "Reader Message: $squareReaderState")
-                        LoggerHelper.writeToLog("$tag, Reader Message: $squareReaderState")
+                        LoggerHelper.writeToLog("$tag, Reader Message: $squareReaderState", LogEnums.SQUARE.tag)
                         if (squareReaderState!!.contains("Press Button on Reader to Connect – Learn More") ) {
-                            LoggerHelper.writeToLog("$tag, Square service is on card reader list in unavailable status")
-                            Log.i(
-                                tag,
-                                "Reader is not connected and is showing unavailable status and check again"
-                            )
                             VehicleTripArrayHolder.updateReaderStatus(ReaderStatusEnum.UNAVAILABLE.status)
                             stopReaderCheckTimeout()
                             startReaderCheckTimeout()
                         }
-                        if (squareReaderState.contains("Establishing Secure Connection") || squareReaderState.contains("Connecting - Tap Here to Learn More")) {
-                            LoggerHelper.writeToLog("$tag, Square service is on card reader list in establishing connection status")
-                            Log.i(
-                                tag,
-                                "Reader is connected and is trying to establish secure connection"
-                            )
+                        if (squareReaderState.contains("Establishing Secure Connection") || squareReaderState.contains("Connecting - Tap Here to Learn More") || squareReaderState.contains("Checking for Reader Updates")) {
+                            LoggerHelper.writeToLog("$tag, Square service is on card reader list in establishing connection status", LogEnums.SQUARE.tag)
                             //Begin Connection timer....
                             stopReaderCheckTimeout()
                             startReaderCheckTimeout()
@@ -338,18 +324,15 @@ class SquareService : OnLayoutChangeListener,
                         }
                         if (squareReaderState.contains("Reader Not Ready")) {
                             //The card list showed the reader as not ready so we need to start the checking process.
-                            LoggerHelper.writeToLog("$tag, Square service is on Reader Not Ready- aka- failed status")
-                            Log.i(tag, "Reader has failed to connect")
+                            LoggerHelper.writeToLog("$tag, Square service is on Reader Not Ready- aka- failed status", LogEnums.SQUARE.tag)
                             VehicleTripArrayHolder.updateReaderStatus(ReaderStatusEnum.FAILED.status)
-                            Log.i(tag, "Removed Square Card Reader View")
                             stopReaderCheckTimeout()
                             startReaderCheckTimeout()
                         }
 
                         if (squareReaderState.contains("Reader Ready") ) {
                             //The card list showed the reader as connected so no need to start the checking process.
-                            LoggerHelper.writeToLog("$tag, Square service is on card reader list in Reader Ready status")
-                            Log.i(tag, "Reader is connected and ready")
+                            LoggerHelper.writeToLog("$tag, Square service is on card reader list in Reader Ready status", LogEnums.SQUARE.tag)
                             stopReaderCheckTimeout()
                             VehicleTripArrayHolder.updateReaderStatus(ReaderStatusEnum.CONNECTED.status)
                             VehicleTripArrayHolder.squareHasBeenSetUp = true
@@ -358,7 +341,6 @@ class SquareService : OnLayoutChangeListener,
                     }
                 }
                 SqUIState.UNSUCCESSFUL_CARD_PAIRED -> {
-                    Log.i(tag, "Square is in UNSUCCESSFUL card paired state")
                 }
                 SqUIState.INIT_STATE ->{
                 }
@@ -379,17 +361,14 @@ class SquareService : OnLayoutChangeListener,
                     val newViewGroup =
                         squareActivity?.findViewById<TextView>(com.squareup.sdk.reader.api.R.id.reader_message_bar_current_text_view)
                     val mSquareReaderState = newViewGroup?.text
-                    Log.i(tag, "Reader Check Timer: squareReaderState: $mSquareReaderState")
-                    LoggerHelper.writeToLog("$tag, Reader Check Timer: squareReaderState: $mSquareReaderState")
+                    LoggerHelper.writeToLog("$tag, Reader Check Timer: squareReaderState: $mSquareReaderState", LogEnums.SQUARE.tag)
                     if (mSquareReaderState == null){
-                        Log.i(tag, "Reader checked via readerCheckTimer. Text view was null but timer was still going")
-                        LoggerHelper.writeToLog("$tag, Reader checked via readerCheckTimer. Text view was null but timer is still going. Will check again in 2.5 seconds.")
+                        LoggerHelper.writeToLog("$tag, Reader checked via readerCheckTimer. Text view was null but timer is still going. Will check again in 2.5 seconds.", LogEnums.SQUARE.tag)
                         stopReaderCheckTimeout()
                         return
                     }
                     if (mSquareReaderState.contains("Reader Ready")) {
-                        Log.i(tag, "Reader checked via readerCheckTimer. Reader is Connected")
-                        LoggerHelper.writeToLog("$tag, Reader checked via readerCheckTimer. Reader is Connected")
+                        LoggerHelper.writeToLog("$tag, Reader checked via readerCheckTimer. Reader is Connected", LogEnums.SQUARE.tag)
                         VehicleTripArrayHolder.updateReaderStatus(ReaderStatusEnum.CONNECTED.status)
                         onFinish()
                     }
@@ -405,21 +384,18 @@ class SquareService : OnLayoutChangeListener,
                         return
                     }
                     if(squareReaderState == ""){
-                        Log.i(tag, "Reader checked via readerCheckTimer. Text view was null but timer was still going")
-                        LoggerHelper.writeToLog("$tag, Reader checked via readerCheckTimer. Timer has finished and there is no text view to read.")
+                        LoggerHelper.writeToLog("$tag, Reader checked via readerCheckTimer. Timer has finished and there is no text view to read.", LogEnums.SQUARE.tag)
                         removeSquareReaderView()
                     }
                     if(squareReaderState.contains("Reader Not Ready")){
-                        Log.i(tag, "Reader checked via readerCheckTimer. Reader has failed")
-                        LoggerHelper.writeToLog("$tag, Reader checked via readerCheckTimer. Timer has finished. Reader has failed")
+                        LoggerHelper.writeToLog("$tag, Reader checked via readerCheckTimer. Timer has finished. Reader has failed", LogEnums.SQUARE.tag)
                         VehicleTripArrayHolder.updateReaderStatus(ReaderStatusEnum.FAILED.status)
                         VehicleTripArrayHolder.needToReAuthorizeSquare()
                         removeSquareReaderView()
                     }
                     if(squareReaderState.contains("Establishing Secure Connection") ||
                         squareReaderState.contains("Connecting - Tap Here to Learn More")){
-                        Log.i(tag, "Reader checked via readerCheckTimer. Reader has failed")
-                        LoggerHelper.writeToLog("$tag, Reader checked via readerCheckTimer. Timer has finished. Reader is still establishing connection after 60 seconds. Reader Failed")
+                        LoggerHelper.writeToLog("$tag, Reader checked via readerCheckTimer. Timer has finished. Reader is still establishing connection after 60 seconds. Reader Failed", LogEnums.SQUARE.tag)
                         VehicleTripArrayHolder.updateReaderStatus(ReaderStatusEnum.FAILED.status)
                         VehicleTripArrayHolder.needToReAuthorizeSquare()
                         removeSquareReaderView()
@@ -428,29 +404,25 @@ class SquareService : OnLayoutChangeListener,
                         VehicleTripArrayHolder.updateReaderStatus(ReaderStatusEnum.UNAVAILABLE.status)
                         removeSquareReaderView()
                     } else {
-                        Log.i(tag, "Reader check timer finished, but the square square was unknown. reader state == $squareReaderState")
-                        LoggerHelper.writeToLog("$tag Reader check timer finished, but the square square was unknown. reader state == $squareReaderState")
+                        LoggerHelper.writeToLog("$tag Reader check timer finished, but the square square was unknown. reader state == $squareReaderState", LogEnums.SQUARE.tag)
                         removeSquareReaderView()
                     }
                 }
             }.start()
         } else {
-            Log.i(tag, "start Reader timer is already running")
         }
     }
     private fun stopReaderCheckTimeout(){
         if (readerCheckTimer != null) {
             readerCheckTimer!!.cancel()
-            Log.i("Square", "Reader Check timer was cancelled")
             readerCheckTimer = null
         }
     }
     private fun removeSquareReaderView(){
+        VehicleTripArrayHolder.readerStatusHasBeenChecked()
         if(cardReaderCheckView != null){
-            VehicleTripArrayHolder.readerStatusHasBeenChecked()
             viewGroup?.removeView(cardReaderCheckView).run {
-                Log.i(tag, "Removed Square Card Reader View")
-                LoggerHelper.writeToLog("$tag, Removed Square Reader Check View and activity.finished() was called")
+                LoggerHelper.writeToLog("$tag, Removed Square Reader Check View and activity.finished() was called", LogEnums.SQUARE.tag)
             }
             squareActivity!!.finish().run {
                 VehicleTripArrayHolder.numberOfReaderChecks += 1
@@ -470,7 +442,6 @@ class SquareService : OnLayoutChangeListener,
     private fun stopTimeout() {
         if (timeout != null) {
             timeout!!.cancel()
-            Log.i("Square", "Square Time out canceled")
             timeout = null
         }
     }
@@ -538,7 +509,6 @@ class SquareService : OnLayoutChangeListener,
                     val imageView = activity.findViewById<ImageView>(R.id.remove_card_ImageView)
                     Glide.with(activity.applicationContext)
                         .load(R.raw.remove_card).into(imageView)
-                    Log.i(tag, "remove card view was inflated via timer")
                 }
             }
         }.start()
@@ -554,13 +524,6 @@ class SquareService : OnLayoutChangeListener,
             Log.i("Square", "Timeout Ignored ***************")
             return
         }
-
-//        val noReceipt = getButton(squareActivity!!, com.squareup.sdk.reader.api.R.id.no_receipt_button, "NoReceipt")
-        //myLog.e(TAG,"noReceipt ************ = " + noReceipt);
-//        if (noReceipt != null) {
-//            noReceipt.performClick()
-//            return
-//        }
 
         val cancelButton1 =
             getButton(squareActivity!!, com.squareup.sdk.reader.api.R.id.select_payment_up_button, "cancelButton1")
@@ -695,10 +658,8 @@ class SquareService : OnLayoutChangeListener,
             if(newViewGroup?.childCount == 1) {
                 val childView = newViewGroup[0] as TextView
                 if(childView.text.contains("Please")) {
-                    Log.i(tag, "compute state is going to return remove card state since please remove card is on screen")
                     return SqUIState.REMOVE_CARD_STATE
                 } else {
-                    Log.i(tag, "compute state is going to return receipt state since please remove card is not on screen")
                     return SqUIState.RECEIPT_STATE
                 }
             }

@@ -11,6 +11,7 @@ import android.util.Log
 import com.example.nts_pim.PimApplication
 import com.example.nts_pim.R
 import com.example.nts_pim.data.repository.VehicleTripArrayHolder
+import com.example.nts_pim.utilities.enums.LogEnums
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import com.example.nts_pim.utilities.mutation_helper.PIMMutationHelper
 
@@ -53,7 +54,7 @@ class BatteryPowerReceiver : BroadcastReceiver() {
         }
             true
         }else if(temp < thermalLevelNormal && overheatingProtocolInitiated){
-            LoggerHelper.writeToLog("temp $temp is lower then 122 so we are resetting overheating protocol")
+            LoggerHelper.writeToLog("temp $temp is lower then 122 so we are resetting overheating protocol", LogEnums.OVERHEATING.tag)
             overheatingProtocolInitiated = false
             false
         } else {
@@ -83,7 +84,7 @@ class BatteryPowerReceiver : BroadcastReceiver() {
     private fun playSafetyMessage(context: Context){
         val mediaPlayer = MediaPlayer.create(context, R.raw.overheating_message)
         mediaPlayer.setOnCompletionListener { mP ->
-            LoggerHelper.writeToLog("${logTag}: Finished overheatWarning")
+            LoggerHelper.writeToLog("${logTag}: Finished overheatWarning", LogEnums.OVERHEATING.tag)
             mP.release()
             if(overheatingProtocolInitiated){
                 overHeatMessageTimer?.cancel()
@@ -92,6 +93,6 @@ class BatteryPowerReceiver : BroadcastReceiver() {
             }
         }
         mediaPlayer.start()
-        LoggerHelper.writeToLog("${logTag}t: Started Overheat warning")
+        LoggerHelper.writeToLog("${logTag}t: Started Overheat warning", LogEnums.OVERHEATING.tag)
     }
 }

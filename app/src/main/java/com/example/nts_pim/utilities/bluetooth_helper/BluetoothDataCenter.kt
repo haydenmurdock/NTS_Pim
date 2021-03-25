@@ -4,7 +4,9 @@ import android.bluetooth.BluetoothSocket
 import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
+import com.example.nts_pim.utilities.enums.LogEnums
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
+import com.sun.mail.imap.protocol.BODY
 
 /**
  * The logic is to see if it is connected to bluetooth in aws during start up.
@@ -57,6 +59,15 @@ object BluetoothDataCenter {
     internal fun startUpBTPairSuccessful(){
         startupBTPairSuccess = true
     }
+    internal fun isBluetoothAddressFormatted(bluetoothAddress: String?): Boolean{
+
+        //F0:EE:10:57:0F:BF
+        if(bluetoothAddress?.length == 17){
+            return true
+        }
+        LoggerHelper.writeToLog("Bluetooth address was formatted incorrectly. BT address found: $bluetoothAddress", LogEnums.BLUETOOTH.tag)
+        return false
+    }
     internal fun wasBluetoothPaired(): Boolean{
         return startupBTPairSuccess
     }
@@ -98,8 +109,7 @@ object BluetoothDataCenter {
 
     internal fun blueToothSocketIsConnected(socket: BluetoothSocket){
         blueToothSocket = socket
-        Log.i("Bluetooth", "bluetooth socket set on Bluetooth Data center")
-        LoggerHelper.writeToLog("bluetooth socket set on Bluetooth Data center")
+        LoggerHelper.writeToLog("bluetooth socket set on Bluetooth Data center", LogEnums.BLUETOOTH.tag)
         blueToothSocketAccepted = true
         bluetoothSocketAcceptedMLD.postValue(blueToothSocketAccepted)
 

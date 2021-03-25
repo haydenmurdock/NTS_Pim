@@ -47,7 +47,7 @@ class TaxiNumberFragment : ScopedFragment(), KodeinAware {
         val settings = viewModel.getVehicleSettings()
         if (settings != null){
             updateUI(settings.cabNumber)
-            LoggerHelper.writeToLog("$logFragment: updated cab number. Starting animation")
+            LoggerHelper.writeToLog("$logFragment: updated cab number. Starting animation", null)
             checkAnimation()
         }
         val br = Settings.System.getInt(context?.contentResolver, Settings.System.SCREEN_BRIGHTNESS)

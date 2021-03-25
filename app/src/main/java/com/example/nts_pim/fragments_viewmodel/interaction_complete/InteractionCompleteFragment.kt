@@ -27,6 +27,7 @@ import com.example.nts_pim.fragments_viewmodel.base.ScopedFragment
 import com.example.nts_pim.utilities.bluetooth_helper.BluetoothDataCenter
 import com.example.nts_pim.utilities.bluetooth_helper.NTSPimPacket
 import com.example.nts_pim.utilities.driver_receipt.DriverReceiptHelper
+import com.example.nts_pim.utilities.enums.LogEnums
 import com.example.nts_pim.utilities.enums.SharedPrefEnum
 import com.example.nts_pim.utilities.enums.VehicleStatusEnum
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
@@ -58,13 +59,12 @@ class InteractionCompleteFragment : ScopedFragment(), KodeinAware {
     private val restartAppTimer = object: CountDownTimer(10000, 1000) {
         override fun onTick(millisUntilFinished: Long) {
             if(thank_you_textView == null){
-                Log.i("InteractionComplete", "Timer was stopped")
                 cancel()
             }
         }
         override fun onFinish() {
             callbackViewModel.clearAllTripValues()
-            LoggerHelper.writeToLog("$logFragment, restart Timer Finished")
+            LoggerHelper.writeToLog("$logFragment, restart Timer Finished", null)
             restartApp()
         }
     }
@@ -86,6 +86,7 @@ class InteractionCompleteFragment : ScopedFragment(), KodeinAware {
         } else {
             callbackViewModel.getTripId()
         }
+        TripDetails.insertTripIdIntoCompleted(tripId)
         vehicleId = viewModel.getVehicleID()
         tripNumber = callbackViewModel.getTripNumber()
         transactionId = callbackViewModel.getTransactionId()
@@ -97,12 +98,10 @@ class InteractionCompleteFragment : ScopedFragment(), KodeinAware {
             transactionId = UUID.randomUUID().toString()
         }
         if(paymentMethod != payByApp){
-            LoggerHelper.writeToLog("$logFragment, $paymentMethod was set for payment method. Sent request to backend to send receipt with none as sendMethod" )
-            Log.i("paymentType", "$paymentMethod was set for payment method. Driver receipt sent")
+            LoggerHelper.writeToLog("$logFragment, $paymentMethod was set for payment method. Sent request to backend to send receipt with none as sendMethod", LogEnums.RECEIPT.tag)
             sendDriverReceipt()
         } else {
-            LoggerHelper.writeToLog("$logFragment, $paymentMethod was set for payment method. No receipt sent")
-            Log.i("paymentType", "$paymentMethod was set for payment method. No receipt sent")
+            LoggerHelper.writeToLog("$logFragment, $paymentMethod was set for payment method. No receipt sent", LogEnums.RECEIPT.tag)
         }
 
         runEndTripMutation()
@@ -141,14 +140,13 @@ class InteractionCompleteFragment : ScopedFragment(), KodeinAware {
             if(isTransactionComplete != null)
                 if(isTransactionComplete) {
                     callbackViewModel.squareChangeTransaction()
-                    LoggerHelper.writeToLog("square value of isTransactionComplete was true and now is $isTransactionComplete")
+                    LoggerHelper.writeToLog("Square value of isTransactionComplete was true and now is $isTransactionComplete", LogEnums.TRIP_STATUS.tag)
                 }
     }
     private fun runEndTripMutation() = launch {
         if (tripStatus != null &&
             tripStatus == VehicleStatusEnum.TRIP_PICKED_UP.status &&
             isOnline(requireContext())){
-            Log.i("LOGGER", "trip status was still picked up. Sent end trip status")
             PIMMutationHelper.updateTripStatus(vehicleId, VehicleStatusEnum.TRIP_END.status, mAWSAppSyncClient!!, tripId)
         }
         if(tripStatus != null && tripStatus
@@ -156,7 +154,6 @@ class InteractionCompleteFragment : ScopedFragment(), KodeinAware {
             !isOnline(requireContext())){
             //Internet is not connected so we will change the internal trip status
             callbackViewModel.addTripStatus("End")
-            Log.i("LOGGER", "trip status was still picked up. Internet was not connected so changed internal value to End")
         }
     }
 
@@ -173,7 +170,7 @@ class InteractionCompleteFragment : ScopedFragment(), KodeinAware {
         currentTrip?.isActive = false
         ModelPreferences(requireContext()).putObject(SharedPrefEnum.CURRENT_TRIP.key, currentTrip)
         TripDetails.textToSpeechActivated = false
-        LoggerHelper.writeToLog("$logFragment, internal trip status changed. Trip Active ${currentTrip?.isActive}")
+        LoggerHelper.writeToLog("$logFragment, Internal trip status changed. Trip Active ${currentTrip?.isActive}", LogEnums.TRIP_STATUS.tag)
     }
 
     override fun onDestroy() {

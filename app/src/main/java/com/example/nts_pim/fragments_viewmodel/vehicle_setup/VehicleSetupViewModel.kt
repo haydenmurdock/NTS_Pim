@@ -35,4 +35,12 @@ private val tripRepository: TripRepository
 
     internal fun watchSetUpComplete() = tripRepository.watchSetUpComplete()
 
+    internal fun squareIsNotAuthorized() = tripRepository.squareIsNotAuthorized()
+
+    internal fun vehicleIdDoesNotExist() = tripRepository.vehicleIdDoesNotExist()
+
+    internal fun recheckAuth() = tripRepository.recheckAuthCode()
+
+    internal fun companyNameNoLongerExists() = tripRepository.companyNameNoLongerExists()
+
 }

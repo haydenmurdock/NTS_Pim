@@ -7,6 +7,19 @@
         android:layout_height="match_parent"
         android:background="@color/screenBackgroundColor">
 
+    <Button
+            android:id="@+id/endCursorBtn"
+            android:layout_width="2dp"
+            android:layout_height="81dp"
+            android:layout_marginBottom="16dp"
+            android:background="@color/cursorBlue"
+            android:clickable="false"
+            android:visibility="invisible"
+            app:layout_constraintBottom_toBottomOf="@+id/custom_tip_screen_editText"
+            app:layout_constraintEnd_toStartOf="@+id/custom_tip_screen_editText"
+            app:layout_constraintHorizontal_bias="0.26"
+            app:layout_constraintStart_toEndOf="@+id/custom_tip_screen_editText" />
+
     <TextView
             android:id="@+id/custom_tip_screen_tip_breakdown_textView2"
             android:layout_width="wrap_content"
@@ -75,7 +88,7 @@
             android:textSize="87sp"
             app:layout_constraintBottom_toBottomOf="@+id/custom_tip_screen_editText"
             app:layout_constraintEnd_toEndOf="@+id/custom_tip_screen_editText"
-            app:layout_constraintHorizontal_bias="0.221"
+            app:layout_constraintHorizontal_bias="0.19"
             app:layout_constraintStart_toStartOf="@+id/custom_tip_screen_editText" />
 
     <TextView
@@ -386,6 +399,21 @@
             app:layout_constraintTop_toBottomOf="@+id/textView6" />
 
     <Button
+            android:id="@+id/custom_tip_screen_percentage_amt_btn"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="70dp"
+            android:layout_marginBottom="90dp"
+            android:background="@drawable/circle_button"
+            android:clickable="true"
+            android:fontFamily="@font/source_sans_pro_semibold"
+            android:text="%"
+            android:textColor="@color/whiteTextColor"
+            android:textSize="90sp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@+id/buttonLinerLayout" />
+
+    <Button
             android:id="@+id/custom_tip_screen_dollar_amt_btn"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -402,21 +430,6 @@
             app:layout_constraintEnd_toStartOf="@+id/custom_tip_screen_percentage_amt_btn"
             app:layout_constraintHorizontal_bias="0.523"
             app:layout_constraintStart_toStartOf="parent" />
-
-    <Button
-            android:id="@+id/custom_tip_screen_percentage_amt_btn"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginEnd="70dp"
-            android:layout_marginBottom="88dp"
-            android:background="@drawable/circle_button"
-            android:clickable="true"
-            android:fontFamily="@font/source_sans_pro_semibold"
-            android:text="%"
-            android:textColor="@color/whiteTextColor"
-            android:textSize="90sp"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toStartOf="@+id/buttonLinerLayout" />
 
     <Button
             android:id="@+id/beginningCursorBtn"
@@ -440,7 +453,7 @@
             android:visibility="invisible"
             app:layout_constraintBottom_toBottomOf="@+id/custom_tip_screen_editText"
             app:layout_constraintEnd_toStartOf="@+id/custom_tip_screen_editText"
-            app:layout_constraintHorizontal_bias="0.39"
+            app:layout_constraintHorizontal_bias="0.34"
             app:layout_constraintStart_toEndOf="@+id/custom_tip_screen_editText" />
 
     <TextView
@@ -456,5 +469,18 @@
             app:layout_constraintHorizontal_bias="0.14"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/custom_tip_screen_trip_total_textView" />
+
+    <View
+            android:id="@+id/blocker_view"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:alpha="0.5"
+            android:background="@color/screenBackgroundColor"
+            android:visibility="gone"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

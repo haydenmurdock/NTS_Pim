@@ -24,6 +24,7 @@ import com.example.nts_pim.fragments_viewmodel.base.ScopedFragment
 import com.example.nts_pim.fragments_viewmodel.callback.CallBackViewModel
 import com.example.nts_pim.fragments_viewmodel.interaction_complete.InteractionCompleteViewModel
 import com.example.nts_pim.fragments_viewmodel.interaction_complete.InteractionCompleteViewModelFactory
+import com.example.nts_pim.utilities.enums.LogEnums
 import com.example.nts_pim.utilities.enums.SharedPrefEnum
 import com.example.nts_pim.utilities.enums.VehicleStatusEnum
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
@@ -93,6 +94,7 @@ class ConfirmationFragment: ScopedFragment(), KodeinAware {
         } else {
             callbackViewModel.getTripId()
         }
+        TripDetails.insertTripIdIntoCompleted(tripId)
         vehicleId = viewModel.getVehicleID()
         tripStatus = callbackViewModel.getTripStatus().value
         transactionType = VehicleTripArrayHolder.paymentTypeSelected
@@ -175,23 +177,6 @@ class ConfirmationFragment: ScopedFragment(), KodeinAware {
     }
 
     private fun maskEmailType(message: String):String{
-        //we are going to update email/text string to UI that only has certain characters showing
-//            if(last_four_phone_number_textView != null){
-//                last_four_phone_number_textView.visibility = (View.INVISIBLE)
-//            }
-//            val atSign = "@".toRegex()
-//
-//            val countToAtSignRange = atSign.find(message, 2)?.range
-//            val countToAtSign= countToAtSignRange?.first
-//
-//            val firstPartOfEmail = message.substring(0, countToAtSign!! + 1)
-//            val firstPartFormatted = firstPartOfEmail.replace("(?<=.{2}).(?=.*@)".toRegex(), "*")
-//            val emailEndPiece = message.substringAfter("@")
-//            val middlePartOfEmail = emailEndPiece.substringBefore(".")
-//            val middlePartFormatted = middlePartOfEmail.replace("(?<=.{2}).(?=.*)".toRegex(),"*")
-//
-//            val lastPartOfEmail = message.substringAfterLast(".")
-
            return message
     }
 
@@ -228,7 +213,6 @@ class ConfirmationFragment: ScopedFragment(), KodeinAware {
                 tripStatus == VehicleStatusEnum.TRIP_PICKED_UP.status &&
                 isOnline(requireContext())){
                 //Internet is connected
-                Log.i("LOGGER", "trip status was still picked up. Sent end trip status")
                 PIMMutationHelper.updateTripStatus(vehicleId, VehicleStatusEnum.TRIP_END.status, mAWSAppSyncClient!!, tripId)
              }
             if(tripStatus != null && tripStatus
@@ -236,7 +220,6 @@ class ConfirmationFragment: ScopedFragment(), KodeinAware {
                 !isOnline(requireContext())){
                 //Internet is connected not connected so we will change the internal trip status
                 callbackViewModel.addTripStatus("End")
-                Log.i("LOGGER", "trip status was still picked up. Internet was not connected so changed internal value to End")
             }
     }
 
@@ -253,7 +236,7 @@ class ConfirmationFragment: ScopedFragment(), KodeinAware {
             CurrentTrip::class.java)
         currentTrip?.isActive = false
         ModelPreferences(requireContext()).putObject(SharedPrefEnum.CURRENT_TRIP.key, currentTrip)
-        LoggerHelper.writeToLog("$logFragment, internal trip status changed. Trip Active ${currentTrip?.isActive}")
+        LoggerHelper.writeToLog("$logFragment, internal trip status changed. Trip Active ${currentTrip?.isActive}", LogEnums.TRIP_STATUS.tag)
         TripDetails.textToSpeechActivated = false
 
     }

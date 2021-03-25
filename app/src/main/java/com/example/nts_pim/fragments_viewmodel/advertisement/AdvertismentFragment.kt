@@ -14,6 +14,7 @@ import com.example.nts_pim.data.repository.AdInfoHolder
 import com.example.nts_pim.fragments_viewmodel.InjectorUtiles
 import com.example.nts_pim.fragments_viewmodel.base.ScopedFragment
 import com.example.nts_pim.fragments_viewmodel.callback.CallBackViewModel
+import com.example.nts_pim.utilities.enums.LogEnums
 import com.example.nts_pim.utilities.enums.MeterEnum
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import kotlinx.android.synthetic.main.fragment_advertisement.*
@@ -51,7 +52,7 @@ class AdvertisementFragment : ScopedFragment(){
                 toMeterScreen()
             }
             ad_videoView.setVideoPath(path)
-            LoggerHelper.writeToLog("${logTag}, Starting video for ad")
+            LoggerHelper.writeToLog("${logTag}, Starting video for ad", LogEnums.AD_INFO.tag)
             ad_videoView.start()
         }
         if(contentType == mediaTypeImage){
@@ -59,7 +60,7 @@ class AdvertisementFragment : ScopedFragment(){
             ad_videoView.visibility = View.INVISIBLE
             val path = "/storage/emulated/0/Android/data/com.example.nts_pim/files/Download/PIM_Image"
             val bmImg = BitmapFactory.decodeFile(path)
-            LoggerHelper.writeToLog("${logTag}, Setting ad picture")
+            LoggerHelper.writeToLog("${logTag}, Setting ad picture", LogEnums.AD_INFO.tag)
             ad_imageView.setImageBitmap(bmImg)
         }
         startAdTimer()

@@ -20,15 +20,20 @@ import com.apollographql.apollo.exception.ApolloException
 import com.example.nts_pim.R
 import com.example.nts_pim.activity.MainActivity
 import com.example.nts_pim.data.repository.VehicleTripArrayHolder
+import com.example.nts_pim.fragments_viewmodel.InjectorUtiles
 import com.example.nts_pim.fragments_viewmodel.base.ClientFactory
 import com.example.nts_pim.fragments_viewmodel.base.ScopedFragment
+import com.example.nts_pim.fragments_viewmodel.vehicle_settings.setting_keyboard_viewModels.SettingsKeyboardViewModel
 import com.example.nts_pim.fragments_viewmodel.vehicle_setup.VehicleSetupModelFactory
 import com.example.nts_pim.fragments_viewmodel.vehicle_setup.VehicleSetupViewModel
 import com.example.nts_pim.utilities.bluetooth_helper.BluetoothDataCenter
 import com.example.nts_pim.utilities.bluetooth_helper.NTSPimPacket
 import com.example.nts_pim.utilities.device_id_check.DeviceIdCheck
+import com.example.nts_pim.utilities.dialog_composer.PIMDialogComposer
+import com.example.nts_pim.utilities.enums.LogEnums
 import com.example.nts_pim.utilities.enums.PIMStatusEnum
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
+import com.example.nts_pim.utilities.mutation_helper.PIMMutationHelper
 import kotlinx.android.synthetic.main.fragment_blue_tooth_pairing.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -72,14 +77,23 @@ class BlueToothPairingFragment : ScopedFragment(), KodeinAware {
         isBluetoothOn = BluetoothDataCenter.isBluetoothOn().value
         vehicleId = viewModel.getVehicleID()
         deviceId = DeviceIdCheck.getDeviceId() ?: ""
+        mAWSAppSyncClient = ClientFactory.getInstance(context)
         VehicleTripArrayHolder.updateInternalPIMStatus(PIMStatusEnum.PIM_PAIRING.status)
+        if(PIMMutationHelper.stopPimSetup){
+            val error = PIMMutationHelper.pimError
+            error?.message?.let {
+                val keyboardFactory = InjectorUtiles.provideSettingKeyboardModelFactory()
+               val keyboardViewModel = ViewModelProvider(this, keyboardFactory)
+                    .get(SettingsKeyboardViewModel::class.java)
+                PIMDialogComposer.wrongPhoneNumberForPIM(this.requireActivity(),
+                    it, viewModel, keyboardViewModel, vehicleId!!,mAWSAppSyncClient!! )
+            }
+        }
         if(!isBluetoothOn!!){
-            Log.i("${logTag}", "Bluetooth pairing is off. Going to welcome screen")
-            LoggerHelper.writeToLog("${logTag}, Bluetooth pairing is off. Going to welcome screen")
+            LoggerHelper.writeToLog("${logTag}, Bluetooth pairing is off. Going to welcome screen", LogEnums.BLUETOOTH.tag)
             toWelcomeScreen()
         } else {
-            Log.i("${logTag}", "Bluetooth pairing is on. Starting pairing process")
-            LoggerHelper.writeToLog("${logTag}, Bluetooth pairing is on. Starting pairing process")
+            LoggerHelper.writeToLog("${logTag}, Bluetooth pairing is on. Starting pairing process", LogEnums.BLUETOOTH.tag)
             startBluetoothConnectionTimer()
             checkIfDriverIsSignedIn(vehicleId!!)
             getDriverTabletBluetoothAddress(deviceId!!)
@@ -132,18 +146,15 @@ class BlueToothPairingFragment : ScopedFragment(), KodeinAware {
     }
     private var driverSignedInQuery = object: GraphQLCall.Callback<GetStatusQuery.Data>(){
         override fun onResponse(response: Response<GetStatusQuery.Data>) {
-            if(response.hasErrors()){
-                Log.i("Bluetooth", "error from driver signed in query. ${response.errors()}")
-            }
             response.data()?.status?.signinStatusTimeStamp()
            val driverId = response.data()?.status?.driverId()
             if(driverId != 0){
                 isDriverSignedIn = true
-                Log.i("Bluetooth", "Driver is signed in")
+               LoggerHelper.writeToLog("Driver signed in", LogEnums.TRIP_STATUS.tag)
             }
             if(driverId == 0) {
                 isDriverSignedIn = false
-                Log.i("Bluetooth", "Driver is not signed in. Driver id == $driverId")
+                LoggerHelper.writeToLog("Driver not signed in", LogEnums.TRIP_STATUS.tag)
             }
 
         }
@@ -159,17 +170,15 @@ class BlueToothPairingFragment : ScopedFragment(), KodeinAware {
         if(noBTConnectionTimer == null){
             noBTConnectionTimer = object: CountDownTimer(timerLength, 60000){
                 override fun onFinish() {
-                    Log.i("Bluetooth", "Displaying no_bluetooth_connection.xml")
                     try {
                         noBTView =  View.inflate(activity, R.layout.no_bluetooth_connection, viewGroup)
                     }catch (e: IllegalStateException){
-                        Log.i("Bluetooth", "Issue with the no_bluetooth_connection inflating. Error: $e")
+                        LoggerHelper.writeToLog("Issue with the no_bluetooth_connection inflating. Error: $e", LogEnums.BLUETOOTH.tag)
                     }
 
                 }
 
                 override fun onTick(p0: Long) {
-                    Log.i("Bluetooth", "Show no connection timer has been running for ${(timerLength - p0)/60000} mins.")
                 }
             }.start()
         }
@@ -190,7 +199,6 @@ class BlueToothPairingFragment : ScopedFragment(), KodeinAware {
 
     override fun onDestroy() {
         BluetoothDataCenter.isConnectedToDriverTablet().removeObservers(this)
-        Log.i(logTag, "Discovery timer canceled")
         noBTConnectionTimer?.cancel()
         super.onDestroy()
     }

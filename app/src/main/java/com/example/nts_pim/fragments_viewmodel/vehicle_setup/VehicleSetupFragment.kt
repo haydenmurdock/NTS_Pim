@@ -11,7 +11,6 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
-import android.telecom.TelecomManager
 import android.telephony.TelephonyManager
 import android.text.InputType
 import android.util.Log
@@ -30,6 +29,7 @@ import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.Navigation
 import com.amazonaws.amplify.generated.graphql.GetPimSettingsQuery
+import com.amazonaws.amplify.generated.graphql.UpdatePimSettingsMutation
 import com.amazonaws.mobileconnectors.appsync.AWSAppSyncClient
 import com.amazonaws.mobileconnectors.appsync.fetcher.AppSyncResponseFetchers
 import com.apollographql.apollo.GraphQLCall
@@ -43,10 +43,12 @@ import com.example.nts_pim.fragments_viewmodel.InjectorUtiles
 import com.example.nts_pim.fragments_viewmodel.base.ClientFactory
 import com.example.nts_pim.fragments_viewmodel.base.ScopedFragment
 import com.example.nts_pim.fragments_viewmodel.vehicle_settings.setting_keyboard_viewModels.SettingsKeyboardViewModel
+import com.example.nts_pim.utilities.device_id_check.DeviceIdCheck
 import com.example.nts_pim.utilities.dialog_composer.PIMDialogComposer
 import com.example.nts_pim.utilities.enums.LogEnums
 import com.example.nts_pim.utilities.enums.SharedPrefEnum
 import com.example.nts_pim.utilities.keyboards.QwertyKeyboard
+import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import com.example.nts_pim.utilities.mutation_helper.PIMMutationHelper
 import com.example.nts_pim.utilities.sound_helper.SoundHelper
 import com.example.nts_pim.utilities.view_helper.ViewHelper
@@ -72,7 +74,7 @@ import okhttp3.Request
 import org.kodein.di.KodeinAware
 import org.kodein.di.android.x.closestKodein
 import org.kodein.di.generic.instance
-import type.UpdateDeviceIdPIMInput
+import type.UpdatePIMSettingsInput
 import java.io.IOException
 import java.lang.Error
 import java.net.NetworkInterface
@@ -107,6 +109,7 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
     var doesVehicleIdExist = false
     var appVersion: String? = null
     var blueToothAddress: String? = null
+    var stopSquare = false
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -157,7 +160,6 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
 
         viewModel.isThereAuthCode().observe(this.viewLifecycleOwner, Observer {
             if (it) {
-                //Mark 1
                 auth_progressBar.isVisible = true
                 auth_progressBar.animate()
                 retrieveAuthorizationCode(authCode)
@@ -184,7 +186,7 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
 
         setup_complete_btn.setOnClickListener {
             //This is for if there needs to be a check auth because its the first one in fleet.
-            if (authorized) {
+            if(authorized) {
                 setUpComplete()
                 SoundHelper.turnOnSound(requireContext())
                 toCheckVehicleInfo()
@@ -278,10 +280,11 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
     private fun queryVehicleIdWithPIN(deviceID: String, pin: String, adapter: MyCustomAdapter)
             = launch(Dispatchers.IO) {
         val pimSettingsQueryCallBack = object : GraphQLCall.Callback<GetPimSettingsQuery.Data>() {
+            @SuppressLint("MissingPermission", "HardwareIds")
             override fun onResponse(response: Response<GetPimSettingsQuery.Data>) {
                 val callBackVehicleID = response.data()?.pimSettings?.vehicleId()
-                Log.i("VehicleIdQuery", "response: ${response.data()}" )
-                when(response.data()?.pimSettings?.errorCode()) {
+                Log.i("VehicleIdQuery", "response: ${response.data()}")
+                when (response.data()?.pimSettings?.errorCode()) {
                     "1004" -> {
                         launch(Dispatchers.Main) {
                             Toast.makeText(
@@ -291,10 +294,22 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
                             ).show()
                         }
                     }
+                    "1016" -> {
+                        launch(Dispatchers.Main) {
+                            Toast.makeText(
+                                context,
+                                "${response.data()!!.pimSettings.error()}",
+                                Toast.LENGTH_LONG
+                            ).show()
+                        }
+                    }
                 }
-                if (callBackVehicleID != null) {
+                if(callBackVehicleID != null) {
                     vehicleID = callBackVehicleID
-                    saveVehicleID(vehicleID)
+                    val telephonyManager = context?.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
+                    val phoneNumber = telephonyManager.line1Number
+                    //val testNumber = "0000000008"
+                    updatePimSettings(blueToothAddress,appVersion,phoneNumber,mAWSAppSyncClient!!, deviceId)
                     createPin(pin, adapter)
                 }
                 if (callBackVehicleID == null) {
@@ -303,12 +318,20 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
             }
 
             override fun onFailure(e: ApolloException) {
+                launch(Dispatchers.Main) {
+                    Toast.makeText(
+                        context,
+                        "${e.message}",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
             }
         }
-        mAWSAppSyncClient!!.query(GetPimSettingsQuery.builder().deviceId(deviceID).pin(pin).build())
+            mAWSAppSyncClient!!.query(GetPimSettingsQuery.builder().deviceId(deviceID).pin(pin).build())
             ?.responseFetcher(AppSyncResponseFetchers.CACHE_AND_NETWORK)
             ?.enqueue(pimSettingsQueryCallBack)
     }
+
     @SuppressLint("HardwareIds")
     private fun checkForPairedVehicleID(deviceID: String){
         if (deviceID == deviceId){
@@ -329,11 +352,11 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
         }
     }
     private val vehicleIdQueryCallBack = object : GraphQLCall.Callback<GetPimSettingsQuery.Data>() {
+        @SuppressLint("MissingPermission", "HardwareIds")
         override fun onResponse(response: Response<GetPimSettingsQuery.Data>) {
             Log.i("vehicleIdQuery", "reponse: ${response.data()}")
             val callBackVehicleID = response.data()?.pimSettings?.vehicleId()
-            val errorCode = response.data()?.pimSettings?.errorCode()
-            when(errorCode){
+            when(response.data()?.pimSettings?.errorCode()){
                     "1014" -> {
                            //this is where we would check for an android Id as well.
                         }
@@ -341,8 +364,9 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
             if(!response.hasErrors()){
                 if (callBackVehicleID != null) {
                     vehicleID = callBackVehicleID
-                    saveVehicleID(vehicleID)
-                    showUIForSavedVehicleID()
+                    val telephonyManager = context?.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
+                    val phoneNumber = telephonyManager.line1Number
+                    updatePimSettings(blueToothAddress,appVersion,phoneNumber,mAWSAppSyncClient!!, deviceId)
                     checkAuthorization(vehicleID, authManager)
                     if(checkedAndroidId){
                         updateDeviceId(deviceId,vehicleID)
@@ -383,6 +407,7 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
         }
         return "02:00:00:00:00:00"
     }
+    @SuppressLint("MissingPermission", "HardwareIds")
     private fun saveVehicleID(vehicleId: String) {
         val vehicleID = VehicleID(vehicleId)
         ModelPreferences(requireContext()).putObject(SharedPrefEnum.VEHICLE_ID.key, vehicleID)
@@ -391,6 +416,7 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
             showUIForSavedVehicleID()
             checkAuthorization(vehicleId, authManager)
         }
+
         Log.i(
             LogEnums.PIM_SETTING.tag,
             "Vehicle ID: ${vehicleID.vehicleID} saved to System Preferences"
@@ -567,12 +593,14 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
         }
     }
     private fun showAuthorizationToast(){
-        val toast =
-            Toast.makeText(context,
-                "Successful authorization of Square"
-                , Toast.LENGTH_LONG)
-        toast.setGravity(Gravity.TOP, 125, 0)
-        toast.show()
+        if(!stopSquare){
+            val toast =
+                Toast.makeText(context,
+                    "Successful authorization of Square"
+                    , Toast.LENGTH_LONG)
+            toast.setGravity(Gravity.TOP, 125, 0)
+            toast.show()
+        }
     }
     private fun showErrorToastNotAuthorized(){
         Toast.makeText(
@@ -581,10 +609,12 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
             .show()
     }
     private fun showErrorToastAlreadyAuthorized(){
-       Toast.makeText(context,
-           "Square SDK already authorized for $vehicleID",
-            Toast.LENGTH_LONG)
-            .show()
+        if(!stopSquare){
+            Toast.makeText(context,
+                "Square SDK already authorized for $vehicleID",
+                Toast.LENGTH_LONG)
+                .show()
+        }
     }
     private fun showErrorToastUsageReader(error: ResultError<ReaderSettingsErrorCode>){
         Toast.makeText(
@@ -609,12 +639,15 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
         toast.show()
     }
     private fun startReaderSettings(adapter: MyCustomAdapter) {
-        if(setup_complete_btn != null){
-            setup_complete_btn.isVisible = true
+        if(!stopSquare){
+            if(setup_complete_btn != null){
+                setup_complete_btn.isVisible = true
+            }
+            val readerManager = ReaderSdk.readerManager()
+            readerManager.startReaderSettingsActivity(requireContext())
+            updateChecklist(4, true, adapter)
         }
-        val readerManager = ReaderSdk.readerManager()
-        readerManager.startReaderSettingsActivity(requireContext())
-        updateChecklist(4, true, adapter)
+
     }
     private fun setUpKeyboard() {
         enter_pin_editText.setRawInputType(InputType.TYPE_CLASS_TEXT)
@@ -731,7 +764,7 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
         if (blueToothDevice != null){
             if (blueToothDevice.name.contains(squareReaderString)){
                 Log.i("BlueTooth", "Square Reader is Connected")
-                if (setup_complete_btn != null){
+                if (setup_complete_btn != null && !stopSquare){
                     launch(Dispatchers.Main.immediate) {
                         setup_complete_btn.isEnabled = true
                         updateChecklist(5,true, adapter as MyCustomAdapter)
@@ -747,6 +780,57 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
             }
         }
     }
+    private fun updatePimSettings(
+        blueToothAddress: String?,
+        appVersion: String?,
+        phoneNumber: String?,
+        appSyncClient: AWSAppSyncClient,
+        deviceId: String
+    ) {
+        val newDeviceId = DeviceIdCheck.getDeviceId() ?: ""
+        if (newDeviceId != "") {
+            val updatePimSettings = UpdatePIMSettingsInput
+                .builder()
+                .deviceId(newDeviceId)
+                .phoneNbr(phoneNumber)
+                .appVersion(appVersion)
+                .btAddress(blueToothAddress)
+                .build()
+            appSyncClient.mutate(
+                UpdatePimSettingsMutation.builder().parameters(updatePimSettings).build()
+            )?.enqueue(pimSettingsCallback)
+            LoggerHelper.writeToLog("Pim Mutation Helper: update pim settings: blueToothAddress: $blueToothAddress: AppVersion: $appVersion phoneNumber: $phoneNumber: deviceId:$deviceId to aws", LogEnums.TRIP_STATUS.tag)
+        }
+    }
+
+    private val pimSettingsCallback =
+        object : GraphQLCall.Callback<UpdatePimSettingsMutation.Data>(){
+            override fun onResponse(response: Response<UpdatePimSettingsMutation.Data>) {
+                if (response.data()?.updatePIMSettings()?.error() != null) {
+                    when(response.data()?.updatePIMSettings()?.errorCode()){
+                        "1016" -> {
+                            val errorMessage = response.data()?.updatePIMSettings()!!.error() ?: "Error for PIM Phone number"
+                            launch(Dispatchers.Main) {
+                                stopSquare = true
+                                if(setup_complete_btn != null){
+                                    setup_complete_btn.isVisible = false
+                                    setup_complete_btn.isEnabled = false
+                                }
+                                PIMDialogComposer.wrongPhoneNumberForPIM(activity!!, errorMessage, viewModel, keyboardViewModel, vehicleID, mAWSAppSyncClient!!)
+                            }
+
+                            LoggerHelper.writeToLog("Failed to update pim settings with phone number. Error: $errorMessage", LogEnums.ERROR.tag)
+                        }
+                    }
+                }
+                saveVehicleID(vehicleID)
+                LoggerHelper.writeToLog("PIM Settings Response: ${response.data()?.updatePIMSettings().toString()}", LogEnums.TRIP_STATUS.tag)
+            }
+
+            override fun onFailure(e: ApolloException) {
+                Log.i("Response", "response: $e")
+            }
+        }
     private fun setUpComplete(){
         val setUpStatus = SetupComplete(true)
         ModelPreferences(requireContext()).
@@ -788,9 +872,7 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
         ) {
             return
         }
-        val telephonyManager = context?.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
-        val phoneNumber = telephonyManager.line1Number
-        PIMMutationHelper.updatePimSettings(blueToothAddress, appVersion, phoneNumber, mAWSAppSyncClient!!, deviceId)
+
         super.onPause()
     }
     override fun onDestroy() {

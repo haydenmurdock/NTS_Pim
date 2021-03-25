@@ -1,12 +1,11 @@
 package com.example.nts_pim.data.repository
 
 import android.content.Context
-import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import com.example.nts_pim.data.repository.model_objects.CurrentTrip
 import com.example.nts_pim.data.repository.providers.ModelPreferences
-import com.example.nts_pim.utilities.enums.MeterEnum
+import com.example.nts_pim.utilities.enums.LogEnums
 import com.example.nts_pim.utilities.enums.SharedPrefEnum
 import com.example.nts_pim.utilities.enums.VehicleStatusEnum
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
@@ -101,9 +100,11 @@ object VehicleTripArrayHolder {
     private var cardInfo: String? = null
     private var declinedMessageForTrip: String? = null
 
-    private val logFragment = "Vehicle_Trip_Array_Holder"
+    private const val logFragment = "Vehicle_Trip_Array_Holder"
 
     var flaggedTestVehicles: MutableList<String> = mutableListOf("ccsi_U_1496", "ccsi_Y_6801")
+
+
 
 // Adds the status from the main activity app sync subscription. It goes to a live data array to be watched for changes. There is only 1 status in the array at all times.
 //E.g. "Trip_On_Site", "Trip_Assigned", "Trip_Picked_UP"
@@ -122,7 +123,7 @@ object VehicleTripArrayHolder {
             val checkForBTValue = checkForBluetoothStatus(status)
             this.tripStatus = checkForBTValue
             tripStatusMutableLiveData.postValue(this.tripStatus)
-            LoggerHelper.writeToLog("Internal pim status was changed. Trip Status: ${this.tripStatus}")
+            LoggerHelper.writeToLog("Internal pim status was changed. Trip Status: ${this.tripStatus}", LogEnums.TRIP_STATUS.tag)
         }
    }
 // Returns the trip status as Live Data
@@ -130,11 +131,9 @@ object VehicleTripArrayHolder {
 
     private fun checkForBluetoothStatus(status: String): String {
        if(status == VehicleStatusEnum.TRIP_CLOSED_BLUETOOTH.status){
-            Log.i("Bluetooth", "Vehicle status: ${VehicleStatusEnum.TRIP_CLOSED_BLUETOOTH.status}. Changing to status: ${VehicleStatusEnum.TRIP_CLOSED.status}")
            return VehicleStatusEnum.TRIP_CLOSED.status
        }
         if(status == VehicleStatusEnum.TRIP_END_BLUETOOTH.status){
-            Log.i("Bluetooth", "Vehicle status: ${VehicleStatusEnum.TRIP_END_BLUETOOTH.status}. Changing to status: ${VehicleStatusEnum.TRIP_END.status}")
             return VehicleStatusEnum.TRIP_END.status
         }
         return status
@@ -145,10 +144,9 @@ object VehicleTripArrayHolder {
     // need to add last part of where the meter change status is added for the first time.
     fun addMeterState(meterStateAWS: String) {
     if (meterStatePIM != meterStateAWS){
-        Log.i(logFragment,"METER STATE has changed from $meterStatePIM to $meterStateAWS")
         meterStatePIM = meterStateAWS
         meterStatePIMMutableLiveData.postValue(meterStateAWS)
-        LoggerHelper.writeToLog("Internal pim meter was changed. Meter Status: $meterStatePIM")
+        LoggerHelper.writeToLog("Internal pim meter was changed. Meter Status: $meterStatePIM", LogEnums.TRIP_STATUS.tag)
     }
 }
 // Returns the meter status as Live Data
@@ -160,7 +158,6 @@ object VehicleTripArrayHolder {
             if(enteredMeterValue != meterOwed){
                 meterOwed = enteredMeterValue
                 meterOwedMutableLiveData.value = meterOwed
-                Log.i("Results","METER VALUE has changed and $enteredMeterValue has been added to LiveData")
             }
    }
 // Returns the meter value as Live Data
@@ -181,15 +178,15 @@ object VehicleTripArrayHolder {
     }
 
     fun addTripId(enteredTripId: String, context: Context){
-        if(enteredTripId != tripId &&
-                enteredTripId != ""){
+        if(enteredTripId != tripId && enteredTripId != ""){
+            TripDetails.insertTripIdIntoCompleted(tripId)
             tripId = enteredTripId
             newTripHasStarted = true
             newTripHasStartedMutableLiveData.postValue(newTripHasStarted)
             createCurrentTrip(false, enteredTripId, "none", context)
             tripEnded = false
             tripEndedMutableLiveData.postValue(tripEnded)
-            LoggerHelper.writeToLog("Internal Trip Id was changed. Trip Id: $tripId")
+            LoggerHelper.writeToLog("Internal Trip Id was changed. Trip Id: $tripId", LogEnums.TRIP_STATUS.tag)
         }
     }
     fun newTripWasPickedUp(){
@@ -240,14 +237,13 @@ object VehicleTripArrayHolder {
         cardInfo = ""
         transDate = ""
         declinedMessageForTrip = null
-        Log.i("Results", "All Trip Information has been cleared")
-        LoggerHelper.writeToLog("All Trip Information has been cleared")
+        LoggerHelper.writeToLog("All Trip Information has been cleared", LogEnums.TRIP_STATUS.tag)
     }
 
     fun updateInternalPIMStatus(pimStatus: String){
         if(pimStatus != internalPIMStatus){
             internalPIMStatus = pimStatus
-            LoggerHelper.writeToLog("Pim status was updated internally to $internalPIMStatus")
+            LoggerHelper.writeToLog("Pim status was updated internally to $internalPIMStatus", LogEnums.TRIP_STATUS.tag)
         }
 
     }
@@ -264,7 +260,6 @@ object VehicleTripArrayHolder {
         }
         if(currentTrip.tripID != oldTrip?.tripID && currentTrip.tripID != ""){
             // this is a new trip and needs to update Trip id
-            Log.i("currentTrip", "Current Trip Created: ${currentTrip.tripID}")
             ModelPreferences(context)
                 .putObject(SharedPrefEnum.CURRENT_TRIP.key, currentTrip)
         }
@@ -326,18 +321,12 @@ object VehicleTripArrayHolder {
     }
     fun getTipAmount() = tripTipAmount
 
-    fun setPimPayment(awsPimPayAmount: Double){
+    fun setPimPayment(receivedPamPayAmount: Double){
         val meterState = getMeterState().value
-        pimPayAmount = awsPimPayAmount
+        pimPayAmount = receivedPamPayAmount
         pimPayAmountMutableLiveDate.postValue(pimPayAmount)
-        Log.i("Results", "pim pay amount has changed to $pimPayAmount")
-        LoggerHelper.writeToLog("pim pay amount has changed to $pimPayAmount internally. Meter State is $meterState")
-        }
-//    else {
-//            Log.i("Results", "Pim pay amount was not updated internally. meterState == $meterState")
-//            LoggerHelper.writeToLog("Pim pay amount was not updated internally. meterState == $meterState")
-//        }
-
+        LoggerHelper.writeToLog("pim pay amount has changed to $pimPayAmount internally. Meter State is $meterState", LogEnums.TRIP_STATUS.tag)
+    }
 
     fun getPimPayAmount() = pimPayAmount
 
@@ -388,11 +377,9 @@ object VehicleTripArrayHolder {
     fun setCardInfoPlusDate(info: String, date: String){
         if(info != cardInfo){
             cardInfo = info
-            Log.i("$logFragment", "Card info updated internally. Card = $cardInfo")
         }
         if(date != transDate){
             transDate = date
-            Log.i("$logFragment", "Transaction date info updated internally. TransDate = $transDate")
         }
     }
 
@@ -409,29 +396,25 @@ object VehicleTripArrayHolder {
 
     fun updateReaderStatus(status: String){
         cardReaderStatus = status
-        Log.i("Square", "Internal data: Reader Status updated: $cardReaderStatus")
-        LoggerHelper.writeToLog("Square, Card Reader Status updated: $cardReaderStatus")
+        LoggerHelper.writeToLog("Square, Card Reader Status updated: $cardReaderStatus", LogEnums.SQUARE.tag)
     }
 
     fun readerStatusHasBeenChecked(){
         cardReaderStatusHasBeenChecked = true
         cardReaderStatusHasBeenCheckedMLD.postValue(cardReaderStatusHasBeenChecked)
-        Log.i("Square", "Internal data: Reader Status has been checked: $cardReaderStatusHasBeenChecked")
-        LoggerHelper.writeToLog("Square, Card Reader Status has been checked: $cardReaderStatusHasBeenChecked")
+        LoggerHelper.writeToLog("Square, Card Reader Status has been checked: $cardReaderStatusHasBeenChecked", LogEnums.SQUARE.tag)
     }
 
     fun readerStatusNeedsToBeCheckedAgain(){
         cardReaderStatusHasBeenChecked = false
         cardReaderStatusHasBeenCheckedMLD.postValue(cardReaderStatusHasBeenChecked)
-        Log.i("Square", "Internal data: Needs to be checked again: readerStatusHasBeenChecked: $cardReaderStatusHasBeenChecked")
-        LoggerHelper.writeToLog("Square, needs to be checked again: readerStatusHasBeenChecked: $cardReaderStatusHasBeenChecked")
+        LoggerHelper.writeToLog("Square, needs to be checked again: readerStatusHasBeenChecked: $cardReaderStatusHasBeenChecked", LogEnums.SQUARE.tag)
     }
 
     fun needToReAuthorizeSquare(){
         needToReAuthSquare = true
         needToReAuthSquareMLD.postValue(needToReAuthSquare)
-        Log.i("Square", "Internal data: needToReAuthSquare: $needToReAuthSquare")
-        LoggerHelper.writeToLog("Square, Square needs needs to be to be reAuthorized")
+        LoggerHelper.writeToLog("Square, Square needs needs to be to be reAuthorized", LogEnums.SQUARE.tag)
     }
 
     fun doWeNeedToReAuthorizeSquare() = needToReAuthSquareMLD as LiveData<Boolean>
@@ -471,7 +454,7 @@ object VehicleTripArrayHolder {
 
     internal fun insertPaymentMethod(mPaymentMethod: String){
         if(mPaymentMethod != paymentMethod){
-            LoggerHelper.writeToLog("$logFragment, payment method was updated from $paymentMethod to $mPaymentMethod")
+            LoggerHelper.writeToLog("$logFragment, payment method was updated from $paymentMethod to $mPaymentMethod", LogEnums.TRIP_STATUS.tag)
             paymentMethod = mPaymentMethod
         }
     }

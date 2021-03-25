@@ -2,7 +2,6 @@ package com.example.nts_pim
 
 import android.app.Application
 import android.content.Context
-import android.util.Log
 import com.example.nts_pim.data.repository.trip_repository.TripRepository
 import com.example.nts_pim.data.repository.trip_repository.TripRepositoryImpl
 import com.example.nts_pim.fragments_viewmodel.check_vehicle_info.CheckVehicleInfoModelFactory
@@ -16,6 +15,7 @@ import com.example.nts_pim.fragments_viewmodel.vehicle_settings_detail.VehicleSe
 import com.example.nts_pim.fragments_viewmodel.vehicle_setup.VehicleSetupModelFactory
 import com.example.nts_pim.fragments_viewmodel.welcome.WelcomeViewModelFactory
 import com.example.nts_pim.utilities.LifeCycleCallBacks
+import com.example.nts_pim.utilities.enums.LogEnums
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import com.jakewharton.threetenabp.AndroidThreeTen
 import com.squareup.sdk.reader.ReaderSdk
@@ -66,11 +66,10 @@ class PimApplication : Application(), KodeinAware{
             registerActivityLifecycleCallbacks(LifeCycleCallBacks())
             try {
                 ReaderSdk.initialize(this)
+                LoggerHelper.writeToLog("Square's Reader SDK initialized", LogEnums.SQUARE.tag)
             } catch(e: Exception){
-               LoggerHelper.writeToLog("issue initializing square. Error: $e")
+               LoggerHelper.writeToLog("Issue initializing square. Error: $e", LogEnums.SQUARE.tag)
             }
-
-            Log.i("LOGGER",   "initialized readerSDK")
         }
 
 }

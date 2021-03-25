@@ -21,6 +21,7 @@ import org.kodein.di.android.x.closestKodein
 import org.kodein.di.generic.instance
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
+import com.airbnb.lottie.L
 import com.amazonaws.amplify.generated.graphql.GetTripQuery
 import com.amazonaws.mobileconnectors.appsync.fetcher.AppSyncResponseFetchers
 import com.apollographql.apollo.GraphQLCall
@@ -95,7 +96,7 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
             tripId = currentTrip!!.tripID
             if(!isBluetoothOn){
                 getMeterOwedQuery(tripId)
-                LoggerHelper.writeToLog("$logFragment: had to query Meter Owed for $tripId")
+                LoggerHelper.writeToLog("$logFragment: Had to query Meter Owed for $tripId", LogEnums.TRIP_STATUS.tag)
             }
         }
 
@@ -108,7 +109,7 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
         meterValue = callbackViewModel.getPimPayAmount().toString()
         meterState = callbackViewModel.getMeterState().value.toString()
         if(meterState == "off"){
-            LoggerHelper.writeToLog("$meterState was off so switching internal meter to ON")
+            LoggerHelper.writeToLog("$meterState was off so switching internal meter to ON", LogEnums.TRIP_STATUS.tag)
             callbackViewModel.addMeterState("ON")
         }
 
@@ -125,14 +126,13 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
                 if(textToSpeechMode){
                     playAccessibilityMessage("Meter Value $meterValue")
                 }
-                LoggerHelper.writeToLog("$logFragment: Meter UI is displaying $meterValue")
+                LoggerHelper.writeToLog("$logFragment: Meter UI is displaying $meterValue", LogEnums.TRIP_STATUS.tag)
             }
         })
         callbackViewModel.getMeterState().observe(this.viewLifecycleOwner, Observer {AWSMeterState ->
             meterState = AWSMeterState
             if (meterState == MeterEnum.METER_TIME_OFF.state){
-                Log.i("Live Meter", "Meter Screen: meter state observer changed: $meterState")
-                LoggerHelper.writeToLog("Meter Screen: meter state observer changed: $meterState")
+                LoggerHelper.writeToLog("Meter Screen: meter state observer changed: $meterState", LogEnums.TRIP_STATUS.tag)
                 if(audioManager!!.isMicrophoneMute && !timeOffSoundPlayed){
                     playTimeOffSound()
                 }
@@ -143,7 +143,6 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
             //This is for account trips that have already been paid.
             if(tripStatus == VehicleStatusEnum.TRIP_CLOSED.status
                 || tripStatus == VehicleStatusEnum.TRIP_END.status){
-                Log.i("Live Meter", "Trip Status: $tripStatus, pushed to email/text screen")
                 toEmailText()
             }
         })
@@ -154,7 +153,6 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
         if(isBluetoothOn){
             val dataObject = NTSPimPacket.PimStatusObj()
             val statusObj =  NTSPimPacket(NTSPimPacket.Command.PIM_STATUS, dataObject)
-            Log.i("Bluetooth", "status request packet to be sent == $statusObj")
             (activity as MainActivity).sendBluetoothPacket(statusObj)
         }
     }
@@ -173,9 +171,7 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
         }
     }
     private fun playAccessibilityMessage(messageToSpeak: String) {
-        Log.i("TTS", "playing meter amount")
-
-        LoggerHelper.writeToLog("$logFragment,  Pim Read $messageToSpeak to customer")
+        LoggerHelper.writeToLog("$logFragment,  Pim Read $messageToSpeak to customer", LogEnums.TEXT_READER.tag)
     }
 
     private fun toEmailText(){
@@ -197,7 +193,6 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
         val args = arguments?.getFloat("meterTotal")
         val checkAgainst = 00.00.toFloat()
         if(args != null && args != checkAgainst){
-            Log.i("Live Meter", "The Data is coming from Trip Review")
             initialMeterValueSet = true
         }
     }
@@ -252,14 +247,14 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
     private fun reSyncComplete() = launch(Dispatchers.Main.immediate) {
         callbackViewModel.updateCurrentTrip(true, tripId, meterState, requireContext())
         callbackViewModel.reSyncComplete()
-        LoggerHelper.writeToLog("$logFragment: Resync Complete")
+        LoggerHelper.writeToLog("$logFragment: Resync Complete", LogEnums.TRIP_STATUS.tag)
     }
 
     private fun playTimeOffSound(){
         SoundHelper.turnOnSound(requireContext())
         val mediaPlayer = MediaPlayer.create(context, R.raw.time_off_test_sound)
         mediaPlayer.setOnCompletionListener {
-            LoggerHelper.writeToLog("$logFragment: Time Off Sound Played")
+            LoggerHelper.writeToLog("$logFragment: Time Off Sound Played", LogEnums.TRIP_STATUS.tag)
             mediaPlayer.release()
         }
         mediaPlayer.start()
@@ -268,7 +263,7 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
 
     override fun onResume() {
         super.onResume()
-        LoggerHelper.writeToLog("Live Meter onResume hit")
+        LoggerHelper.writeToLog("Live Meter onResume hit", LogEnums.LIFE_CYCLE.tag)
     }
 
     override fun onPause() {
@@ -283,7 +278,6 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
                 callbackViewModel.getTripStatus().removeObservers(this)
             }
         requestMeterStateValueTimer?.cancel()
-        Log.i("Observer", "Live Meter observer removed.")
         super.onDestroy()
     }
 }

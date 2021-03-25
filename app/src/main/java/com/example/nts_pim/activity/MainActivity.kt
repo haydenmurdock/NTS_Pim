@@ -32,6 +32,7 @@ import com.apollographql.apollo.GraphQLCall
 import com.apollographql.apollo.api.Response
 import com.apollographql.apollo.exception.ApolloException
 import com.example.nts_pim.*
+import com.example.nts_pim.data.repository.TripDetails
 import com.example.nts_pim.data.repository.VehicleTripArrayHolder
 import com.example.nts_pim.data.repository.model_objects.CurrentTrip
 import com.example.nts_pim.data.repository.providers.ModelPreferences
@@ -46,10 +47,7 @@ import com.example.nts_pim.receivers.BluetoothReceiver
 import com.example.nts_pim.receivers.NetworkReceiver
 import com.example.nts_pim.utilities.bluetooth_helper.*
 import com.example.nts_pim.utilities.driver_receipt.DriverReceiptHelper
-import com.example.nts_pim.utilities.enums.MeterEnum
-import com.example.nts_pim.utilities.enums.PIMStatusEnum
-import com.example.nts_pim.utilities.enums.PaymentTypeEnum
-import com.example.nts_pim.utilities.enums.SharedPrefEnum
+import com.example.nts_pim.utilities.enums.*
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import com.example.nts_pim.utilities.mutation_helper.PIMMutationHelper
 import com.example.nts_pim.utilities.overheat_email.OverHeatEmail
@@ -65,6 +63,7 @@ import org.json.JSONObject
 import org.kodein.di.KodeinAware
 import org.kodein.di.android.closestKodein
 import org.kodein.di.generic.instance
+import java.lang.IllegalStateException
 import java.util.*
 import kotlin.coroutines.CoroutineContext
 
@@ -119,6 +118,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
         lateinit var mainActivity: MainActivity
         lateinit var navigationController: NavController
     }
+    @ExperimentalStdlibApi
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -145,7 +145,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
         callbackViewModel.getTripHasEnded().observe(this, Observer { tripEnded ->
             if (tripEnded) {
                 meterStateQueryComplete = false
-                LoggerHelper.writeToLog("$logFragment, Trip ended and meterStateQueryComplete is set to false")
+                LoggerHelper.writeToLog("$logFragment, Trip ended and meterStateQueryComplete is set to false", logFragment)
             }
         })
         turnOnBluetooth()
@@ -154,6 +154,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
         LoggerHelper.getOrStartInternalLogs()
         callbackViewModel.getReSyncStatus().observe(this, Observer { reSync ->
             if (reSync) {
+                LoggerHelper.writeToLog("ReSync was true on MainActivity. ReSyncing trip.", LogEnums.AWS_SUBSCRIPTION.tag)
                 resync = reSync
                 vehicleId = viewModel.getVehicleID()
                 internetConnection = isOnline(this)
@@ -164,7 +165,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                     .getObject(SharedPrefEnum.CURRENT_TRIP.key, CurrentTrip::class.java)
                 lastTrip = currentTrip
                 if  (!vehicleSubscriptionComplete) {
-                    Log.i("Results", "Vehicle subscription was started from re-sync")
+                    LoggerHelper.writeToLog("Vehicle subscription was started from re-sync", LogEnums.AWS_SUBSCRIPTION.tag)
                     subscribeToUpdateVehTripStatus(vehicleId)
                     subscribeToUpdatePimSettings()
                 }
@@ -189,7 +190,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                     if(!isBluetoothOnAWS){
                         getMeterOwedQuery(currentTripId)
                     }
-                    LoggerHelper.writeToLog("${logFragment}, New trip was started by the driver while the pim trip was not finished")
+                    LoggerHelper.writeToLog("${logFragment}, New trip was started by the driver while the pim trip was not finished", logFragment)
                     callbackViewModel.getMeterState().observe(this, Observer { meterValue ->
                         if(meterValue == MeterEnum.METER_ON.state){
                             sendDriverReceipt()
@@ -203,7 +204,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                         "TripStart",
                         "current Nav destination is ${navController.currentDestination.toString()}. resync == $resync"
                     )
-                    LoggerHelper.writeToLog("${logFragment}, Driver tried to start new trip, but the Pim was on Welcome/taxi number/bluetoothsetup screen")
+                    LoggerHelper.writeToLog("${logFragment}, Driver tried to start new trip, but the Pim was on Welcome/taxi number/bluetoothsetup screen", logFragment)
                 }
             }
             callbackViewModel.isPIMOverheating().observe(this, Observer {overheating ->
@@ -215,7 +216,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                         OverHeatEmail.sendMail(vehicleId, startTime, overheat)
                             .subscribeOn(Schedulers.io())
                             .observeOn(AndroidSchedulers.mainThread())
-                            .subscribe{(LoggerHelper.writeToLog("Overheating email sent: overheat timeStamp:$overheat"))
+                            .subscribe{(LoggerHelper.writeToLog("Overheating email sent: overheat timeStamp:$overheat", LogEnums.OVERHEATING.tag))
                                 VehicleTripArrayHolder.updateInternalPIMStatus(PIMStatusEnum.OVERHEATING.status)
                                 val dataObject = NTSPimPacket.PimStatusObj()
                                 val statusObj =  NTSPimPacket(NTSPimPacket.Command.PIM_STATUS, dataObject)
@@ -235,11 +236,11 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
             if(!onlineStatus && mSuccessfulSetup){
                 clearAllSubscriptions()
             }
-            if(onlineStatus &&
-                !vehicleSubscriptionComplete &&
-                mSuccessfulSetup){
+            if(onlineStatus && !vehicleSubscriptionComplete && mSuccessfulSetup){
                 watchingTripId = ""
+                 isBluetoothOnAWS = BluetoothDataCenter.isBluetoothOn().value ?: false
                 if(!isBluetoothOnAWS) {
+                    LoggerHelper.writeToLog("Subscribing to vehicle in aws via pim online check", LogEnums.AWS_SUBSCRIPTION.tag)
                     subscribeToUpdateVehTripStatus(vehicleId)
                 }
                 if(navigationController.currentDestination?.id == R.id.live_meter_fragment ||
@@ -261,11 +262,13 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                         val bAdapter = bluetoothAdapter
                         if(bAdapter != null) {
                             blueToothAddressDriverTablet = BluetoothDataCenter.getDriverTabletAddress()
-                            if(blueToothAddressDriverTablet != "" && blueToothAddressDriverTablet != null){
+                            if(blueToothAddressDriverTablet != "" &&
+                                blueToothAddressDriverTablet != null &&
+                                blueToothAddressDriverTablet != " " &&
+                                BluetoothDataCenter.isBluetoothAddressFormatted(blueToothAddressDriverTablet)){
                                 driverTablet = bAdapter.getRemoteDevice(blueToothAddressDriverTablet)
                             } else {
-                                Log.i("Bluetooth", "Issue with driver's bluetooth address. It is either blank or null when fetched to setup driver tablet connection. Driver Bt address == $blueToothAddressDriverTablet")
-                                LoggerHelper.writeToLog("Bluetooth, Issue with driver's bluetooth address. It is either blank or null when fetched to setup driver tablet connection. Driver Bt address == $blueToothAddressDriverTablet")
+                                LoggerHelper.writeToLog("Bluetooth, Issue with driver's bluetooth address. It is either blank or null when fetched to setup driver tablet connection. Driver Bt address == $blueToothAddressDriverTablet", LogEnums.BLUETOOTH.tag)
                             }
                         }
                         val setupComplete = viewModel.isSetUpComplete()
@@ -273,65 +276,78 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                                     Log.i("Bluetooth", "trying to start connect thread. connect thread status: Running: ${connectThread?.isAlive}")
                                     connectThread = ConnectThread(driverTablet!!, this)
                                     connectThread?.start()
-                                    Log.i("Bluetooth", "Driver tablet != null and setup was complete. Starting ConnectThread")
+                                    LoggerHelper.writeToLog("Driver tablet != null and setup was complete. Starting ConnectThread", LogEnums.BLUETOOTH.tag)
                         } else {
-                            Log.i("Bluetooth", "Connect thread didn't start. driverTablet: $driverTablet. Setup: $mSuccessfulSetup")
-                            LoggerHelper.writeToLog("Connect thread didn't start. driverTablet: $driverTablet. Setup: $mSuccessfulSetup")
+                            LoggerHelper.writeToLog("Connect thread didn't start. driverTablet: $driverTablet. Setup: $mSuccessfulSetup", LogEnums.BLUETOOTH.tag)
                         }
                     }
                     if(!deviceIsFound){
-                        Log.i("Bluetooth", "Driver tablet was lost/not connected")
-                        LoggerHelper.writeToLog("Driver tablet was lost/not connected")
+                        LoggerHelper.writeToLog("Driver tablet was lost/not connected", LogEnums.BLUETOOTH.tag)
                     }
                 })
             }
         })
         BluetoothDataCenter.isBluetoothSocketConnected().observe(this, Observer { socketConnected ->
             if(isBluetoothOnAWS && socketConnected) {
-                Log.i("Bluetooth", "Socket is connected and aws bluetooth is on. Creating read/write thread")
-                LoggerHelper.writeToLog("Socket is connected and aws bluetooth is on. Creating read/write thread")
+                LoggerHelper.writeToLog("Socket is connected and aws bluetooth is on. Creating read/write thread", LogEnums.BLUETOOTH.tag)
                 val socket = BluetoothDataCenter.getBTSocket()
                 if (socket != null) {
                     if (readThread == null) {
                         readThread = ReadThread(socket, this)
-                        LoggerHelper.writeToLog("ReadThread is created. It was previously null on MainActivity")
-                        Log.i("Bluetooth", "ReadThread is created. It was previously null on MainActivity")
+                        LoggerHelper.writeToLog("ReadThread is created. It was previously null on MainActivity", LogEnums.BLUETOOTH.tag)
                     } else {
-                        Log.i("Bluetooth", "ReadThread was already created. ReadThread Status of is alive: ${readThread!!.isAlive}")
+                        LoggerHelper.writeToLog("ReadThread was already created. ReadThread Status of is alive: ${readThread!!.isAlive}", LogEnums.BLUETOOTH.tag)
                     }
                     if (writeThread == null) {
                         writeThread = WriteThread(socket, this)
-                        LoggerHelper.writeToLog("WriteThread is created. It was previously null on MainActivity")
-                        Log.i("Bluetooth", "WriteThread is created. It was previously null on MainActivity")
-
+                        LoggerHelper.writeToLog("WriteThread is created. It was previously null on MainActivity", LogEnums.BLUETOOTH.tag)
                     }
                     else {
-                        Log.i("Bluetooth", "WriteThread was already created. ReadThread Status of is alive: ${writeThread!!.isAlive}")
+                        LoggerHelper.writeToLog("WriteThread was already created. ReadThread Status of is alive: ${writeThread!!.isAlive}", LogEnums.BLUETOOTH.tag)
                     }
                     if (ackThread == null) {
                         ackThread = ACKThread(socket, this)
-                        LoggerHelper.writeToLog("ACKThread is created. It was previously null on MainActivity")
-                        Log.i("Bluetooth", "ACKThread is created. It was previously null on MainActivity")
+                        LoggerHelper.writeToLog("ACKThread is created. It was previously null on MainActivity", LogEnums.BLUETOOTH.tag)
                     } else {
-                        Log.i("Bluetooth", "ACKThread was already created. ReadThread Status of is alive: ${ackThread!!.isAlive}")
+                        LoggerHelper.writeToLog("AckThread was already created. ReadThread Status of is alive: ${ackThread!!.isAlive}", LogEnums.BLUETOOTH.tag)
                     }
-                    readThread?.start()
-                    LoggerHelper.writeToLog("ReadThread is started on MainActivity")
-                    Log.i("Bluetooth", "ReadThread is started on  MainActivity")
-                    writeThread?.start()
-                    LoggerHelper.writeToLog("WriteThread is started on MainActivity")
-                    Log.i("Bluetooth", "WriteThread is started on  MainActivity")
-                    ackThread?.start()
-                    LoggerHelper.writeToLog("ACKThread is started on MainActivity")
-                    Log.i("Bluetooth", "ACKThread is started on  MainActivity")
-                    requestDriverTabletStatus()
-                    clearVehicleOfAWSTripSubscription()
+                    if(!readThread!!.isAlive)
+                        try {
+                            readThread?.start()
+                            LoggerHelper.writeToLog("ReadThread is started on MainActivity", LogEnums.BLUETOOTH.tag)
+                        } catch (e: IllegalStateException){
+                            LoggerHelper.writeToLog("Tried to start Read Thread, but caught error for illegal state exception. $e", LogEnums.BLUETOOTH.tag)
+                        }
+
+                    }
+
+                    if(!writeThread!!.isAlive){
+                        try {
+                            writeThread?.start()
+                            LoggerHelper.writeToLog("WriteThread is started on MainActivity", LogEnums.BLUETOOTH.tag)
+                        } catch (e: IllegalStateException){
+                            LoggerHelper.writeToLog("Tried to start Write Thread, but caught error for illegal state exception. $e", LogEnums.BLUETOOTH.tag)
+                        }
+
+                    }
+                    if(!ackThread!!.isAlive){
+                        try {
+                            ackThread?.start()
+                            LoggerHelper.writeToLog("ACKThread is started on MainActivity", LogEnums.BLUETOOTH.tag)
+
+                        } catch (e: IllegalStateException){
+                            LoggerHelper.writeToLog("Tried to start ACK Thread, but caught error for illegal state exception. $e", LogEnums.BLUETOOTH.tag)
+                        }
+                    }
+                    if(ackThread!!.isAlive && writeThread!!.isAlive && readThread!!.isAlive){
+                        requestDriverTabletStatus()
+                        clearVehicleOfAWSTripSubscription()
+                    }
                 }
-            }
             if(isBluetoothOnAWS && !socketConnected){
                 val socket = BluetoothDataCenter.getBTSocket()
                 if(socket == null){
-                    Log.i("Bluetooth", "The socket connection hasn't happened for the first time")
+                    LoggerHelper.writeToLog("The socket connection hasn't happened for the first time", LogEnums.BLUETOOTH.tag)
                 }
             }
         })
@@ -339,22 +355,18 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
             if(!readWriteConnected){
                 val socket = BluetoothDataCenter.getBTSocket()
                 if(socket != null){
-//                    connectThread?.cancel()
-//                    Log.i("Bluetooth", "Connect_Thread is canceled on  MainActivity")
-//                    connectThread = null
                     readThread?.cancel()
-                    Log.i("Bluetooth", "Read_Thread is canceled on  MainActivity")
+                    LoggerHelper.writeToLog("Read_Thread is canceled on  MainActivity", LogEnums.BLUETOOTH.tag)
                     writeThread?.cancel()
-                    Log.i("Bluetooth", "Write_Thread is canceled on  MainActivity")
+                    LoggerHelper.writeToLog("Write_Thread is canceled on  MainActivity", LogEnums.BLUETOOTH.tag)
                     ackThread?.cancel()
-                    Log.i("Bluetooth", "ack_Thread is canceled on  MainActivity")
+                    LoggerHelper.writeToLog("ACK_Thread is canceled on  MainActivity", LogEnums.BLUETOOTH.tag)
                     writeThread = null
                     readThread = null
                     ackThread = null
                     //This restart connection with same device will trigger the MainActivity: BluetoothDataCenter.getIsDeviceFound().observe(this, Observer {deviceIsFound ->
                     BluetoothDataCenter.restartConnectionWithSameDevice()
-                    Log.i("Bluetooth", "Issue with read or write thread. Tablet lost connection")
-                    LoggerHelper.writeToLog("Issue with read/write thread. Tablet lost connection")
+                    LoggerHelper.writeToLog("Issue with read/write thread. Tablet lost connection", LogEnums.BLUETOOTH.tag)
                 }
             }
         })
@@ -362,15 +374,15 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
 
     fun sendBluetoothPacket(ntsPimPacket: NTSPimPacket){
         val byteArrayToSend = toBytes(ntsPimPacket)
-        Log.i("Bluetooth", "Sending packet to driver tablet. Command: ${ntsPimPacket.command} Data: ${ntsPimPacket.packetData}")
-        LoggerHelper.writeToLog("Sending packet to driver tablet. Command: ${ntsPimPacket.command} Data: ${ntsPimPacket.packetData}")
+        LoggerHelper.writeToLog("Sending packet to driver tablet. Command: ${ntsPimPacket.command} Data: ${ntsPimPacket.packetData}", LogEnums.BLUETOOTH.tag)
         writeThread?.write(byteArrayToSend)
 
     }
 
     fun sendACKPacket(ntsPimPacket: NTSPimPacket){
         val byteArrayToSend = toBytes(ntsPimPacket)
-        LoggerHelper.writeToLog("Main Activity: Sending ack packet code hit")
+        LoggerHelper.writeToLog("Sending ack packet via MainActivity. Writing to ACK Thread", LogEnums.BLUETOOTH.tag)
+        clearAllSubscriptions()
         ackThread?.write(byteArrayToSend)
     }
 
@@ -378,8 +390,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
         val isBluetoothOn = BluetoothDataCenter.isBluetoothOn().value ?: false
         if(isBluetoothOn){
             val statusObj = NTSPimPacket(NTSPimPacket.Command.STATUS_REQ, null)
-            Log.i("Bluetooth", "requesting status request from driver tablet")
-            LoggerHelper.writeToLog("requesting status request from driver tablet")
+            LoggerHelper.writeToLog("requesting status request from driver tablet", LogEnums.BLUETOOTH.tag)
             sendBluetoothPacket(statusObj)
         }
     }
@@ -418,14 +429,8 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
         if (!isBluetoothOnAWS){
           clearVehicleOfAWSPIMSubscription()
         } else {
-            LoggerHelper.writeToLog("PIM is suppose to use bluetooth. keeping subscription to pimSettings and Unpair pim")
-            Log.i(
-                "Bluetooth",
-                "PIM is suppose to use bluetooth. keeping subscription to pimSettings and Unpair pim"
-            )
+            //LoggerHelper.writeToLog("PIM is suppose to use bluetooth. keeping subscription to pimSettings and Unpair pim", LogEnums.BLUETOOTH.tag)
         }
-        LoggerHelper.writeToLog("Canceled all subscriptions")
-        Log.i("$logFragment", "Canceled all subscriptions")
     }
 
     private fun clearVehicleOfAWSTripSubscription(){
@@ -435,8 +440,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
         subscriptionWatcherDoPimPayment = null
         subscriptionWatcherUpdateVehTripStatus?.cancel()
         subscriptionWatcherUpdateVehTripStatus = null
-        LoggerHelper.writeToLog("Canceled subscription to driver tablet for trip info")
-        Log.i("$logFragment", "Canceled subscription to driver tablet for trip info")
+        LoggerHelper.writeToLog("Canceled subscription to driver tablet for trip info", LogEnums.AWS_SUBSCRIPTION.tag)
     }
 
     private fun clearVehicleOfAWSPIMSubscription(){
@@ -444,13 +448,14 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
         subscriptionWatcherUpdatePimSettings = null
         subscriptionWatcherUnPairPIM?.cancel()
         subscriptionWatcherUnPairPIM = null
-        LoggerHelper.writeToLog("Canceled subscription to PIM in AWS")
-        Log.i("$logFragment", "Canceled subscription to PIM in AWS")
+        LoggerHelper.writeToLog("Canceled subscription to PIM in AWS", LogEnums.AWS_SUBSCRIPTION.tag)
     }
+
 
     internal fun restartDriverTabletAWSConnection(){
         // We use this in case the bluetooth connection is continually lost and it has already been set up
         //  or AWS has switched back to internet from bluetooth.
+        LoggerHelper.writeToLog("Restarting driver tablet AWS connection", LogEnums.AWS_SUBSCRIPTION.tag)
         vehicleSubscriptionComplete = false
         tripSubscriptionComplete = false
         val vehicleId = viewModel.getVehicleID()
@@ -470,6 +475,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
     private fun insertMeterState(string: String) = launch {
         callbackViewModel.addMeterState(string)
     }
+
     private fun subscribeToUpdateVehTripStatus(vehicleId: String){
         if(!vehicleSubscriptionComplete && isOnline(applicationContext)) {
             vehicleSubscriptionComplete = true
@@ -478,14 +484,12 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
             if (subscriptionWatcherUpdateVehTripStatus == null) {
                 subscriptionWatcherUpdateVehTripStatus = mAWSAppSyncClient?.subscribe(subscription)
                 subscriptionWatcherUpdateVehTripStatus?.execute(subscribeToUpdateVehCallback)
-                LoggerHelper.writeToLog("subscription for vehicle subscription was created. Subscribing to vehicle Id: $vehicleId")
-                Log.i("vehicle_subscription", "subscription for vehicle subscription was created. Subscribing to vehicle Id: $vehicleId")
+                LoggerHelper.writeToLog("subscription for vehicle subscription was created. Subscribing to vehicle Id: $vehicleId", LogEnums.AWS_SUBSCRIPTION.tag)
             } else {
                 subscriptionWatcherUpdateVehTripStatus?.cancel()
                 subscriptionWatcherUpdateVehTripStatus = mAWSAppSyncClient?.subscribe(subscription)
                 subscriptionWatcherUpdateVehTripStatus?.execute(subscribeToUpdateVehCallback)
-                LoggerHelper.writeToLog("subscription for vehicle subscription existed. Canceled prior subscription and subscribed to vehicle Id: $vehicleId")
-                Log.i("vehicle_subscription", "subscription for vehicle subscription existed. Canceled prior subscription and subscribed to vehicle Id: $vehicleId")
+                LoggerHelper.writeToLog("subscription for vehicle subscription existed. Canceled prior subscription and subscribed to vehicle Id: $vehicleId", LogEnums.AWS_SUBSCRIPTION.tag)
             }
         }
         if(!unpairPIMSubscription){
@@ -501,6 +505,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
             }
         }
     }
+
     private var subscribeToUpdateVehCallback = object: AppSyncSubscriptionCall.Callback<OnUpdateVehTripStatusSubscription.Data>{
         override fun onResponse(response: Response<OnUpdateVehTripStatusSubscription.Data>) {
             val pimStatus = response.data()?.onUpdateVehTripStatus()?.pimStatus()
@@ -515,10 +520,14 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                 insertTripStatus(tripStatus)
             }
             if (!awsTripId.isNullOrBlank()) {
-                insertTripId(awsTripId)
-                Log.i("vehicle_subscription", "AWS trip Id wasn't null or blank. Subscripting to $awsTripId")
-                subscribeToDoPIMPayment(awsTripId)
-                tripId = awsTripId
+                if (!TripDetails.completedTripIds.contains(awsTripId)) {
+                    insertTripId(awsTripId)
+                    LoggerHelper.writeToLog("AWS trip Id wasn't null or blank. Subscribing to $awsTripId", LogEnums.AWS_SUBSCRIPTION.tag)
+                    subscribeToDoPIMPayment(awsTripId)
+                    tripId = awsTripId
+                } else {
+                    LoggerHelper.writeToLog("AWS trip id wasn't null or blank, but was found in completed trip Id's array. Ignoring tripId subscription", LogEnums.AWS_SUBSCRIPTION.tag)
+                }
             } else {
                 if(navigationController.currentDestination?.id != R.id.welcome_fragment &&
                     navigationController.currentDestination?.id != R.id.bluetoothSetupFragment &&
@@ -532,20 +541,20 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                             getMeterOwedQuery(tripId)
                             subscribeToDoPIMPayment(currentTrip.tripID)
                         }
-                        Log.i("test", "trip subscription awsTripId was null so we needed to use the last trip Id to subscribe to")
                     }
                 }
             }
         }
-
         override fun onFailure(e: ApolloException) {
             vehicleSubscriptionComplete = false
             subscriptionWatcherUpdateVehTripStatus?.cancel()
             subscriptionWatcherUpdateVehTripStatus = null
-            LoggerHelper.writeToLog("On failure for subscription vehicle subscription. Error: ${e.message}")
+            LoggerHelper.writeToLog("On failure for subscription vehicle subscription. Error: ${e.message}", LogEnums.AWS_SUBSCRIPTION.tag)
         }
 
-        override fun onCompleted() {}
+        override fun onCompleted() {
+
+        }
     }
 
 
@@ -553,13 +562,10 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
         override fun onResponse(response: Response<OnPimUnpairSubscription.Data>) {
             if (!response.hasErrors()) {
                 val isPimPaired = response.data()?.onPIMUnpair()?.paired()!!
-                if (!isPimPaired) {
+                if(!isPimPaired) {
                     insertPimPairedChange(isPimPaired)
                 }
-            } else {
-                Log.i("Errors", "${response.errors()}")
             }
-
         }
         override fun onFailure(e: ApolloException) {
             unpairPIMSubscription = false
@@ -579,20 +585,16 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
             if(subscriptionWatcherDoPimPayment == null) {
                 subscriptionWatcherDoPimPayment = mAWSAppSyncClient?.subscribe(tripSubscription)
                 subscriptionWatcherDoPimPayment?.execute(doPimPaymentCallback)
-                LoggerHelper.writeToLog("subscription for do pim payment was created. Subscribing to trip Id: $tripId")
-                Log.i("Vehicle_Subscription", "subscription for do pim payment was created. Subscribing to trip Id: $tripId")
+                LoggerHelper.writeToLog("subscription for do pim payment was created. Subscribing to trip Id: $tripId", LogEnums.AWS_SUBSCRIPTION.tag)
             } else {
                 subscriptionWatcherDoPimPayment?.cancel()
                 subscriptionWatcherDoPimPayment = mAWSAppSyncClient?.subscribe(tripSubscription)
                 subscriptionWatcherDoPimPayment?.execute(doPimPaymentCallback)
-                LoggerHelper.writeToLog("subscription for do pim payment existed. Canceled prior do pim payment and subscribing to trip Id: $tripId")
-                Log.i("Vehicle_Subscription","subscription for do pim payment existed. Canceled prior do pim payment and subscribing to trip Id: $tripId" )
+                LoggerHelper.writeToLog("subscription for do pim payment existed. Canceled prior do pim payment and subscribing to trip Id: $tripId", LogEnums.AWS_SUBSCRIPTION.tag)
             }
 
         } else {
-            LoggerHelper.writeToLog("couldn't subscribe to do pim payment since trip id: $tripId == $watchingTripId or tripId == empty string")
-            Log.i("Vehicle_Subscription", "couldn't subscribe to do pim payment since trip id: $tripId == $watchingTripId or tripId == empty string")
-
+            LoggerHelper.writeToLog("couldn't subscribe to do pim payment since trip id: $tripId == $watchingTripId or tripId == empty string", LogEnums.AWS_SUBSCRIPTION.tag)
         }
     }
     private var doPimPaymentCallback = object: AppSyncSubscriptionCall.Callback<OnDoPimPaymentSubscription.Data>{
@@ -638,7 +640,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
             tripSubscriptionComplete = false
             subscriptionWatcherDoPimPayment?.cancel()
             subscriptionWatcherDoPimPayment = null
-            LoggerHelper.writeToLog("On failure for onDoPimPayment subscription. Error: ${e.message}")
+            LoggerHelper.writeToLog("On failure for onDoPimPayment subscription. Error: ${e.message}", LogEnums.AWS_SUBSCRIPTION.tag)
         }
         override fun onCompleted() {
 
@@ -665,8 +667,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
         if (deviceId != null) {
             subscriptionWatcherUpdatePimSettings = mAWSAppSyncClient?.subscribe(subscription)
             subscriptionWatcherUpdatePimSettings?.execute(updatePimSettingsCallback)
-            Log.i("LOGGER","Tried to subscribe to updatePIM with deviceID $deviceId")
-            LoggerHelper.writeToLog("Tried to subscribe to updatePIM with deviceID $deviceId")
+            LoggerHelper.writeToLog("Tried to subscribe to updatePIM with deviceID $deviceId", LogEnums.AWS_SUBSCRIPTION.tag)
         }
     }
 
@@ -685,8 +686,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                 }
                 if(useBluetooth != null){
                     if(!isBluetoothOnAWS && useBluetooth){
-                        Log.i("Bluetooth", "The aws subscription flipped to on for bluetooth. Starting bluetooth setup process.")
-                        LoggerHelper.writeToLog("The aws subscription flipped to on for bluetooth. Starting bluetooth setup process.")
+                        LoggerHelper.writeToLog("The aws subscription flipped to on for bluetooth. Starting bluetooth setup process.", LogEnums.BLUETOOTH.tag)
                         closeBluetoothThreads()
                         isBluetoothOnAWS = true
                         BluetoothDataCenter.blueToothSocketIsDisconnected()
@@ -697,8 +697,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                         getDriverTabletBluetoothAddress(deviceId)
                     }
                     if(isBluetoothOnAWS && !useBluetooth) {
-                        Log.i("Bluetooth", "The aws subscription flipped to OFF for bluetooth. Restarting internet Connection.")
-                        LoggerHelper.writeToLog("The aws subscription flipped to OFF for bluetooth. Restarting internet Connection.")
+                        LoggerHelper.writeToLog("The aws subscription flipped to OFF for bluetooth. Restarting internet Connection.", LogEnums.BLUETOOTH.tag)
                         BluetoothDataCenter.turnOffBlueTooth()
                         BluetoothDataCenter.disconnectedToDriverTablet()
                         isBluetoothOnAWS = false
@@ -707,17 +706,15 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                         restartDriverTabletAWSConnection()
                     }
                 }
-                Log.i("Logging", "Logging == $awsLog from updatePimSettingsCallBack")
             }
             if(response.hasErrors()){
-                Log.i("LOGGER", "ERROR SUBSCRIBING TO UPDATING PIM SETTINGS ${response.errors()[0].message()}")
-                LoggerHelper.writeToLog("ERROR SUBSCRIBING TO UPDATING PIM SETTINGS ${response.errors()[0].message()}")
+                LoggerHelper.writeToLog("ERROR SUBSCRIBING TO UPDATING PIM SETTINGS ${response.errors()[0].message()}", LogEnums.AWS_SUBSCRIPTION.tag)
             }
         }
         override fun onFailure(e: ApolloException) {
             subscriptionWatcherUpdatePimSettings?.cancel()
             subscriptionWatcherUpdatePimSettings = null
-            LoggerHelper.writeToLog("On failure for onPimUpdatePImSettings subscription. Error: ${e.message}")
+            LoggerHelper.writeToLog("On failure for onPimUpdatePImSettings subscription. Error: ${e.message}", LogEnums.AWS_SUBSCRIPTION.tag)
         }
 
         override fun onCompleted() {
@@ -760,6 +757,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
         }
     }
     //Coroutine to insert Meter Value
+
     private fun insertTripId(tripId: String) = launch {
         callbackViewModel.addTripId(tripId, applicationContext)
     }
@@ -862,16 +860,16 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                 }
                 override fun onFinish() {
                     if(!internetConnection){
-                        LoggerHelper.writeToLog("$logFragment, recheck internet connection timer finished. internet was not connected. retrying in 5 seconds")
+                        LoggerHelper.writeToLog("$logFragment, recheck internet connection timer finished. internet was not connected. retrying in 5 seconds", LogEnums.INTERNET_CONNECTION.tag)
                         recheckInternetConnection(this@MainActivity)
                         // this is for a resync of trip
                     } else if (resync) {
                         val currentTrip = ModelPreferences(applicationContext)
                             .getObject(SharedPrefEnum.CURRENT_TRIP.key, CurrentTrip::class.java)
-                        LoggerHelper.writeToLog("$logFragment, recheck internet connection timer finished. Internet is connected. Trying to start subscription on ${vehicleId} due to resync.")
+                        LoggerHelper.writeToLog("$logFragment, recheck internet connection timer finished. Internet is connected. Trying to start subscription on ${vehicleId} due to resync.", LogEnums.INTERNET_CONNECTION.tag)
                         subscribeToUpdateVehTripStatus(vehicleId)
                         if (currentTrip != null && currentTrip.tripID != "" && internetConnection){
-                            LoggerHelper.writeToLog("$logFragment, recheck internet connection timer finished.Internet is connected. Trying to start subscription on ${currentTrip.tripID} due to resync.")
+                            LoggerHelper.writeToLog("$logFragment, recheck internet connection timer finished. Internet is connected. Trying to start subscription on ${currentTrip.tripID} due to resync.", LogEnums.INTERNET_CONNECTION.tag)
                             resync = false
                         }
                     }
@@ -908,23 +906,21 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
         }))
     }
     override fun onBackPressed() {
-        LoggerHelper.writeToLog("${logFragment}, back button on nav bar pressed")
-        Log.i("Back Button", "Back button was pressed")
+        LoggerHelper.writeToLog("${logFragment}, back button on nav bar pressed", LogEnums.BUTTON_PRESS.tag)
     }
 
     @SuppressLint("MissingPermission")
     private fun turnOnBluetooth(){
         val mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
         if (mBluetoothAdapter == null){
-            LoggerHelper.writeToLog("$logFragment, bluetooth is not supported on this device")
-            Log.i("$logFragment", "bluetooth is not supported on this device")
+            LoggerHelper.writeToLog("$logFragment, bluetooth is not supported on this device", LogEnums.BLUETOOTH.tag)
             return
         }
         if (!mBluetoothAdapter.isEnabled) {
-            LoggerHelper.writeToLog("${logFragment}, bluetooth was off, turned on programmatically")
+            LoggerHelper.writeToLog("${logFragment}, bluetooth was off, turned on programmatically", LogEnums.BLUETOOTH.tag)
             mBluetoothAdapter.enable()
         } else {
-            LoggerHelper.writeToLog("${logFragment}, bluetooth was on during start up")
+            LoggerHelper.writeToLog("${logFragment}, bluetooth was on during start up", LogEnums.BLUETOOTH.tag)
         }
     }
 
@@ -954,7 +950,6 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
     }
 
     override fun onDestroy() {
-        Log.i("SubscriptionWatcher", "Subscription watcher canceled for $vehicleId")
         subscriptionWatcherUpdateVehTripStatus?.cancel()
         viewModel.isSquareAuthorized().removeObservers(this)
         viewModel.watchSetUpComplete().removeObservers(this)
@@ -966,13 +961,13 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
             unregisterReceiver(mBluetoothReceiver)
         stopLogTimer()
         vehicleSubscriptionTimer?.cancel()
-        LoggerHelper.writeToLog("$logFragment, MainActivity onDestroy hit")
+        LoggerHelper.writeToLog("$logFragment, MainActivity onDestroy hit", LogEnums.LIFE_CYCLE.tag)
         super.onDestroy()
     }
 
     override fun onStop() {
         Log.i("onStop", "onStop was hit")
-        LoggerHelper.writeToLog("$logFragment, onStop was hit for main Activity.")
+        LoggerHelper.writeToLog("$logFragment, onStop was hit for main Activity.", LogEnums.LIFE_CYCLE.tag)
         super.onStop()
     }
 
@@ -982,7 +977,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
         if(mSuccessfulSetup){
             ViewHelper.hideSystemUI(this)
         }
-        LoggerHelper.writeToLog("$logFragment, MainActivity onPause hit")
+        LoggerHelper.writeToLog("$logFragment, MainActivity onPause hit", LogEnums.LIFE_CYCLE.tag)
     }
 
     override fun onResume() {

@@ -38,6 +38,7 @@ import com.example.nts_pim.utilities.device_id_check.DeviceIdCheck
 import com.example.nts_pim.fragments_viewmodel.vehicle_setup.VehicleSetupModelFactory
 import com.example.nts_pim.fragments_viewmodel.vehicle_setup.VehicleSetupViewModel
 import com.example.nts_pim.utilities.bluetooth_helper.BluetoothDataCenter
+import com.example.nts_pim.utilities.enums.LogEnums
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import com.example.nts_pim.utilities.mutation_helper.PIMMutationHelper
 import com.google.gson.Gson
@@ -108,19 +109,20 @@ class StartupFragment: ScopedFragment(), KodeinAware {
             getPhoneNumberPermissions()
             return
         } else {
-            phoneNumber = telephonyManager.line1Number
-
+             phoneNumber = telephonyManager.line1Number
         }
 
         val isSetupComplete = viewModel.isSetUpComplete()
+        LoggerHelper.writeToLog("Startup: is Setup Complete: $isSetupComplete", LogEnums.SETUP.tag)
         if(isSetupComplete){
                 vehicleId = viewModel.getVehicleID()
                 deviceId = DeviceIdCheck.getDeviceId()
                 PIMMutationHelper.sendPIMStartTime(deviceId!!, mAWSAppSyncClient!!)
-                checkAWSForLogging(deviceId!!)
+                getPIMSettings(deviceId!!)
         }
         blueToothAddress = getBluetoothAddress()
         appVersionNumber = BuildConfig.VERSION_NAME
+        Log.i("Version", "$appVersionNumber")
         PIMMutationHelper.getCurrentDateFormattedDateUtcIso()?.let {
             callBackViewModel.setPIMStartTime(
                 it
@@ -128,7 +130,8 @@ class StartupFragment: ScopedFragment(), KodeinAware {
         }
     }
 
-    private fun checkAWSForLogging(deviceId: String){
+    private fun getPIMSettings(deviceId: String){
+
         if (mAWSAppSyncClient == null) {
             mAWSAppSyncClient = ClientFactory.getInstance(requireActivity().applicationContext)
         }
@@ -141,9 +144,9 @@ class StartupFragment: ScopedFragment(), KodeinAware {
     private var startUpPIMSettingsQueryCallBack = object: GraphQLCall.Callback<GetPimSettingsQuery.Data>() {
         override fun onResponse(response: Response<GetPimSettingsQuery.Data>) {
             Log.i("CheckingAWS", "${response.data()}")
-            LoggerHelper.writeToLog("GetPimSettingsQuery at start up: ${response.data()}")
+            LoggerHelper.writeToLog("GetPimSettingsQuery at start up: ${response.data()}", LogEnums.SETUP.tag)
             if(response.data()?.pimSettings?.errorCode() == "1016"){
-                LoggerHelper.writeToLog("Error code 1016. Showing Toast with error message: {${response.data()!!.pimSettings.error()}")
+                LoggerHelper.writeToLog("Error code 1016. Showing Toast with error message: {${response.data()!!.pimSettings.error()}", LogEnums.SETUP.tag)
                 Toast.makeText(this@StartupFragment.context, "${response.data()?.pimSettings!!.error()}", Toast.LENGTH_LONG).show()
             }
 
@@ -167,14 +170,13 @@ class StartupFragment: ScopedFragment(), KodeinAware {
                      }
                 }
                 if(pimPaired && awsDeviceId != deviceId){
-                    LoggerHelper.writeToLog("Device id didn't match from the query. Is trying to update device for v")
+                    LoggerHelper.writeToLog("Device id didn't match from the query. Is trying to update device for v", LogEnums.SETUP.tag)
                     launch(Dispatchers.IO) {
                         PIMMutationHelper.updateDeviceId(deviceId!!, mAWSAppSyncClient!!, vehicleId!!)
                     }
                 }
 
                 if(isLoggingOn != null){
-                    Log.i("LOGGER", "AWS Query callback: isLoggingOn = $isLoggingOn")
                     LoggerHelper.logging = isLoggingOn
                 }
                 if (awsBluetoothAddress.isNullOrEmpty() || awsBluetoothAddress != blueToothAddress){
@@ -185,15 +187,13 @@ class StartupFragment: ScopedFragment(), KodeinAware {
                     PIMMutationHelper.updatePimSettings(blueToothAddress, appVersionNumber, phoneNumber, mAWSAppSyncClient!!, deviceId!!)
                 }
                 if(reAuth != null && reAuth){
-                    Log.i("LOGGER", "$vehicleId ReAuth: $reAuth.  Trying to reauthorize")
                     reauthorizeSquare()
                 }
                 if(awsPhoneNumber != phoneNumber){
-                    Log.i("LOGGER", "updating aws with phone number. AWS number: $awsPhoneNumber, phone number: $phoneNumber")
                     PIMMutationHelper.updatePimSettings(blueToothAddress, appVersionNumber, phoneNumber, mAWSAppSyncClient!!, deviceId!!)
                 }
                 if(useBluetooth != null){
-                    LoggerHelper.writeToLog("useBluetooth value at start up: $useBluetooth")
+                    LoggerHelper.writeToLog("useBluetooth value at start up: $useBluetooth", LogEnums.SETUP.tag)
                     if(useBluetooth == true){
                             BluetoothDataCenter.turnOnBlueTooth()
                         } else {
@@ -201,22 +201,22 @@ class StartupFragment: ScopedFragment(), KodeinAware {
                         }
                     }
                 if(addRemoved) {
-                    LoggerHelper.writeToLog("Ad removed was true. Trying to delete ads")
+                    LoggerHelper.writeToLog("Ad removed was true. Trying to delete ads", LogEnums.SETUP.tag)
                     AdInfoHolder.deleteAds()
                 }
                 if(!addRemoved){
-                    LoggerHelper.writeToLog("Ad removed was false. checking for internal add info")
+                    LoggerHelper.writeToLog("Ad removed was false. checking for internal add info", LogEnums.SETUP.tag)
                    AdInfoHolder.checkForInternalAddInfo()
                 }
                 if(hasAddChanged){
-                    LoggerHelper.writeToLog("Ad changed is true. Trying to delete ads. Grabbing ad info from AWS")
+                    LoggerHelper.writeToLog("Ad changed is true. Trying to delete ads. Grabbing ad info from AWS", LogEnums.SETUP.tag)
                     AdInfoHolder.deleteAds()
                     PIMMutationHelper.getAdInformation(vehicleId!!)
                 }
             }
         }
         override fun onFailure(e: ApolloException) {
-            LoggerHelper.writeToLog("Failure for Get Pim Settings Query. Request did not reach AWS. Error: $e")
+            LoggerHelper.writeToLog("Failure for Get Pim Settings Query. Request did not reach AWS. Error: $e", LogEnums.SETUP.tag)
         }
     }
     private fun reauthorizeSquare() = launch(Dispatchers.Main.immediate){
@@ -292,25 +292,23 @@ class StartupFragment: ScopedFragment(), KodeinAware {
     private fun sendBackAuthMutation(vehicleId: String) = launch(Dispatchers.IO){
         if(ReaderSdk.authorizationManager().authorizationState.isAuthorized){
             val reAuthInput = ResetReAuthSquareInput.builder().vehicleId(vehicleId).build()
-            Log.i("LOGGER", "$vehicleId trying to send back reAuth confirmation")
           mAWSAppSyncClient?.mutate(ResetReAuthSquareMutation.builder().parameters(reAuthInput).build())?.enqueue(reAuthCallback)
         }
     }
     private var reAuthCallback = object : GraphQLCall.Callback<ResetReAuthSquareMutation.Data>(){
         override fun onResponse(response: Response<ResetReAuthSquareMutation.Data>) {
             if(response.hasErrors()){
-                LoggerHelper.writeToLog("There was an error trying to reAuthorize square account for this vehicle. Suggest manuel ReAuth")
+                LoggerHelper.writeToLog("There was an error trying to reAuthorize square account for this vehicle. Suggest manuel ReAuth", LogEnums.SETUP.tag)
             }
 
             if(response.data()?.resetReAuthSquare()?.reAuthSquare() != null &&
                 response.data()?.resetReAuthSquare()?.reAuthSquare() == false){
-                Log.i("LOGGER", "$vehicleId was successfully re-authorized")
-                LoggerHelper.writeToLog("$vehicleId was successfully re-authorized")
+                LoggerHelper.writeToLog("$vehicleId was successfully re-authorized", LogEnums.SETUP.tag)
             }
         }
 
         override fun onFailure(e: ApolloException) {
-            LoggerHelper.writeToLog("There was an error trying to reAuthorize square account for this vehicle. Suggest manual ReAuth")
+            LoggerHelper.writeToLog("There was an error trying to reAuthorize square account for this vehicle. Suggest manual ReAuth", LogEnums.SETUP.tag)
         }
     }
     private fun checkDrawPermission(): Boolean {

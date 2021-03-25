@@ -162,14 +162,14 @@ class CashOrCardFragment : ScopedFragment(), KodeinAware {
             if (tripTotal > 1.00) {
                 VehicleTripArrayHolder.paymentTypeSelected = "card"
                 toTipScreen()
-                LoggerHelper.writeToLog("$logFragment: Customer Picked Card")
+                LoggerHelper.writeToLog("$logFragment: Customer Picked Card", LogEnums.BUTTON_PRESS.tag)
             } else {
                 showLessThanDollarToast()
             }
         }
         //To the Email or Text Screen
         cash_btn.setOnClickListener {
-            LoggerHelper.writeToLog("$logFragment: Customer Picked Cash")
+            LoggerHelper.writeToLog("$logFragment: Customer Picked Cash", LogEnums.BUTTON_PRESS.tag)
             VehicleTripArrayHolder.paymentTypeSelected = "cash"
             launch {
                 toEmailOrTextWithPayment()
@@ -181,7 +181,7 @@ class CashOrCardFragment : ScopedFragment(), KodeinAware {
         callbackViewModel.getIsTransactionComplete()
             .observe(this.viewLifecycleOwner, Observer { transactionIsComplete ->
                 if (transactionIsComplete) {
-                    LoggerHelper.writeToLog("$logFragment: Square Transaction Complete: Going to Email Or Text")
+                    LoggerHelper.writeToLog("$logFragment: Square Transaction Complete: Going to Email Or Text", null)
                     toEmailOrTextForSquareTransactionComplete()
                 }
             })
@@ -198,13 +198,11 @@ class CashOrCardFragment : ScopedFragment(), KodeinAware {
                         if(formattedNumber != "0.00"){
                             playTripTotalAmount(formattedNumber)
                         }
-                        Log.i("Trip Review", "TTS was stopped and started again with new pim pay amount")
                     } else {
                         val formattedNumber = decimalFormatter.format(pimPayAmount!!)
                         if(formattedNumber != "0.00"){
                             playTripTotalAmount(formattedNumber)
                         }
-                        Log.i("Trip Review", "TTS was started with new pim pay amount")
                     }
                 }
             }
@@ -220,7 +218,6 @@ class CashOrCardFragment : ScopedFragment(), KodeinAware {
         if(isBluetoothOn){
             val dataObject = NTSPimPacket.PimStatusObj()
             val statusObj =  NTSPimPacket(NTSPimPacket.Command.PIM_STATUS, dataObject)
-            Log.i("Bluetooth", "status request packet to be sent == $statusObj")
             (activity as MainActivity).sendBluetoothPacket(statusObj)
         }
     }
@@ -249,9 +246,8 @@ class CashOrCardFragment : ScopedFragment(), KodeinAware {
             }
         val args = arguments?.getFloat("meterOwedPrice")?.toDouble()
         if (args != null) {
-            Log.i("TripReview", "The meterValue passed along was$args")
         }
-        LoggerHelper.writeToLog("$logFragment,  Customer is seeing $tripTotal")
+        LoggerHelper.writeToLog("$logFragment,  Customer is seeing $tripTotal", LogEnums.TRIP_STATUS.tag)
     }
 
     private fun checkIfPIMNeedsToTakePayment(enteredPimPayAmount: Double, enteredPimPaidAmount: Double) {
@@ -260,7 +256,7 @@ class CashOrCardFragment : ScopedFragment(), KodeinAware {
             enteredPimPayAmount == 00.00 ||
             enteredPimPaidAmount > 0.toDouble()) {
             Log.i("Trip Review: Trip didn't need payment","Pim Pay amount: $enteredPimPayAmount, Pim paid Amount: $enteredPimPaidAmount")
-            LoggerHelper.writeToLog("$logFragment, Trip Review: Trip didn't need payment - Pim Pay amount: $enteredPimPayAmount, Pim paid Amount: $enteredPimPaidAmount")
+            LoggerHelper.writeToLog("$logFragment, Trip Review: Trip didn't need payment - Pim Pay amount: $enteredPimPayAmount, Pim paid Amount: $enteredPimPaidAmount", LogEnums.PAYMENT.tag)
             doesPimNeedToTakePayment = false
             pimPayAmount = enteredPimPaidAmount
             toEmailOrTextWithoutPayment()
@@ -292,9 +288,9 @@ class CashOrCardFragment : ScopedFragment(), KodeinAware {
                 TextToSpeech.QUEUE_FLUSH,
                 null,null
             )
-            LoggerHelper.writeToLog("$logFragment,  Pim Read $messageToSpeak to customer")
+            LoggerHelper.writeToLog("$logFragment,  Pim Read $messageToSpeak to customer", LogEnums.TEXT_READER.tag)
         } else {
-            LoggerHelper.writeToLog("$logFragment,  Pim did not  read $messageToSpeak to customer, since it was still set to zero internally")
+            LoggerHelper.writeToLog("$logFragment,  Pim did not  read $messageToSpeak to customer, since it was still set to zero internally", LogEnums.TEXT_READER.tag)
         }
     }
     private fun updateAWSWithCashButtonSelection() {
@@ -413,11 +409,11 @@ class CashOrCardFragment : ScopedFragment(), KodeinAware {
         super.onResume()
         callbackViewModel.getMeterState().observe(this.viewLifecycleOwner, Observer { meterState ->
             if (meterState == MeterEnum.METER_ON.state) {
-                LoggerHelper.writeToLog("$logFragment: Meter State Change: $meterState. Going Back to Live Meter")
+                LoggerHelper.writeToLog("$logFragment: Meter State Change: $meterState. Going Back to Live Meter", LogEnums.TRIP_STATUS.tag)
                 backToLiveMeter()
             }
             if (meterState == MeterEnum.METER_OFF.state){
-                LoggerHelper.writeToLog("$logFragment: Meter State Change: $meterState. Starting inactivity timer")
+                LoggerHelper.writeToLog("$logFragment: Meter State Change: $meterState. Starting inactivity timer", LogEnums.TRIP_STATUS.tag)
                 startInactivityTimer()
             }
         })

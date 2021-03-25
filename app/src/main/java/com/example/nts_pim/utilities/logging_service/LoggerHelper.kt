@@ -44,9 +44,11 @@ object LoggerHelper {
     private val pimContext = PimApplication.pimContext
     private var logArray: MutableList<String?>? = null
     private const val logLimit = 201
-    private var logSaved = false
 
-    internal fun writeToLog (log: String){
+    internal fun writeToLog(log: String, tag: String?){
+        if(tag != null){
+            Log.i(tag, log)
+        }
         val readPermission = ContextCompat.checkSelfPermission(pimContext, Manifest.permission.READ_EXTERNAL_STORAGE)
         val writePermission = ContextCompat.checkSelfPermission(pimContext, Manifest.permission.WRITE_EXTERNAL_STORAGE)
         val logTimeStamp = timeTimeStamp.format(Date())
@@ -69,12 +71,10 @@ object LoggerHelper {
            vehicleIdForLog = vehicleId ?: ""
        }
        if(logToSendAWS == null){
-           Log.i("LOGGER", "Nothing changed during Logging period. Log not sent")
            return
        }
        logToSendAWS += logFragmentEndStamp
 
-       Log.i("LOGGER", "Sending log to AWS: LOG: $logToSendAWS")
         val client = OkHttpClient().newBuilder()
             .connectTimeout(60, TimeUnit.SECONDS)
             .writeTimeout(60, TimeUnit.SECONDS)
@@ -153,12 +153,11 @@ object LoggerHelper {
             return
         }
         if(array.count() > logLimit){
-        array.removeAt(0)
+            array.removeAt(0)
             Log.i("LOGGER", "Removing log from logging array. Log count is now ${array.count()}")
         } else {
             Log.i("LOGGER", "Internal Log hasn't hit $logLimit, Log count is now ${array?.count()}")
         }
-        Log.i("LOGGER", "Last log entered: ${array?.last()}")
         if(!array.isNullOrEmpty()){
             saveArrayList(array)
         }

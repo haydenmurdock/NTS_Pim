@@ -2,8 +2,11 @@ package com.example.nts_pim.utilities.bluetooth_helper
 
 import android.util.Log
 import com.example.nts_pim.PimApplication
+import com.example.nts_pim.data.repository.TripDetails
 import com.example.nts_pim.data.repository.VehicleTripArrayHolder
 import com.example.nts_pim.receivers.BatteryPowerReceiver
+import com.example.nts_pim.utilities.enums.LogEnums
+import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import org.json.JSONObject
 
 // Right now, all of the commands are 2 characters long.  If this changes, change this constant.
@@ -332,36 +335,47 @@ class NTSPimPacket {
             owedPrice = mOwedPrice
             pimPayAmt = mPimPayAmt
         }
+
         override fun fromJson(obj: JSONObject) {
             tripId = obj.optString(JSON_TRIP_ID)
-            if(tripId != null){
-                VehicleTripArrayHolder.addTripId(tripId!!, PimApplication.pimContext)
-            }
             pimPayAmt = obj.optDouble(JSON_PIM_PAY_AMT)
-            if(pimPayAmt != null){
-                VehicleTripArrayHolder.setPimPayment(pimPayAmt!!)
-            }
             tripNbr = obj.optInt(JSON_TRIP_NBR)
+            pimNoReceipt = obj.optString(JSON_PIM_NO_RECEIPT)
+            tripStatus = obj.optString(JSON_TRIP_STATUS)
+            owedPrice = obj.optDouble(JSON_OWED_PRICE)
+            driverId = obj.optInt(JSON_DRIVER_ID)
+            meterState = obj.optString(JSON_METER_STATE)
+            LoggerHelper.writeToLog("Parsed packet from Json: tripId: $tripId, pimPayAmt: $pimPayAmt,tripNum: $tripNbr, pimNoReceipt: $pimNoReceipt, tripStatus: $tripStatus, owedPrice: $owedPrice, driverId: $driverId, meterState: $meterState", LogEnums.BLUETOOTH.tag)
+            if(!tripId.isNullOrBlank() || !tripId.isNullOrEmpty()){
+                val thisForTheCurrentTrip = TripDetails.isThisForAnOldTrip(tripId!!)
+                if(!thisForTheCurrentTrip){
+                    VehicleTripArrayHolder.addTripId(tripId!!, PimApplication.pimContext)
+                } else {
+                    LoggerHelper.writeToLog("Packet received for $tripId, but was found to be a completed trip. This packet is being ignored", LogEnums.TRIP_STATUS.tag)
+                    return
+                }
+            }
+            if(pimPayAmt != null && !pimPayAmt!!.isNaN()){
+                VehicleTripArrayHolder.setPimPayment(pimPayAmt!!)
+            } else {
+                LoggerHelper.writeToLog("pim payamount: $pimPayAmt, it was ignored", LogEnums.BLUETOOTH.tag)
+            }
+
             if(tripNbr != null){
                 VehicleTripArrayHolder.addTripNumber(tripNbr!!)
             }
-            pimNoReceipt = obj.optString(JSON_PIM_NO_RECEIPT)
+
             if(pimNoReceipt != null && pimNoReceipt == "Y"){
                 VehicleTripArrayHolder.pimDoesNotNeedToDoReceipt(true)
             }
-            tripStatus = obj.optString(JSON_TRIP_STATUS)
+
             if(tripStatus != null){
                 VehicleTripArrayHolder.addStatus(tripStatus!!)
             }
-            owedPrice = obj.optDouble(JSON_OWED_PRICE)
-            if(owedPrice != null){
-
-            }
-            driverId = obj.optInt(JSON_DRIVER_ID)
+            if(owedPrice != null){}
             if(driverId != null){
                 VehicleTripArrayHolder.setDriverId(driverId!!)
             }
-            meterState = obj.optString(JSON_METER_STATE)
             if(meterState != null){
                 VehicleTripArrayHolder.addMeterState(meterState!!)
             }
@@ -495,8 +509,8 @@ class NTSPimPacket {
         var pimOverHeat: Boolean? = null
 
         override fun fromJson(obj: JSONObject) {
-            pimStatus = obj.optString(JSON_PIM_STATUS)
             tripId = obj.optString(JSON_TRIP_ID)
+            pimStatus = obj.optString(JSON_PIM_STATUS)
             pimOverHeat = obj.optBoolean(JSON_OVER_HEAT)
         }
 
@@ -541,12 +555,17 @@ class NTSPimPacket {
          * @return True if start byte was found.
          */
         fun containsPacketStart(data: ByteArray?): Boolean {
-            if (data == null || data.size == 0) return false
-
+            if (data == null || data.isEmpty()){
+                LoggerHelper.writeToLog("Received a packet, but data was null or empty", LogEnums.BLUETOOTH.tag)
+                return false
+            }
             // Look for STX.
             for (b in data) {
-                if (b.toInt() == STX) return true
+                if (b.toInt() == STX) {
+                    return true
+                }
             }
+            LoggerHelper.writeToLog("Received a packet, but didn't contain start byte", LogEnums.BLUETOOTH.tag)
             return false
         }
     }

@@ -7,6 +7,7 @@ import android.content.Intent
 import android.net.ConnectivityManager
 import android.util.Log
 import com.example.nts_pim.data.repository.VehicleTripArrayHolder
+import com.example.nts_pim.utilities.enums.LogEnums
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
 
 
@@ -16,16 +17,14 @@ class NetworkReceiver:BroadcastReceiver() {
         try {
             if (isOnline(context)) {
                 VehicleTripArrayHolder.pimIsOnline()
-                Log.i("LOGGER", "TABLET IS ONLINE")
-                LoggerHelper.writeToLog("${logFragment}, TABLET IS ONLINE")
+                LoggerHelper.writeToLog("${logFragment}, TABLET IS ONLINE", LogEnums.INTERNET_CONNECTION.tag)
             } else {
                 VehicleTripArrayHolder.pimIsOffline()
-                Log.i("LOGGER", "TABLET IS OFFLINE ")
-                LoggerHelper.writeToLog("${logFragment}, TABLET IS OFFLINE")
+                LoggerHelper.writeToLog("${logFragment}, TABLET IS OFFLINE", LogEnums.INTERNET_CONNECTION.tag)
             }
         } catch (e: java.lang.NullPointerException) {
             e.printStackTrace()
-            LoggerHelper.writeToLog("${logFragment}, TABLET IS OFFLINE ERROR: ${e.message}")
+            LoggerHelper.writeToLog("${logFragment}, TABLET IS OFFLINE ERROR: ${e.message}", LogEnums.INTERNET_CONNECTION.tag)
         }
     }
     @SuppressLint("MissingPermission")
@@ -38,7 +37,7 @@ class NetworkReceiver:BroadcastReceiver() {
             //should check null because in airplane mode it will be null
             netInfo != null && netInfo.isConnected
         } catch (e: NullPointerException) {
-           LoggerHelper.writeToLog("$logFragment, error for network receiver. $e")
+           LoggerHelper.writeToLog("$logFragment, error for network receiver. $e", LogEnums.INTERNET_CONNECTION.tag)
             false
         }
     }

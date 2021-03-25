@@ -48,6 +48,7 @@ import com.amazonaws.amplify.generated.graphql.UpdateTripMutation
 import com.apollographql.apollo.GraphQLCall
 import com.apollographql.apollo.exception.ApolloException
 import com.example.nts_pim.data.repository.VehicleTripArrayHolder
+import com.example.nts_pim.utilities.enums.LogEnums
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import type.SavePaymentDetailsInput
 import type.UpdateTripInput
@@ -453,7 +454,7 @@ class ReceiptInformationTextFragment: ScopedFragment(), KodeinAware {
         }
         //on clickListeners for other buttons
         no_receipt_btn_text.setOnClickListener {
-            LoggerHelper.writeToLog("$logFragment, no receipt hit")
+            LoggerHelper.writeToLog("$logFragment, no receipt hit", LogEnums.BUTTON_PRESS.tag)
             toThankYou()
         }
         send_text_btn_receipt.setOnClickListener {
@@ -465,7 +466,7 @@ class ReceiptInformationTextFragment: ScopedFragment(), KodeinAware {
             }
         }
         back_btn_text_receipt.setOnClickListener {
-            LoggerHelper.writeToLog("$logFragment, back button hit")
+            LoggerHelper.writeToLog("$logFragment, back button hit", LogEnums.BUTTON_PRESS.tag)
             backToEmailOrText()
         }
     }
@@ -556,7 +557,7 @@ class ReceiptInformationTextFragment: ScopedFragment(), KodeinAware {
     private fun isOnline(context: Context): Boolean {
         val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
         val networkInfo = connectivityManager.activeNetworkInfo
-        LoggerHelper.writeToLog("$logFragment, Checked internet Connection. Connection ${networkInfo.isConnected}")
+        LoggerHelper.writeToLog("$logFragment, Checked internet Connection. Connection ${networkInfo.isConnected}", LogEnums.INTERNET_CONNECTION.tag)
         return networkInfo != null && networkInfo.isConnected
     }
     private fun startInactivityTimeout(){
@@ -568,7 +569,7 @@ class ReceiptInformationTextFragment: ScopedFragment(), KodeinAware {
             override fun onFinish() {
                 if (!resources.getBoolean(R.bool.isSquareBuildOn) &&
                     no_receipt_btn_text != null) {
-                    LoggerHelper.writeToLog("$logFragment, Inactivity Timer finished")
+                    LoggerHelper.writeToLog("$logFragment, Inactivity Timer finished", null)
                     no_receipt_btn_text.performClick()
                 }
             }
@@ -652,8 +653,7 @@ class ReceiptInformationTextFragment: ScopedFragment(), KodeinAware {
         override fun onResponse(response: com.apollographql.apollo.api.Response<SavePaymentDetailsMutation.Data>) {
             if(!response.hasErrors()){
                launch(Dispatchers.IO) {
-                   Log.i("Text_Receipt", "Payment details have been updated successful. Step 1 Complete")
-                   LoggerHelper.writeToLog("Payment details have been updated successful. Step 1 Complete")
+                   LoggerHelper.writeToLog("Payment details have been updated successful. Step 1 Complete", LogEnums.RECEIPT.tag)
                    sendTextReceipt()
                }
             }
@@ -661,11 +661,10 @@ class ReceiptInformationTextFragment: ScopedFragment(), KodeinAware {
         }
 
         override fun onFailure(e: ApolloException) {
-            Log.e("Text_Receipt", "There was an issue updating payment api: $e")
         }
     }
     private fun updateCustomerPhoneNumber(vehicleId: String, custPhoneNumber: String, appSyncClient: AWSAppSyncClient, tripId: String){
-        LoggerHelper.writeToLog("$logFragment, entered phone number: $custPhoneNumber")
+        LoggerHelper.writeToLog("$logFragment, entered phone number: $custPhoneNumber", LogEnums.RECEIPT.tag)
         val updatePaymentTypeInput = UpdateTripInput.builder().vehicleId(vehicleId).tripId(tripId).custPhoneNbr(custPhoneNumber).build()
         appSyncClient.mutate(UpdateTripMutation.builder().parameters(updatePaymentTypeInput).build())
             ?.enqueue(mutationCustomerPhoneNumberCallback )
@@ -674,27 +673,24 @@ class ReceiptInformationTextFragment: ScopedFragment(), KodeinAware {
     private val mutationCustomerPhoneNumberCallback = object : GraphQLCall.Callback<UpdateTripMutation.Data>() {
         override fun onResponse(response: com.apollographql.apollo.api.Response<UpdateTripMutation.Data>) {
             Log.i("Results", "Meter Table Updated ${response.data()}")
-            LoggerHelper.writeToLog("$logFragment, entered phone number response: ${response.data()}")
+            LoggerHelper.writeToLog("$logFragment, entered phone number response: ${response.data()}", LogEnums.RECEIPT.tag)
             val tripId = callBackViewModel.getTripId()
             val transactionId = callBackViewModel.getTransactionId()
 
             if(response.hasErrors()){
-                Log.i("Text_Receipt", "Response from aws had errors so did not send text message")
-                LoggerHelper.writeToLog("Response from aws had errors so did not send text message ${response.errors().get(0).message()}")
+                LoggerHelper.writeToLog("Response from aws had errors so did not send text message ${response.errors().get(0).message()}", LogEnums.RECEIPT.tag)
                 return
             }
             if(!response.hasErrors()){
                 if(response.data() != null){
                     launch(Dispatchers.IO) {
-                        Log.i("Text_Receipt", "Updated custPhone number successfully. Step 2 Complete")
-                        LoggerHelper.writeToLog("$logFragment,Updated custPhone number successfully. Step 2 Complete")
+                        LoggerHelper.writeToLog("$logFragment,Updated custPhone number successfully. Step 2 Complete", LogEnums.RECEIPT.tag)
                         SmsHelper.sendSMS(tripId, paymentType, transactionId)
                     }
                 }
             }
           }
         override fun onFailure(e: ApolloException) {
-            Log.e("Error", "There was an issue updating the MeterTable: $e")
         }
     }
 

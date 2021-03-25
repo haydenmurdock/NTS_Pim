@@ -23,7 +23,9 @@ import com.example.nts_pim.fragments_viewmodel.base.ScopedFragment
 import com.example.nts_pim.fragments_viewmodel.callback.CallBackViewModel
 import com.example.nts_pim.fragments_viewmodel.vehicle_setup.VehicleSetupModelFactory
 import com.example.nts_pim.fragments_viewmodel.vehicle_setup.VehicleSetupViewModel
+import com.example.nts_pim.utilities.Square_Service.SquareService
 import com.example.nts_pim.utilities.bluetooth_helper.BlueToothHelper
+import com.example.nts_pim.utilities.enums.LogEnums
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import com.example.nts_pim.utilities.mutation_helper.PIMMutationHelper
 import com.google.gson.Gson
@@ -120,18 +122,17 @@ class BluetoothSetupFragment: ScopedFragment(), KodeinAware {
               reauthorizeSquare()
             }
         })
-        callBackViewModel.isReaderConnected().observe(this.viewLifecycleOwner, Observer {connected ->
+        callBackViewModel.isReaderConnected().observe(this.viewLifecycleOwner, Observer { connected ->
             if(connected){
-//                Log.i("Square", "last reader check == $lastCheckStatus. Internal status of reader is ${VehicleTripArrayHolder.cardReaderStatus}")
-//                if(VehicleTripArrayHolder.cardReaderStatus != "default" || lastCheckStatus != VehicleTripArrayHolder.cardReaderStatus){
-//                    PIMMutationHelper.updateReaderStatus(
-//                        vehicleId!!,
-//                        VehicleTripArrayHolder.cardReaderStatus,
-//                        mAWSAppSyncClient!!)
-//                } else {
-//                    Log.i("Square", "last reader check == $lastCheckStatus. Internal status of reader is ${VehicleTripArrayHolder.cardReaderStatus}. Did Not update AWS for Second reader check.")
-//                   LoggerHelper.writeToLog("last reader check == $lastCheckStatus. Internal status of reader is ${VehicleTripArrayHolder.cardReaderStatus}. Did Not update AWS for Second reader check.")
-//                }
+                LoggerHelper.writeToLog("last reader check == $lastCheckStatus. Internal status of reader is ${VehicleTripArrayHolder.cardReaderStatus}", LogEnums.SQUARE.tag)
+                if(VehicleTripArrayHolder.cardReaderStatus != "default" || lastCheckStatus != VehicleTripArrayHolder.cardReaderStatus){
+                    PIMMutationHelper.updateReaderStatus(
+                        vehicleId!!,
+                        VehicleTripArrayHolder.cardReaderStatus,
+                        mAWSAppSyncClient!!)
+                } else {
+                   LoggerHelper.writeToLog("last reader check == $lastCheckStatus. Internal status of reader is ${VehicleTripArrayHolder.cardReaderStatus}. Did Not update AWS with reader status.", LogEnums.SQUARE.tag)
+                }
                 toBluetoothPairing()
             }
         })
@@ -229,6 +230,17 @@ class BluetoothSetupFragment: ScopedFragment(), KodeinAware {
     private fun toBluetoothPairing() = launch(Dispatchers.Main.immediate){
         if (navController?.currentDestination?.id == currentFragmentId) {
             navController?.navigate(R.id.action_bluetoothSetupFragment_to_blueToothPairingFragment)
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if(!callBackViewModel.isReaderConnected().hasActiveObservers()){
+            callBackViewModel.isReaderConnected().observe(this.viewLifecycleOwner, Observer {connected ->
+                if(connected){
+                    toBluetoothPairing()
+                }
+            })
         }
     }
 

@@ -28,6 +28,7 @@ import com.example.nts_pim.fragments_viewmodel.live_meter.LiveMeterViewModelFact
 import com.example.nts_pim.utilities.bluetooth_helper.BlueToothHelper
 import com.example.nts_pim.utilities.bluetooth_helper.BluetoothDataCenter
 import com.example.nts_pim.utilities.bluetooth_helper.NTSPimPacket
+import com.example.nts_pim.utilities.enums.LogEnums
 import com.example.nts_pim.utilities.enums.MeterEnum
 import com.example.nts_pim.utilities.enums.PIMStatusEnum
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
@@ -224,7 +225,7 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
         }))
 
         closeTipScreenBtn.setOnClickListener {
-            LoggerHelper.writeToLog("$logFragment, Back button hit")
+            LoggerHelper.writeToLog("$logFragment, Back button hit", LogEnums.BUTTON_PRESS.tag)
             val navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment)
             if(navController.currentDestination?.id == (R.id.tipScreenFragment)){
                 val action = TipScreenFragmentDirections.backToTripReview(tripTotal.toFloat()).setMeterOwedPrice(tripTotal.toFloat())
@@ -482,7 +483,7 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
     }
     private fun squareCheckout(checkOutAmount: Double) = launch {
         //Function for square
-        LoggerHelper.writeToLog("$logFragment,  $checkOutAmount send to start square checkout")
+        LoggerHelper.writeToLog("$logFragment,  $checkOutAmount send to start square checkout", LogEnums.PAYMENT.tag)
         PIMMutationHelper.updatePIMStatus(vehicleId, PIMStatusEnum.STARTED_SQUARE_PAYMENT.status, mAWSAppSyncClient!!)
         VehicleTripArrayHolder.updateInternalPIMStatus(PIMStatusEnum.STARTED_SQUARE_PAYMENT.status)
         sendPimStatusBluetooth()
@@ -524,7 +525,7 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
         thirty_percent_btn.isEnabled = isClickable
         customTipAmountBtn.isEnabled = isClickable
         no_tip_btn.isEnabled = isClickable
-        LoggerHelper.writeToLog("$logFragment,  Lowered Alpha for Square payment")
+        LoggerHelper.writeToLog("$logFragment,  Lowered Alpha for Square payment", LogEnums.PAYMENT.tag)
     }
     private fun raiseAlphaUI(){
         val alpha = 1.0f
@@ -587,12 +588,12 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
             no_tip_btn.setTextColor(ContextCompat.getColor(requireContext(), R.color.whiteTextColor))
         }
         callbackViewModel.setTipAmount(0.0)
-        LoggerHelper.writeToLog("$logFragment,  Raised Alpha after Square payment")
+        LoggerHelper.writeToLog("$logFragment,  Raised Alpha after Square payment", LogEnums.PAYMENT.tag)
     }
     private fun onCheckoutResult(result: Result<CheckoutResult, ResultError<CheckoutErrorCode>>) {
         SoundHelper.turnOnSound(requireContext())
         if (result.isSuccess) {
-            LoggerHelper.writeToLog("$logFragment,  Square payment result: Success")
+            LoggerHelper.writeToLog("$logFragment,  Square payment result: Success", LogEnums.PAYMENT.tag)
             val checkoutResult = result.successValue
 
             showCheckoutResult(checkoutResult)
@@ -602,38 +603,48 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
             val error = result.error
             raiseAlphaUI()
             resetScreen()
-            if (error.code ==  CheckoutErrorCode.SDK_NOT_AUTHORIZED) {
-               Toast.makeText(
-                    context,
-                    "SDK not authorized",
-                    Toast.LENGTH_SHORT
-                ).show()
-                PIMMutationHelper.updatePIMStatus(vehicleId, PIMStatusEnum.SDK_NOT_AUTHORIZED.status, mAWSAppSyncClient!!)
-                sendPimStatusBluetooth()
-                updateInternalInfoDeclinedPayment("${error.message}, ${PIMStatusEnum.SDK_NOT_AUTHORIZED.status}")
-                LoggerHelper.writeToLog("$logFragment,  SDK not authorized for square transaction")
-            }
-            if (error.code == CheckoutErrorCode.CANCELED) {
-                val toast = Toast.makeText(context,
-                    "Checkout canceled",
-                    Toast.LENGTH_SHORT)
-                toast.setGravity(Gravity.TOP, 0,0)
-                toast.show()
-                PIMMutationHelper.updatePIMStatus(vehicleId, PIMStatusEnum.CANCELED_SQUARE_PAYMENT.status, mAWSAppSyncClient!!)
-                sendPimStatusBluetooth()
-                updateInternalInfoDeclinedPayment("${error.message}, ${PIMStatusEnum.CANCELED_SQUARE_PAYMENT.status}")
-                LoggerHelper.writeToLog("$logFragment,  square payment canceled")
-            }
-            if (error.code ==  CheckoutErrorCode.USAGE_ERROR) {
-                Toast.makeText(context,
-                    "Usage ERROR: ${error.message}, ErrorDebug Message: ${error.debugMessage}",
-                    Toast.LENGTH_SHORT
-                ).show()
-                LoggerHelper.writeToLog("Usage_Error: ${error.message} ${error.debugMessage}")
-                PIMMutationHelper.updatePIMStatus(vehicleId, PIMStatusEnum.USAGE_ERROR.status, mAWSAppSyncClient!!)
-                sendPimStatusBluetooth()
-                updateInternalInfoDeclinedPayment("${error.message}, ${PIMStatusEnum.USAGE_ERROR.status}")
-                LoggerHelper.writeToLog("$logFragment,  Usage Error from square sdk")
+            when(error.code){
+                CheckoutErrorCode.SDK_NOT_AUTHORIZED -> {
+                    Toast.makeText(
+                        context,
+                        "SDK not authorized",
+                        Toast.LENGTH_LONG
+                    ).show()
+                    PIMMutationHelper.updatePIMStatus(vehicleId, PIMStatusEnum.SDK_NOT_AUTHORIZED.status, mAWSAppSyncClient!!)
+                    sendPimStatusBluetooth()
+                    updateInternalInfoDeclinedPayment("${error.message}, ${PIMStatusEnum.SDK_NOT_AUTHORIZED.status}")
+                    LoggerHelper.writeToLog("$logFragment,  SDK not authorized for square transaction", LogEnums.PAYMENT.tag)
+                }
+                CheckoutErrorCode.CANCELED -> {
+                    val toast = Toast.makeText(context,
+                        "Checkout canceled",
+                        Toast.LENGTH_SHORT)
+                    toast.setGravity(Gravity.TOP, 0,0)
+                    toast.show()
+                    PIMMutationHelper.updatePIMStatus(vehicleId, PIMStatusEnum.CANCELED_SQUARE_PAYMENT.status, mAWSAppSyncClient!!)
+                    sendPimStatusBluetooth()
+                    updateInternalInfoDeclinedPayment("${error.message}, ${PIMStatusEnum.CANCELED_SQUARE_PAYMENT.status}")
+                    LoggerHelper.writeToLog("$logFragment,  square payment canceled", LogEnums.PAYMENT.tag)
+                }
+                CheckoutErrorCode.USAGE_ERROR -> {
+                    Toast.makeText(context,
+                        "Usage ERROR: ${error.message}, ErrorDebug Message: ${error.debugMessage}",
+                        Toast.LENGTH_LONG
+                    ).show()
+                    LoggerHelper.writeToLog("Usage_Error: ${error.message} ${error.debugMessage}", LogEnums.PAYMENT.tag)
+                    PIMMutationHelper.updatePIMStatus(vehicleId, PIMStatusEnum.USAGE_ERROR.status, mAWSAppSyncClient!!)
+                    sendPimStatusBluetooth()
+                    updateInternalInfoDeclinedPayment("${error.message}, ${PIMStatusEnum.USAGE_ERROR.status}")
+                    LoggerHelper.writeToLog("$logFragment,  Usage Error from square sdk", LogEnums.PAYMENT.tag)
+                }
+                else -> {
+                    Toast.makeText(context,
+                        "ERROR: ${error.message}, ErrorDebug Message: ${error.debugMessage}",
+                        Toast.LENGTH_LONG
+                    ).show()
+                    updateInternalInfoDeclinedPayment("${error.message}, Unexpected error from Square")
+                    LoggerHelper.writeToLog("$logFragment,  Error: ${error.message}, debugMessage: ${error.debugMessage}", LogEnums.PAYMENT.tag)
+                }
             }
         }
     }
@@ -661,7 +672,7 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
         callbackViewModel.setPimPaidAmount(amountForSquare)
         VehicleTripArrayHolder.setCardInfoPlusDate(cardInfo, updatedTransactionDate)
         BlueToothHelper.sendPaymentInfo(requireActivity())
-        LoggerHelper.writeToLog("$logFragment,  transaction id: $transactionId, cardInfo: $cardInfo, trip total back from Square, $tripTotalBackFromSquare")
+        LoggerHelper.writeToLog("$logFragment,  transaction id: $transactionId, cardInfo: $cardInfo, trip total back from Square, $tripTotalBackFromSquare", LogEnums.PAYMENT.tag)
 
         if(cardInfo != "" ) {
             val tipAmountToSendToAWS = callbackViewModel.getTipAmount()
@@ -687,7 +698,7 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
     }
 
     private fun updatePaymentDetail(transactionId: String, tripNumber: Int, vehicleId: String, awsAppSyncClient: AWSAppSyncClient, paymentType: String, tripId: String) = launch(Dispatchers.IO){
-        LoggerHelper.writeToLog("$logFragment,  Updated Payment Detail Api. transaction id: $transactionId, trip number: $tripNumber, payment type, $paymentType, trip id: $tripId")
+        LoggerHelper.writeToLog("$logFragment,  Updated Payment Detail Api. transaction id: $transactionId, trip number: $tripNumber, payment type, $paymentType, trip id: $tripId", LogEnums.PAYMENT.tag)
         PIMMutationHelper.updatePaymentDetails(transactionId, tripNumber, vehicleId, awsAppSyncClient, paymentType, tripId)
     }
 
@@ -695,7 +706,7 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
         tripTotal = tripTotalReset
         updateTripTotalTextField(tripTotal)
         tipAmountPassedToSquare = 00.00
-        LoggerHelper.writeToLog("$logFragment, reset screen function")
+        LoggerHelper.writeToLog("$logFragment, reset screen function", LogEnums.PAYMENT.tag)
         updateUI()
     }
     private fun setTextToGreyForButtonPress(textView: TextView){
@@ -729,8 +740,7 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
     if(!paymentSentForSquare){
         paymentSentForSquare = true
        val vehicleIdForPayment = viewModel.getVehicleID()
-        LoggerHelper.writeToLog("Boolean for payment set to true for tripid $tripId")
-        LoggerHelper.writeToLog("pim payment builder structure. VehicleId: $vehicleIdForPayment, TripId: $tripId, tipAmt: $tipAmount, cardInfo: $cardInfo, tipPercent: $tipPercent, pimPaidAmt: $paidAmount, PimTransactionDate: $transactionDate, pimTransId: $transactionId, paymentType: card")
+        LoggerHelper.writeToLog("pim payment builder structure. VehicleId: $vehicleIdForPayment, TripId: $tripId, tipAmt: $tipAmount, cardInfo: $cardInfo, tipPercent: $tipPercent, pimPaidAmt: $paidAmount, PimTransactionDate: $transactionDate, pimTransId: $transactionId, paymentType: card", LogEnums.PAYMENT.tag)
         val pimPaymentInput = PimPaymentMadeInput.builder()
             .vehicleId(vehicleIdForPayment)
             .tripId(tripId)
@@ -750,17 +760,17 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
 
     private val pimPaymentMadeCallback = object : GraphQLCall.Callback<PimPaymentMadeMutation.Data>() {
         override fun onResponse(response: Response<PimPaymentMadeMutation.Data>) {
-            LoggerHelper.writeToLog("pim Payment Made")
+            LoggerHelper.writeToLog("pim Payment Made", LogEnums.PAYMENT.tag)
             if(!response.hasErrors()){
-                LoggerHelper.writeToLog("Pim Payment Made: No errors in response: response package: ${response.data()}")
+                LoggerHelper.writeToLog("Pim Payment Made: No errors in response: response package: ${response.data()}", LogEnums.PAYMENT.tag)
             }
             if(response.hasErrors()){
-                LoggerHelper.writeToLog("Pim Payment Made: There was an error in the response. ${response.errors()}}")
+                LoggerHelper.writeToLog("Pim Payment Made: There was an error in the response. ${response.errors()}}", LogEnums.PAYMENT.tag)
             }
         }
 
         override fun onFailure(e: ApolloException) {
-           LoggerHelper.writeToLog("pimPaymentMade error. $e")
+           LoggerHelper.writeToLog("pimPaymentMade error. $e", LogEnums.PAYMENT.tag)
         }
     }
 
@@ -805,7 +815,7 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
 
     override fun onDestroy() {
         super.onDestroy()
-        LoggerHelper.writeToLog("On destroy was hit for tip screen")
+        LoggerHelper.writeToLog("On destroy was hit for tip screen", LogEnums.LIFE_CYCLE.tag)
         callbackViewModel.getIsTransactionComplete().removeObservers(this)
         callbackViewModel.hasSquareTimedOut().removeObservers(this)
         checkoutCallbackRef?.clear()
