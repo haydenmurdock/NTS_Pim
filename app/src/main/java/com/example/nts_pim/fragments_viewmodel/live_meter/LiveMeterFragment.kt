@@ -223,7 +223,7 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
                 val startingMeterValue = response.data()!!.trip.owedPrice()
                 val startingMeterState = response.data()!!.trip.meterState()
                 if (startingMeterState != null) {
-                        Log.i("Live Meter", "Meter is $meterState and is now $startingMeterState from meter query")
+                    LoggerHelper.writeToLog("$logFragment, Meter is $meterState and is now $startingMeterState from meter query", LogEnums.TRIP_STATUS.tag)
                     meterState = startingMeterState
                 }
                 if(startingMeterValue != null) {

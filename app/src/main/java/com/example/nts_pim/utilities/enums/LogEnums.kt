@@ -1,6 +1,7 @@
 package com.example.nts_pim.utilities.enums
 
 enum class LogEnums(val tag: String) {
+    TRIP("TRIP"),
     PIM_SETTING("PIM_SETTING"),
     OVERHEATING("OVER_HEATING"),
     BLUETOOTH("BLUETOOTH"),

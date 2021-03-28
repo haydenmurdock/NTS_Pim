@@ -4,6 +4,7 @@ import android.util.Log
 import com.example.nts_pim.PimApplication
 import com.example.nts_pim.data.repository.TripDetails
 import com.example.nts_pim.data.repository.VehicleTripArrayHolder
+import com.example.nts_pim.data.repository.model_objects.Trip
 import com.example.nts_pim.receivers.BatteryPowerReceiver
 import com.example.nts_pim.utilities.enums.LogEnums
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
@@ -143,62 +144,6 @@ class NTSPimPacket {
      *
      * @return True if packet contains valid data.
      */
-//    val isValidPacket: Boolean
-//        get() {
-//            if (_data == null) return false
-//            try {
-//                // First, try to convert the data to a string.
-//                val s = String(_data!!)
-//
-//                // If an error wasn't thrown, convert the string to a JSON object.
-//                val obj = JSONObject(s)
-//                val strCmd = obj.getString(JSON_COMMAND)
-//                val json = obj.optJSONObject(JSON_DATA)
-//
-//                // Check if the command is valid. If command expects data with it and it is null, then packet not valid.
-//                if (strCmd == Command.ACK.command) {
-//                    command = Command.ACK
-//                } else if (strCmd == Command.NACK.command) {
-//                    command = Command.NACK
-//                } else if (strCmd == Command.MDT_STATUS.command) {
-//                    command =
-//                        Command.MDT_STATUS
-//                    if (json == null) return false
-//                    packetData = MdtStatusObj()
-//                    (packetData as MdtStatusObj).fromJson(json)
-//                } else if (strCmd == Command.PIM_PAYMENT.command) {
-//                    command =
-//                        Command.PIM_PAYMENT
-//                    if (json == null) return false
-//                    packetData = PimPaymentObj()
-//                    (packetData as PimPaymentObj).fromJson(json)
-//                } else if (strCmd == Command.PAYMENT_DECLINED.command) {
-//                    command =
-//                        Command.PAYMENT_DECLINED
-//                    if (json == null) return false
-//                    packetData = PaymentDeclinedObj()
-//                    (packetData as PaymentDeclinedObj).fromJson(json)
-//                } else if (strCmd == Command.PIM_STATUS.command) {
-//                    command =
-//                        Command.PIM_STATUS
-//                    if (json == null) return false
-//                    packetData = PimStatusObj()
-//                    (packetData as PimStatusObj).fromJson(json)
-//                } else if (strCmd == Command.STATUS_REQ.command) {
-//                    command =
-//                        Command.STATUS_REQ
-//                } else {
-//                    // Command not recognized, exit.
-//                    return false
-//                }
-//
-//                // If this point is reached, then data was converted to JSON and going to assume packet is valid.
-//                return true
-//            } catch (e: Exception) {
-//                Log.i("bluetooth", "Error:" + e.message)
-//            }
-//            return false
-//        }
 
     /**
      * Parses the bytes passed in. The byte array may only contain a portion of the packet so keep calling parseData()
@@ -209,89 +154,11 @@ class NTSPimPacket {
      * @param data Bytes read from socket connection.
      * @return True if the end of the packet was found.
      */
-    fun parseData(data: ByteArray): Boolean {
-        var b: Byte
-        var i = 0
-        val len = data.size
-        while (i < len) {
-            b = data[i]
-
-            // If this byte is for the start of a packet and we are not currently looking for the start, reset parsing and
-            // start over from here.
-            if (b.toInt() == STX && _readState != ReadState.STX) {
-                init()
-            }
-            // To make sure our buffer doesn't keep growing forever if the end byte is not found, going to assume we need
-            // to start over if we've parsed 10k bytes.
-            if (_readState == ReadState.DATA && _index > 10000) {
-                init()
-            }
-            when (_readState) {
-                ReadState.STX -> if (b.toInt() == STX) {
-                    _readState = ReadState.DATA
-                }
-                ReadState.DATA ->                     // Check for end byte.
-                    if (b.toInt() == ETX) {
-                        // If there are any more bytes to parse, set leftover index.
-                        if (i < len - 1) LeftoverIndex = i + 1
-
-                        // Copy buffer to data array.
-                        _data = ByteArray(_index)
-                        System.arraycopy(_readBuffer!!, 0, _data, 0, _index)
-
-                        // Done parsing, return true.
-                        return true
-                    } else {
-                        // Make sure buffer limit hasn't been reached.
-                        if (_index == _readBuffer!!.size) allocateBuffer()
-                        _readBuffer!![_index] = b
-                        _index++
-                    }
-            }
-            i++
-        }
-        return false
-    }
-
-    fun toBytes(): ByteArray? {
-        var packet: ByteArray? = null
-        val json: JSONObject
-
-        // First, create a JSON object that contains the command.
-        try {
-            json = JSONObject()
-            json.put(JSON_COMMAND, command!!.command)
-
-            // If this packet has additional data, add it as a JSON object.
-            if (packetData != null) {
-                json.put(JSON_DATA, packetData!!.toJson())
-            }
-
-            // Convert JSON to string and then bytes and add to byte araay plus 2 bytes for STX and ETX.
-            _data = json.toString().toByteArray()
-            packet = ByteArray(_data!!.size + 2)
-            packet[0] = STX.toByte()
-            System.arraycopy(_data!!, 0, packet, 1, _data!!.size)
-            packet[1 + _data!!.size] = ETX.toByte()
-        } catch (e: Exception) {
-        }
-        return packet
-    }
 
     /**
      * Call to instantiate the buffer or increase its size.
      */
-    private fun allocateBuffer() {
-        val tempBuffer: ByteArray
-        if (_readBuffer == null) {
-            _readBuffer = ByteArray(1024)
-        } else {
-            // Double the buffer's size.
-            tempBuffer = ByteArray(_readBuffer!!.size * 2)
-            System.arraycopy(_readBuffer!!, 0, tempBuffer, 0, _readBuffer!!.size)
-            _readBuffer = tempBuffer
-        }
-    }
+
 
     /**
      * Set variables to initial state ready to start looking for the beginning of a packet.
@@ -410,8 +277,7 @@ class NTSPimPacket {
             private const val JSON_OWED_PRICE = "owedPrice"
             private const val JSON_PIM_PAY_AMT = "pimPayAmt"
         }
-
-    } // end of class MdtStatusObj
+    }
 
     /**
      * Class to help send or parse JSON data for PIM Payment packet.  Sent by PIM after a card or cash payment.
@@ -503,6 +369,29 @@ class NTSPimPacket {
      * Class to help send or parse JSON data for PIM Status packet.  Sent by PIM when its status changes or in
      * response to a Status Request.
      */
+
+    class TripObj: PimDataObj{
+        val trip: Trip? = null
+
+        override fun fromJson(obj: JSONObject) {
+            trip?.pickupDest = obj.optString(JSON_PICKUP_DESTINATION)
+
+        }
+
+        override fun toJson(): JSONObject {
+            val obj = JSONObject()
+            return obj
+        }
+        companion object {
+            private const val JSON_PICKUP_DESTINATION = "pickupDest"
+            private const val JSON_DROP_OFF_DESTINATION = "dropOffDest"
+            private const val JSON_FIRST_NAME = "firstName"
+            private const val JSON_LAST_NAME = "lastName"
+            private const val JSON_TRIP_PRICE = "tripPrice"
+            private const val JSON_DRIVER_ACCEPTED = "driverAccepted"
+        }
+
+    }
     class PimStatusObj : PimDataObj {
         var pimStatus: String? = null
         var tripId: String? = null
@@ -570,3 +459,4 @@ class NTSPimPacket {
         }
     }
 }
+

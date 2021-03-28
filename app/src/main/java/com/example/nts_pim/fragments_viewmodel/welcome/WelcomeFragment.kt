@@ -1,5 +1,6 @@
 package com.example.nts_pim.fragments_viewmodel.welcome
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
@@ -78,7 +79,6 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
     private val dimBrightness = 10
     private var isOnActiveTrip = false
     private var lastTrip:Pair<Boolean?, String> = Pair(false, "")
-    private val emojiCode: Int = 0x1F44B
     private val currentFragmentId = R.id.welcome_fragment
     private val logFragment = "Welcome_Screen"
 
@@ -123,6 +123,7 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
     ): View? {
         return inflater.inflate(R.layout.welcome_screen, container, false)
     }
+    @SuppressLint("ClickableViewAccessibility")
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         mAWSAppSyncClient = ClientFactory.getInstance(context)
@@ -168,6 +169,15 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
             }
             v?.onTouchEvent(event) ?: true
         }
+
+        enter_destination_view.setOnTouchListener{v, event ->
+            when(event?.action){
+                MotionEvent.ACTION_DOWN -> {
+                    toEnterDestination()
+                }
+            }
+            v?.onTouchEvent(event) ?: true
+        }
         open_vehicle_settings_button.setOnClickListener {
             dimScreenTimer.cancel()
             changeScreenBrightness(fullBrightness)
@@ -205,7 +215,7 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
             if(meterState == MeterEnum.METER_ON.state || meterState == MeterEnum.METER_TIME_OFF.state){
                LoggerHelper.writeToLog( "Meter $meterState is picked up on welcome screen. Starting trip animation", LogEnums.TRIP_STATUS.tag)
                 changeScreenBrightness(fullBrightness)
-                checkAnimation()
+
             }
         })
 
@@ -216,31 +226,6 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
         VehicleTripArrayHolder.squareHasBeenSetUp = true
     }
 
-    private fun checkAnimation() {
-        val animationIsOn = resources.getBoolean(R.bool.animationIsOn)
-        if (animationIsOn) {
-            if (welcome_text_view != null) {
-                welcome_text_view.animate().alpha(0.0f).setDuration(2500).withEndAction {
-                    if (thank_you_text_view != null){
-                        thank_you_text_view.animate().alpha(1f).setDuration(2500).withEndAction {
-                            if (thank_you_text_view != null){
-                                thank_you_text_view.animate().alpha(0.0f).setDuration(2500)
-                                    .withEndAction {
-                                        toTaxiNumber()
-                                    }
-                            }
-                        }
-                    }
-                }
-            }
-        }else {
-            toNextScreen()
-        }
-    }
-
-    private fun getEmojiByUnicode(unicode: Int): String? {
-        return String(Character.toChars(unicode))
-    }
 
     private fun getTimeOfDayAndUpdateUI() {
         val currentDate = LocalDateTime.now()
@@ -248,22 +233,21 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
             DateTimeFormatter.ofPattern("HH")
         val hour = currentDate.format(formatter).toInt()
         Log.i("Hour", "$hour")
-        val emoji = getEmojiByUnicode(emojiCode)
         val morning = 4.rangeTo(11)
         val afternoon = 12.rangeTo(16)
         val evening = 17.rangeTo(24)
         val earlyEvening = 0.rangeTo(3)
         if(morning.contains(hour)){
-            greetings_textView.text = "Good Morning! $emoji"
+            greetings_textView.text = "Good Morning!"
         }
         if(afternoon.contains(hour)){
-            greetings_textView.text = "Good Afternoon! $emoji"
+            greetings_textView.text = "Good Afternoon!"
         }
         if(evening.contains(hour)){
-            greetings_textView.text = "Good Evening! $emoji"
+            greetings_textView.text = "Good Evening!"
         }
         if(earlyEvening.contains(hour)) {
-            greetings_textView.text = "Good Evening! $emoji"
+            greetings_textView.text = "Good Evening!"
         }
     }
 
@@ -459,6 +443,13 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
         if (navController.currentDestination?.id == currentFragmentId){
             navController.navigate(R.id.toVehicleSettingsDetail)
         }
+    }
+    private fun toEnterDestination(){
+        val navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment)
+        if (navController.currentDestination?.id == currentFragmentId){
+            navController.navigate(R.id.action_welcome_fragment_to_enterDestination)
+        }
+
     }
 
     override fun onStop() {

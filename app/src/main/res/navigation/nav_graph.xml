@@ -24,6 +24,9 @@
         <action
                 android:id="@+id/action_welcome_fragment_to_bluetoothSetupFragment"
                 app:destination="@id/bluetoothSetupFragment" />
+        <action
+                android:id="@+id/action_welcome_fragment_to_enterDestination"
+                app:destination="@id/enterDestination" />
     </fragment>
 
     <fragment
@@ -323,6 +326,10 @@
                 android:id="@+id/action_advertisementFragment_to_live_meter_fragment"
                 app:destination="@id/live_meter_fragment" />
     </fragment>
+    <fragment
+            android:id="@+id/enterDestination"
+            android:name="com.example.nts_pim.fragments_viewmodel.enter_destination.EnterDestination"
+            android:label="EnterDestination" />
 
 
 </navigation>
