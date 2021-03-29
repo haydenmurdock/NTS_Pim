@@ -1,8 +1,128 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.constraintlayout.widget.ConstraintLayout
         xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:app="http://schemas.android.com/apk/res-auto"
+        xmlns:tools="http://schemas.android.com/tools"
         android:layout_width="match_parent" android:layout_height="match_parent"
         android:background="@color/screenBackgroundColor">
 
 
+    <TextView
+            android:id="@+id/textView16"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Address One Title"
+            android:textColor="@color/whiteTextColor"
+            tools:layout_editor_absoluteX="900dp"
+            tools:layout_editor_absoluteY="591dp" />
+
+    <ImageView
+            android:id="@+id/imageView5"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:srcCompat="@drawable/ic_add_circular_outlined_button"
+            tools:layout_editor_absoluteX="415dp"
+            tools:layout_editor_absoluteY="591dp" />
+
+    <ImageView
+            android:id="@+id/imageView6"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:srcCompat="@drawable/ic_add_circular_outlined_button"
+            tools:layout_editor_absoluteX="829dp"
+            tools:layout_editor_absoluteY="591dp" />
+
+    <View
+            android:id="@+id/divider3"
+            android:layout_width="1dp"
+            android:layout_height="50dp"
+            android:background="?android:attr/listDivider"
+            tools:layout_editor_absoluteX="787dp"
+            tools:layout_editor_absoluteY="600dp" />
+
+    <ImageView
+            android:id="@+id/imageView4"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:srcCompat="@drawable/ic_add_circular_outlined_button"
+            tools:layout_editor_absoluteX="16dp"
+            tools:layout_editor_absoluteY="168dp" />
+
+    <TextView
+            android:id="@+id/textView12"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Address One Title"
+            android:textColor="@color/whiteTextColor"
+            tools:layout_editor_absoluteX="113dp"
+            tools:layout_editor_absoluteY="412dp" />
+
+    <TextView
+            android:id="@+id/textView14"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Address One Title"
+            android:textColor="@color/whiteTextColor"
+            tools:layout_editor_absoluteX="488dp"
+            tools:layout_editor_absoluteY="591dp" />
+
+    <TextView
+            android:id="@+id/textView13"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="address one detail"
+            android:textColor="@color/whiteTextColor"
+            tools:layout_editor_absoluteX="113dp"
+            tools:layout_editor_absoluteY="632dp" />
+
+    <TextView
+            android:id="@+id/textView15"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="address one detail"
+            android:textColor="@color/whiteTextColor"
+            tools:layout_editor_absoluteX="488dp"
+            tools:layout_editor_absoluteY="632dp" />
+
+    <TextView
+            android:id="@+id/textView17"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="address one detail"
+            android:textColor="@color/whiteTextColor"
+            tools:layout_editor_absoluteX="900dp"
+            tools:layout_editor_absoluteY="632dp" />
+
+    <View
+            android:id="@+id/divider2"
+            android:layout_width="1dp"
+            android:layout_height="50dp"
+            android:background="?android:attr/listDivider"
+            tools:layout_editor_absoluteX="381dp"
+            tools:layout_editor_absoluteY="600dp" />
+
+    <EditText
+            android:id="@+id/editTextTextPostalAddress"
+            android:layout_width="782dp"
+            android:layout_height="103dp"
+            android:layout_marginTop="8dp"
+            android:ems="10"
+            android:inputType="textPostalAddress"
+            android:textColor="@color/whiteTextColor"
+            android:textSize="36sp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.0"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/textView18" />
+
+    <TextView
+            android:id="@+id/textView18"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="@font/source_sans_pro"
+            android:text="What's your destination?"
+            android:textColor="@color/whiteTextColor"
+            android:textSize="36sp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
 </androidx.constraintlayout.widget.ConstraintLayout>
