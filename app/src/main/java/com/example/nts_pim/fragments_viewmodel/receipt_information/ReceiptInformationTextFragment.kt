@@ -159,9 +159,7 @@ class ReceiptInformationTextFragment: ScopedFragment(), KodeinAware {
                 }
             }
 
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
-            }
-
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun afterTextChanged(s: Editable?) {
                 val isKeyboardGoingForward = keyboardViewModel.isKeyboardGoingForward()
                 if (enteredPhoneNumber.endsWith("-") && !isKeyboardGoingForward){

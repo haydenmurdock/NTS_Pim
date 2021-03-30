@@ -1,10 +1,9 @@
 package com.example.nts_pim.utilities.bluetooth_helper
 
-import android.util.Log
 import com.example.nts_pim.PimApplication
 import com.example.nts_pim.data.repository.TripDetails
 import com.example.nts_pim.data.repository.VehicleTripArrayHolder
-import com.example.nts_pim.data.repository.model_objects.Trip
+import com.example.nts_pim.data.repository.model_objects.trip.Trip
 import com.example.nts_pim.receivers.BatteryPowerReceiver
 import com.example.nts_pim.utilities.enums.LogEnums
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
@@ -26,100 +25,32 @@ class NTSPimPacket {
      * Indicates the type of information that should be found in this packet's data (if there is any beyond command).
      */
     enum class Command(val command: String) {
-        /**
-         * Command to return after receiving a valid packet.
-         */
         ACK("ACK"),
-
-        /**
-         * Command to return if a packet wasn't valid.  When received, the packet should be resent at least 1 more time
-         * (except for ACK or NACK packets).
-         */
         NACK("NACK"),
-
-        /**
-         * Command containing data for the current status of the Driver App (such as vehicle status, trip info, and meter
-         * status).
-         */
-        MDT_STATUS("MDT_STATUS"),  //    /**
-        //     * Command to start payment process on PIM. Should contain all the data needed to start payment.
-        //     */
-        //    START_PAYMENT("START_PAYMENT"),
-        //    /**
-        //     * Command Driver App can send if a payment should be canceled (may not end up using this command).
-        //     */
-        //    CANCEL_PAYMENT("CANCEL_PAYMENT"),
-        /**
-         * Command PIM App should send when a payment is complete (after receipt sent). Should contain payment method
-         * (cash or card) and rest of payment details for card payment.
-         */
+        MDT_STATUS("MDT_STATUS"),
         PIM_PAYMENT("PIM_PAYMENT"),
-
-        /**
-         * Command PIM app should send if a card is declined.  Should contain any available decline message.
-         */
         PAYMENT_DECLINED("PAYMENT_DECLINED"),
-
-        /**
-         * Command PIM app should send when its status (which screen is being displayed) changes or after receiving a
-         * STATUS_REQ packet.
-         */
         PIM_STATUS("PIM_STATUS"),
-
-        /**
-         * Command Driver App or PIM App can send to request the other's status. Will not include any JSON data.
-         */
-        STATUS_REQ("STATUS_REQ");
-
+        STATUS_REQ("STATUS_REQ"),
+        GET_UPFRONT_PRICE("GET_UPFRONT_PRICE"),
+        UPFRONT_PRICE("UPFRONT_PRICE"),
+        UPDATE_TRIP("UPDATE_TRIP")
     }
-
-    /**
-     * This variable is set if there are more bytes to parse after finding the end of a packet.
-     */
-    var LeftoverIndex = 0
-
-    private enum class ReadState {
-        STX, DATA
-    }
-
+    private enum class ReadState {STX}
     private var _readState: ReadState? = null
-
-    /**
-     * Gets the command for this packet. For packets being parsed, this won't be set until after [.isValidPacket]
-     * is called.
-     *
-     * @return The packet's command.
-     */
     var command: Command?
         private set
-
-    /**
-     * Gets the data from the packet converted to a JSON object.  If null, packet doesn't have any data. For packets
-     * being parsed, this won't be set until after [.isValidPacket] is called.
-     *
-     * @return PimDataObj containing packet data or null if there is no data.
-     */
     var packetData: PimDataObj?
         private set
     private var _index = 0
     private var _data: ByteArray? = null
     private var _readBuffer: ByteArray? = null
 
-    /**
-     * Constructor to use when getting ready to parse data.
-     */
     constructor() {
         init()
         command = null
         packetData = null
     }
-
-    /**
-     * Constructor to use when getting ready to send a packet.
-     *
-     * @param cmd  Command indicating what sort of data the packet will contain.
-     * @param data PimDataObj containing packet data or null if no data should be sent.
-     */
     constructor(
         cmd: Command?,
         data: PimDataObj?
@@ -128,61 +59,17 @@ class NTSPimPacket {
         command = cmd
         packetData = data
     }
-
-    val isAckPacket: Boolean
-        get() = command == Command.ACK// Command not recognized, exit.
-
-    // If this point is reached, then data was converted to JSON and going to assume packet is valid.
-// First, try to convert the data to a string.
-
-    // If an error wasn't thrown, convert the string to a JSON object.
-
-    // Check if the command is valid. If command expects data with it and it is null, then packet not valid.
-
-    /**
-     * Call this function after parseData() returns true to check if the data just parsed is valid.
-     *
-     * @return True if packet contains valid data.
-     */
-
-    /**
-     * Parses the bytes passed in. The byte array may only contain a portion of the packet so keep calling parseData()
-     * (on the same class instance) until true is returned.  If true is returned, check variable "LeftoverIndex" to see
-     * if it is greater than 0 indicating that the data contains part (or all) of another packet and that parsing should
-     * start again at this index with a new instance of this class.
-     *
-     * @param data Bytes read from socket connection.
-     * @return True if the end of the packet was found.
-     */
-
-    /**
-     * Call to instantiate the buffer or increase its size.
-     */
-
-
-    /**
-     * Set variables to initial state ready to start looking for the beginning of a packet.
-     */
     private fun init() {
         _readState = ReadState.STX
         _index = 0
         _data = null
         _readBuffer = null
     }
-
-    // *************************
-    // ****  Inner Classes  ****
-    // *************************
     interface PimDataObj {
         fun fromJson(obj: JSONObject)
         fun toJson(): JSONObject
     }
 
-    /**
-     * Class to help send or parse JSON data for MDT Status packet.  If not on a trip or the trip hasn't been
-     * picked up yet, some of the variables will be left null which, when parsed, will be set to default values
-     * of an empty string or 0.  Sent by Driver app when status changes or in response to a Status Request.
-     */
     class MdtStatusObj(mId: Int?, mTripNbr: Int?, mMeterState: String?, mPimNoReceipt: String?, mTripId: String?, mTripStatus: String?, mOwedPrice: Double?, mPimPayAmt: Double?) : PimDataObj {
         var driverId: Int? = null
         var tripNbr: Int? = null
@@ -370,28 +257,6 @@ class NTSPimPacket {
      * response to a Status Request.
      */
 
-    class TripObj: PimDataObj{
-        val trip: Trip? = null
-
-        override fun fromJson(obj: JSONObject) {
-            trip?.pickupDest = obj.optString(JSON_PICKUP_DESTINATION)
-
-        }
-
-        override fun toJson(): JSONObject {
-            val obj = JSONObject()
-            return obj
-        }
-        companion object {
-            private const val JSON_PICKUP_DESTINATION = "pickupDest"
-            private const val JSON_DROP_OFF_DESTINATION = "dropOffDest"
-            private const val JSON_FIRST_NAME = "firstName"
-            private const val JSON_LAST_NAME = "lastName"
-            private const val JSON_TRIP_PRICE = "tripPrice"
-            private const val JSON_DRIVER_ACCEPTED = "driverAccepted"
-        }
-
-    }
     class PimStatusObj : PimDataObj {
         var pimStatus: String? = null
         var tripId: String? = null

@@ -374,7 +374,6 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
         val byteArrayToSend = toBytes(ntsPimPacket)
         LoggerHelper.writeToLog("Sending packet to driver tablet. Command: ${ntsPimPacket.command} Data: ${ntsPimPacket.packetData}", LogEnums.BLUETOOTH.tag)
         writeThread?.write(byteArrayToSend)
-
     }
 
     fun sendACKPacket(ntsPimPacket: NTSPimPacket){
@@ -657,7 +656,6 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
 
         }
     }
-
     @SuppressLint("MissingPermission")
     private fun subscribeToUpdatePimSettings(){
         val deviceId  = DeviceIdCheck.getDeviceId()
@@ -668,7 +666,6 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
             LoggerHelper.writeToLog("Tried to subscribe to updatePIM with deviceID $deviceId", LogEnums.AWS_SUBSCRIPTION.tag)
         }
     }
-
     private var updatePimSettingsCallback = object : AppSyncSubscriptionCall.Callback<OnPimSettingsUpdateSubscription.Data>{
         @SuppressLint("RestrictedApi")
         override fun onResponse(response: Response<OnPimSettingsUpdateSubscription.Data>) {
@@ -719,7 +716,6 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
 
         }
     }
-
     fun closeBluetoothThreads(){
         connectThread = null
         readThread = null

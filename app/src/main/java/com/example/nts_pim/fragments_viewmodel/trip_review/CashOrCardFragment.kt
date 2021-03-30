@@ -208,9 +208,6 @@ class CashOrCardFragment : ScopedFragment(), KodeinAware {
             }
         })
         sendPimStatusBluetooth()
-        callbackViewModel.getTripStatus().observe(this.viewLifecycleOwner, Observer {tripStatus ->
-
-        })
     }
     private fun sendPimStatusBluetooth(){
         VehicleTripArrayHolder.updateInternalPIMStatus(PIMStatusEnum.PAYMENT_SCREEN.status)

@@ -29,7 +29,7 @@ object HerePlacesAPI {
      */
     fun getSuggestions(
         lat: Double, lon: Double, radius: Int, query: String?,
-        size: Int, @NonNull cb: CallbackFunction<SuggestionResults?>
+        size: Int, @NonNull cb: CallbackFunction<SuggestionResults>
     ) {
         Thread(Runnable {
             var results: SuggestionResults? = null
