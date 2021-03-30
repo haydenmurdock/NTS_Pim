@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.WindowManager
 import android.view.inputmethod.InputMethodManager
 import com.example.nts_pim.R
 import com.example.nts_pim.fragments_viewmodel.base.ScopedFragment
@@ -27,12 +28,13 @@ class EnterDestination : ScopedFragment(), KodeinAware {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        showSoftKeyboard()
 
     }
 
     override fun onResume() {
         super.onResume()
-        showSoftKeyboard()
+
     }
 
     private fun showSoftKeyboard(){

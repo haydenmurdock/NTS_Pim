@@ -27,18 +27,17 @@
     <TextView
             android:id="@+id/welcome_text_view"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:fontFamily="@font/source_sans_pro"
+            android:layout_height="68dp"
+            android:fontFamily="@font/source_sans_pro_semibold"
             android:text="What's your destination?"
             android:textColor="#FFFFFF"
-            android:textSize="56sp"
+            android:textSize="46sp"
             android:visibility="visible"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="0.514"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintVertical_bias="0.316" />
+            app:layout_constraintVertical_bias="0.369" />
 
     <Button
             android:id="@+id/open_vehicle_settings_button"
@@ -113,43 +112,42 @@
 
     <View
             android:id="@+id/enter_destination_view"
-            android:layout_width="579dp"
-            android:layout_height="104dp"
-            android:background="@color/enterDestinationBtnBackground"
-            app:layout_constraintEnd_toEndOf="@+id/welcome_text_view"
-            app:layout_constraintHorizontal_bias="0.0"
+            android:layout_width="481dp"
+            android:layout_height="75dp"
+            android:layout_marginTop="12dp"
+            android:background="@drawable/enter_destination_button"
             app:layout_constraintStart_toStartOf="@+id/welcome_text_view"
             app:layout_constraintTop_toBottomOf="@+id/welcome_text_view" />
 
     <ImageView
             android:id="@+id/imageView2"
-            android:layout_width="62dp"
-            android:layout_height="45dp"
-            android:layout_marginStart="16dp"
+            android:layout_width="37dp"
+            android:layout_height="37dp"
+            android:layout_marginStart="15dp"
             android:tint="@color/red"
             app:layout_constraintBottom_toBottomOf="@+id/enter_destination_view"
             app:layout_constraintStart_toStartOf="@+id/enter_destination_view"
-            app:layout_constraintTop_toBottomOf="@+id/welcome_text_view"
-            app:srcCompat="@android:drawable/ic_menu_search"
+            app:layout_constraintTop_toTopOf="@+id/enter_destination_view"
+            app:srcCompat="@drawable/ic_search_pink"
             tools:ignore="UseAppTint" />
 
     <TextView
             android:id="@+id/textView11"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
+            android:layout_marginStart="16dp"
             android:fontFamily="@font/source_sans_pro"
             android:text="Search address or place"
             android:textColor="@color/whiteTextColor"
-            android:textSize="36sp"
+            android:textSize="28sp"
             app:layout_constraintBottom_toBottomOf="@+id/enter_destination_view"
             app:layout_constraintStart_toEndOf="@+id/imageView2"
-            app:layout_constraintTop_toTopOf="@+id/thank_you_text_view" />
+            app:layout_constraintTop_toTopOf="@+id/enter_destination_view" />
 
     <ImageView
             android:id="@+id/imageView3"
-            android:layout_width="64dp"
-            android:layout_height="45dp"
+            android:layout_width="60dp"
+            android:layout_height="42dp"
             android:layout_marginTop="2dp"
             app:layout_constraintBottom_toBottomOf="@+id/greetings_textView"
             app:layout_constraintStart_toEndOf="@+id/greetings_textView"

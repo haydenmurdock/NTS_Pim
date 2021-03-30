@@ -44,7 +44,7 @@
         <activity
                 android:name="com.example.nts_pim.activity.MainActivity"
                 android:screenOrientation="landscape"
-                android:configChanges="orientation|screenSize" >
+                android:configChanges="orientation|screenSize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
 

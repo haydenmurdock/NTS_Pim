@@ -315,27 +315,25 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                         try {
                             readThread?.start()
                             LoggerHelper.writeToLog("ReadThread is started on MainActivity", LogEnums.BLUETOOTH.tag)
-                        } catch (e: IllegalStateException){
+                        } catch (e: IllegalThreadStateException){
                             LoggerHelper.writeToLog("Tried to start Read Thread, but caught error for illegal state exception. $e", LogEnums.BLUETOOTH.tag)
                         }
-
                     }
 
                     if(!writeThread!!.isAlive){
                         try {
                             writeThread?.start()
                             LoggerHelper.writeToLog("WriteThread is started on MainActivity", LogEnums.BLUETOOTH.tag)
-                        } catch (e: IllegalStateException){
+                        } catch (e: IllegalThreadStateException){
                             LoggerHelper.writeToLog("Tried to start Write Thread, but caught error for illegal state exception. $e", LogEnums.BLUETOOTH.tag)
                         }
-
                     }
                     if(!ackThread!!.isAlive){
                         try {
                             ackThread?.start()
                             LoggerHelper.writeToLog("ACKThread is started on MainActivity", LogEnums.BLUETOOTH.tag)
 
-                        } catch (e: IllegalStateException){
+                        } catch (e: IllegalThreadStateException){
                             LoggerHelper.writeToLog("Tried to start ACK Thread, but caught error for illegal state exception. $e", LogEnums.BLUETOOTH.tag)
                         }
                     }
