@@ -1,8 +1,9 @@
 package com.example.nts_pim.utilities.announcement_center
 
 import android.content.Context
+import android.media.MediaPlayer
 import android.speech.tts.TextToSpeech
-import android.util.Log
+import com.example.nts_pim.R
 import com.example.nts_pim.utilities.enums.LogEnums
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import java.util.*
@@ -14,6 +15,7 @@ import java.util.*
 class AnnouncementCenter(var context: Context) {
     var textToSpeech: TextToSpeech? = null
     var initialized = false
+    private val mediaPlayerEnterDest: MediaPlayer = MediaPlayer.create(context, R.raw.please_enter_your_destination)
 
     init {
         textToSpeech = TextToSpeech(context) {
@@ -33,10 +35,25 @@ class AnnouncementCenter(var context: Context) {
     }
 
     fun playEnterDestinationMessage(){
-        playMessage(MESSAGE_ENTER_DESTINATION)
+        mediaPlayerEnterDest.setOnCompletionListener { mP ->
+            mP.release()
+        }
+        mediaPlayerEnterDest.start()
+        LoggerHelper.writeToLog("Playing enter destination message", LogEnums.TEXT_READER.tag)
     }
 
-    private fun playMessage(messageToSpeak: String) {
+    fun stopAnnouncement(){
+        if(mediaPlayerEnterDest.isPlaying){
+            mediaPlayerEnterDest.stop()
+            mediaPlayerEnterDest.release()
+        }
+        if(textToSpeech != null && textToSpeech!!.isSpeaking){
+            textToSpeech?.stop()
+        }
+    }
+
+    private fun playPIMPayAmountMessage(messageToSpeak: String) {
+        stopAnnouncement()
         if(initialized){
             LoggerHelper.writeToLog("Announcement: $messageToSpeak", LogEnums.TEXT_READER.tag)
             textToSpeech?.setSpeechRate(0.8.toFloat())
@@ -45,9 +62,5 @@ class AnnouncementCenter(var context: Context) {
                 null,null
             )
         }
-    }
-
-    companion object {
-        private const val  MESSAGE_ENTER_DESTINATION = "Please enter your destination address or place"
     }
 }

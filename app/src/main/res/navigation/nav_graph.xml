@@ -329,7 +329,11 @@
     <fragment
             android:id="@+id/enterDestination"
             android:name="com.example.nts_pim.fragments_viewmodel.enter_destination.EnterDestination"
-            android:label="EnterDestination" />
+            android:label="EnterDestination" >
+        <action
+                android:id="@+id/action_enterDestination_to_welcome_fragment"
+                app:destination="@id/welcome_fragment" />
+    </fragment>
 
 
 </navigation>

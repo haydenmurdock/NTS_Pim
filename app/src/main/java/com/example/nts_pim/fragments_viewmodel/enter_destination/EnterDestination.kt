@@ -6,10 +6,12 @@ import android.content.Context
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
+import android.view.KeyEvent
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.InputMethodManager
+import androidx.navigation.Navigation
 import com.example.nts_pim.R
 import com.example.nts_pim.data.repository.model_objects.PIMLocation
 import com.example.nts_pim.data.repository.model_objects.trip.Destination
@@ -30,9 +32,12 @@ import org.kodein.di.KodeinAware
 import org.kodein.di.android.x.closestKodein
 
 
-class EnterDestination : ScopedFragment(), KodeinAware {
+class EnterDestination : ScopedFragment(), KodeinAware, KeyEvent.Callback {
     override val kodein by closestKodein()
     private lateinit var fusedLocationClient: FusedLocationProviderClient
+    private val currentFragmentId = R.id.enterDestination
+    private var destination: Destination? = null
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
@@ -41,11 +46,16 @@ class EnterDestination : ScopedFragment(), KodeinAware {
     }
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-           fusedLocationClient = LocationServices.getFusedLocationProviderClient(requireContext())
-            AnnouncementCenter(this.requireContext()).playEnterDestinationMessage()
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(requireContext())
+        AnnouncementCenter(this.requireContext()).playEnterDestinationMessage()
+
+        back_to_welcome_btn.setOnClickListener {
+            backToWelcomeScreen()
+        }
         editTextTextPostalAddress.addTextChangedListener(object : TextWatcher {
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
                     updateAddressResultsOnView(s.toString())
+                    updateEditTextWithSuggestAddress(s.toString())
             }
 
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
@@ -80,10 +90,14 @@ class EnterDestination : ScopedFragment(), KodeinAware {
         HerePlacesAPI.getSuggestions(currentLocation!!.lat, currentLocation.long, 200, query, 3, callback)
     }
 
-    private fun sendGetUpFrontPricePacket(destination: Destination, activity: Activity){
+    private fun sendGetUpFrontPricePacket(destination: Destination?, activity: Activity){
+        if(destination == null){
+            LoggerHelper.writeToLog("Destination packet was null. Did not send bluetooth packet to driver tablet", LogEnums.BLUETOOTH.tag)
+            return
+        }
        BlueToothHelper.sendGetUpFrontPricePacket(destination, activity)
-
     }
+
     @SuppressLint("MissingPermission")
     private fun getCurrentLatLong():PIMLocation? {
                 var currentLocation: PIMLocation? = null
@@ -96,4 +110,48 @@ class EnterDestination : ScopedFragment(), KodeinAware {
         LoggerHelper.writeToLog("current location: $currentLocation", LogEnums.TRIP.tag)
         return currentLocation
     }
+
+    private fun updateEditTextWithSuggestAddress(currentText: String){
+        val suggestion = getAddressWithSuggestedAddress(address_title_one_textView.text.toString())
+        editTextTextPostalAddress.setText(currentText + suggestion)
+    }
+
+    private fun getAddressWithSuggestedAddress(firstHereAddress: String): String {
+        val currentInfoEntered = editTextTextPostalAddress.text.toString()
+       return firstHereAddress.replace(currentInfoEntered, "")
+    }
+
+    override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
+        return true
+    }
+
+    override fun onKeyLongPress(keyCode: Int, event: KeyEvent?): Boolean {
+        return true
+    }
+
+    override fun onKeyUp(keyCode: Int, event: KeyEvent?): Boolean {
+        return when (keyCode) {
+            KeyEvent.KEYCODE_ENTER -> {
+                LoggerHelper.writeToLog("Enter button tapped", LogEnums.TRIP.tag)
+                sendGetUpFrontPricePacket(destination)
+                true
+            }
+            else -> true
+        }
+    }
+
+    override fun onKeyMultiple(keyCode: Int, count: Int, event: KeyEvent?): Boolean {
+        return true
+    }
+
+    //Navigation
+
+    private fun backToWelcomeScreen(){
+        val navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment)
+        if (navController.currentDestination?.id == currentFragmentId){
+            navController.navigate(R.id.action_enterDestination_to_welcome_fragment)
+        }
+    }
+
+
 }
