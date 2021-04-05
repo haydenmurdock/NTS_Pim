@@ -16,5 +16,6 @@
     <color name="grey">#929292</color>
     <color name="pink">#E291A8</color>
     <color name="cursorBlue">#4B90D9</color>
+    <color name="grey_light">#cbcbcb</color>
 
 </resources>

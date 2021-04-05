@@ -9,6 +9,6 @@ package com.example.nts_pim.data.repository.model_objects.trip
 data class Trip(var pickup: Pickup?,
                 val dest: Destination,
                 var passengerName: String?,
-                var tripPrice: UpFrontPrice,
+                var upfrontPrice: UpFrontPrice?,
                 var driverAccepted: Boolean,
                 var dateOfTrip: String)

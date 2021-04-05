@@ -41,13 +41,13 @@ class Destination(
     }
 
     companion object{
-        private const val JSON_DEST_NAME = "destName"
-        private const val JSON_DEST_STATE = "destState"
-        private const val JSON_DEST_CITY = "destCity"
-        private const val JSON_DEST_STREET = "destStreet"
-        private const val JSON_DEST_ZIP = "destZip"
-        private const val JSON_DEST_LAT = "destLat"
-        private const val JSON_DEST_LONG = "destLong"
+        private const val JSON_DEST_NAME = "name"
+        private const val JSON_DEST_STATE = "state"
+        private const val JSON_DEST_CITY = "city"
+        private const val JSON_DEST_STREET = "street"
+        private const val JSON_DEST_ZIP = "zip"
+        private const val JSON_DEST_LAT = "latitude"
+        private const val JSON_DEST_LONG = "longitude"
     }
 
 }

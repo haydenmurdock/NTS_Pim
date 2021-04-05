@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:app="http://schemas.android.com/apk/res-auto"
+        xmlns:tools="http://schemas.android.com/tools"
+        android:id="@+id/constraintLayout6"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/screenBackgroundColor"
+        tools:context=".fragments_viewmodel.enter_name.EnterNameFragment">
+
+
+    <Button
+            android:id="@+id/enter_name_cancel_btn"
+            android:layout_width="153dp"
+            android:layout_height="48dp"
+            android:layout_marginTop="24dp"
+            android:layout_marginEnd="40dp"
+            android:background="@drawable/no_receipt_button"
+            android:fontFamily="@font/source_sans_pro_bold"
+            android:text="Cancel"
+            android:textAllCaps="false"
+            android:textColor="@color/whiteTextColor"
+            android:textSize="24sp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+    <EditText
+            android:id="@+id/enter_name_editText"
+            android:layout_width="819dp"
+            android:layout_height="52dp"
+            android:layout_marginTop="32dp"
+            android:background="@null"
+            android:cursorVisible="true"
+            android:defaultFocusHighlightEnabled="true"
+            android:ems="10"
+            android:focusedByDefault="true"
+            android:fontFamily="@font/source_sans_pro"
+            android:hint="Enter your name"
+            android:inputType="textPostalAddress"
+            android:textColor="@color/whiteTextColor"
+            android:textColorHint="@color/grey"
+            android:textCursorDrawable="@drawable/cursor_color"
+            android:textSize="40sp"
+            app:layout_constraintStart_toStartOf="@+id/textView18"
+            app:layout_constraintTop_toBottomOf="@+id/textView18" />
+
+    <TextView
+            android:id="@+id/enter_destination_title_textView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="44dp"
+            android:layout_marginTop="125dp"
+            android:fontFamily="@font/source_sans_pro_semibold"
+            android:hint="Enter your name"
+            android:text="Last thing! What's your name?"
+            android:textColor="@color/whiteTextColor"
+            android:textColorHint="@color/grey"
+            android:textSize="45sp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+    <Button
+            android:id="@+id/enter_name_done_button"
+            android:layout_width="108dp"
+            android:layout_height="54dp"
+            android:background="@drawable/custom_tip_done_button"
+            android:enabled="false"
+            android:fontFamily="@font/source_sans_pro_bold"
+            android:text="Done"
+            android:textAllCaps="false"
+            android:textColor="@color/whiteTextColor"
+            android:textSize="24sp"
+            app:layout_constraintBottom_toBottomOf="@+id/enter_name_editText"
+            app:layout_constraintEnd_toEndOf="@+id/enter_name_cancel_btn"
+            app:layout_constraintTop_toTopOf="@+id/enter_name_editText" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

@@ -1,0 +1,228 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:app="http://schemas.android.com/apk/res-auto"
+        xmlns:tools="http://schemas.android.com/tools"
+        android:id="@+id/frameLayout5"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/screenBackgroundColor"
+        tools:context=".fragments_viewmodel.upfront_price_detail.UpFrontPriceDetailFragment">
+
+    <ImageView
+            android:id="@+id/back_to_welcome_btn2"
+            android:layout_width="54dp"
+            android:layout_height="30dp"
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="24dp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:srcCompat="@drawable/ic_left_arrow_2" />
+
+    <Button
+            android:id="@+id/button4"
+            android:layout_width="131dp"
+            android:layout_height="45dp"
+            android:layout_marginTop="16dp"
+            android:layout_marginEnd="40dp"
+            android:background="@drawable/no_receipt_button"
+            android:fontFamily="@font/source_sans_pro_bold"
+            android:text="Cancel"
+            android:textAllCaps="false"
+            android:textColor="@color/whiteTextColor"
+            android:textSize="24sp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+            android:id="@+id/textView13"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:fontFamily="@font/source_sans_pro_bold"
+            android:text="Your price is"
+            android:textColor="@color/whiteTextColor"
+            android:textSize="38sp"
+            app:layout_constraintStart_toEndOf="@+id/back_to_welcome_btn2"
+            app:layout_constraintTop_toBottomOf="@+id/button4" />
+
+    <TextView
+            android:id="@+id/upfront_price_textView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:fontFamily="@font/source_sans_pro_bold"
+            android:text="$15.25"
+            android:textColor="@color/red"
+            android:textSize="38sp"
+            app:layout_constraintBottom_toBottomOf="@+id/textView13"
+            app:layout_constraintStart_toEndOf="@+id/textView13"
+            app:layout_constraintTop_toTopOf="@+id/textView13" />
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/constraintLayout"
+            android:layout_width="943dp"
+            android:layout_height="283dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/textView13"
+            app:layout_constraintVertical_bias="0.179">
+
+        <ImageView
+                android:id="@+id/imageView8"
+                android:layout_width="15dp"
+                android:layout_height="15dp"
+                android:layout_marginStart="44dp"
+                android:layout_marginTop="8dp"
+                android:src="@drawable/rounded_button"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@+id/divider4" />
+
+        <TextView
+                android:id="@+id/upFront_pickup_textView"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:fontFamily="@font/source_sans_pro"
+                android:text="1515 w. 190th St, Gardena CA"
+                android:textColor="@color/whiteTextColor"
+                android:textSize="32sp"
+                app:layout_constraintBottom_toBottomOf="@+id/imageView7"
+                app:layout_constraintStart_toEndOf="@+id/imageView7"
+                app:layout_constraintTop_toTopOf="@+id/imageView7" />
+
+        <TextView
+                android:id="@+id/upfront_destination_textView"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="@font/source_sans_pro"
+                android:text="100 Aquarium Way, Long Beach CA"
+                android:textColor="@color/whiteTextColor"
+                android:textSize="32sp"
+                app:layout_constraintBottom_toBottomOf="@+id/imageView8"
+                app:layout_constraintStart_toStartOf="@+id/upFront_pickup_textView"
+                app:layout_constraintTop_toTopOf="@+id/imageView8" />
+
+        <View
+                android:id="@+id/divider4"
+                android:layout_width="1dp"
+                android:layout_height="60dp"
+                android:background="@color/grey"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="@+id/imageView7"
+                app:layout_constraintStart_toStartOf="@+id/imageView7"
+                app:layout_constraintTop_toTopOf="parent" />
+
+        <ImageView
+                android:id="@+id/imageView7"
+                android:layout_width="15dp"
+                android:layout_height="15dp"
+                android:layout_marginStart="44dp"
+                android:layout_marginBottom="8dp"
+                android:src="@drawable/rounded_button_grey"
+                app:layout_constraintBottom_toTopOf="@+id/divider4"
+                app:layout_constraintStart_toStartOf="parent" />
+
+        <Button
+                android:id="@+id/request_trip_btn"
+                android:layout_width="200dp"
+                android:layout_height="65dp"
+                android:layout_marginEnd="16dp"
+                android:background="@drawable/custom_tip_done_button"
+                android:fontFamily="@font/source_sans_pro_semibold"
+                android:text="Request Trip"
+                android:textAllCaps="false"
+                android:textColor="@color/whiteTextColor"
+                android:textSize="28sp"
+                app:layout_constraintBottom_toTopOf="@+id/upfront_destination_textView"
+                app:layout_constraintEnd_toEndOf="parent" />
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <LinearLayout
+            android:layout_width="883dp"
+            android:layout_height="83dp"
+            android:background="@color/enterDestinationBtnBackground"
+            android:orientation="horizontal"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/constraintLayout">
+
+        <TextView
+                android:id="@+id/textView15"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:layout_weight="0"
+                android:fontFamily="@font/source_sans_pro"
+                android:gravity="center|center_horizontal|left"
+                android:text="  Trip Time: "
+                android:textAlignment="gravity"
+                android:textColor="@color/grey"
+                android:textSize="18sp" />
+
+        <TextView
+                android:id="@+id/upfront_trip_time_textView"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:layout_weight="0"
+                android:fontFamily="@font/source_sans_pro"
+                android:gravity="center|left"
+                android:text="7 min"
+                android:textColor="@color/whiteTextColor"
+                android:textSize="18sp" />
+
+        <TextView
+                android:id="@+id/textView17"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:layout_weight="1" />
+
+        <TextView
+                android:id="@+id/textView19"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:layout_weight="0"
+                android:gravity="center|left"
+                android:text="  Est Arrival:"
+                android:textColor="@color/grey"
+                android:textSize="18sp" />
+
+        <TextView
+                android:id="@+id/upfront_est_textView"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:layout_weight="0"
+                android:gravity="center|left"
+                android:text="8:04 pm"
+                android:textColor="@color/whiteTextColor"
+                android:textSize="18sp" />
+
+        <TextView
+                android:id="@+id/textView21"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:layout_weight="1" />
+
+        <TextView
+                android:id="@+id/textView22"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:layout_weight="0"
+                android:fontFamily="@font/source_sans_pro"
+                android:gravity="center|left"
+                android:text="  Distance:"
+                android:textColor="@color/grey"
+                android:textSize="18sp"
+                app:layout_constraintEnd_toEndOf="parent" />
+
+        <TextView
+                android:id="@+id/upfront_distance_textView"
+                android:layout_width="85dp"
+                android:layout_height="match_parent"
+                android:layout_weight="0"
+                android:gravity="center|left"
+                android:text="10 miles"
+                android:textColor="@color/whiteTextColor"
+                android:textSize="18sp" />
+
+    </LinearLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>

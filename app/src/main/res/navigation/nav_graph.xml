@@ -328,12 +328,44 @@
     </fragment>
     <fragment
             android:id="@+id/enterDestination"
-            android:name="com.example.nts_pim.fragments_viewmodel.enter_destination.EnterDestination"
+            android:name="com.example.nts_pim.fragments_viewmodel.enter_destination.EnterDestinationFragment"
             android:label="EnterDestination" >
         <action
                 android:id="@+id/action_enterDestination_to_welcome_fragment"
                 app:destination="@id/welcome_fragment" />
+        <action
+                android:id="@+id/action_enterDestination_to_calculatingUpfrontPriceFragment"
+                app:destination="@id/calculatingUpfrontPriceFragment" />
     </fragment>
+    <fragment
+            android:id="@+id/calculatingUpfrontPriceFragment"
+            android:name="com.example.nts_pim.fragments_viewmodel.calculating_price.CalculatingUpfrontPriceFragment"
+            android:label="calculating_upfront_price_fragment"
+            tools:layout="@layout/calculating_upfront_price_fragment" >
+        <action
+                android:id="@+id/action_calculatingUpfrontPriceFragment_to_welcome_fragment"
+                app:destination="@id/welcome_fragment" />
+        <action
+                android:id="@+id/action_calculatingUpfrontPriceFragment_to_upFrontPriceDetailFragment"
+                app:destination="@id/upFrontPriceDetailFragment" />
+    </fragment>
+    <fragment
+            android:id="@+id/upFrontPriceDetailFragment"
+            android:name="com.example.nts_pim.fragments_viewmodel.upfront_price_detail.UpFrontPriceDetailFragment"
+            android:label="up_front_price_detail_fragment"
+            tools:layout="@layout/up_front_price_detail_fragment" >
+        <action
+                android:id="@+id/action_upFrontPriceDetailFragment_to_welcome_fragment"
+                app:destination="@id/welcome_fragment" />
+        <action
+                android:id="@+id/action_upFrontPriceDetailFragment_to_enterNameFragment"
+                app:destination="@id/enterNameFragment" />
+    </fragment>
+    <fragment
+            android:id="@+id/enterNameFragment"
+            android:name="com.example.nts_pim.fragments_viewmodel.enter_name.EnterNameFragment"
+            android:label="enter_name_fragment"
+            tools:layout="@layout/enter_name_fragment" />
 
 
 </navigation>

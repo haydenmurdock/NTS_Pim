@@ -7,6 +7,46 @@
         android:background="@color/screenBackgroundColor">
 
 
+    <View
+            android:id="@+id/view"
+            android:layout_width="270dp"
+            android:layout_height="70dp"
+            android:layout_marginTop="43dp"
+            android:background="@color/enterDestinationBtnBackground"
+            app:layout_constraintStart_toStartOf="@+id/editTextTextPostalAddress"
+            app:layout_constraintTop_toBottomOf="@+id/editTextTextPostalAddress" />
+
+    <View
+            android:id="@+id/view2"
+            android:layout_width="270dp"
+            android:layout_height="70dp"
+            android:layout_marginTop="42dp"
+            android:background="@color/enterDestinationBtnBackground"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/editTextTextPostalAddress" />
+
+    <View
+            android:id="@+id/view4"
+            android:layout_width="270dp"
+            android:layout_height="70dp"
+            android:layout_marginStart="12dp"
+            android:layout_marginTop="42dp"
+            android:background="@color/enterDestinationBtnBackground"
+            app:layout_constraintStart_toEndOf="@+id/view2"
+            app:layout_constraintTop_toBottomOf="@+id/editTextTextPostalAddress" />
+
+    <ImageView
+            android:id="@+id/back_to_welcome_btn"
+            android:layout_width="49dp"
+            android:layout_height="36dp"
+            android:layout_marginTop="24dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.017"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:srcCompat="@drawable/ic_left_arrow_2" />
+
     <TextView
             android:id="@+id/address_title_one_textView"
             android:layout_width="wrap_content"
@@ -81,8 +121,9 @@
 
     <ImageView
             android:id="@+id/imageView4"
-            android:layout_width="45dp"
-            android:layout_height="38dp"
+            android:layout_width="54dp"
+            android:layout_height="47dp"
+            android:layout_marginStart="4dp"
             app:layout_constraintBottom_toBottomOf="@+id/view"
             app:layout_constraintStart_toStartOf="@+id/view"
             app:layout_constraintTop_toTopOf="@+id/view"
@@ -90,8 +131,9 @@
 
     <ImageView
             android:id="@+id/imageView5"
-            android:layout_width="45dp"
-            android:layout_height="38dp"
+            android:layout_width="54dp"
+            android:layout_height="47dp"
+            android:layout_marginStart="4dp"
             app:layout_constraintBottom_toBottomOf="@+id/view2"
             app:layout_constraintStart_toStartOf="@+id/view2"
             app:layout_constraintTop_toTopOf="@+id/view2"
@@ -99,40 +141,19 @@
 
     <ImageView
             android:id="@+id/imageView6"
-            android:layout_width="45dp"
-            android:layout_height="38dp"
+            android:layout_width="54dp"
+            android:layout_height="47dp"
+            android:layout_marginStart="4dp"
             app:layout_constraintBottom_toBottomOf="@+id/view4"
             app:layout_constraintStart_toStartOf="@+id/view4"
             app:layout_constraintTop_toTopOf="@+id/view4"
             app:srcCompat="@drawable/ic_destination_pin" />
 
 
-    <View
-            android:id="@+id/divider2"
-            android:layout_width="1dp"
-            android:layout_height="50dp"
-            android:layout_marginStart="18dp"
-            android:background="@color/grey"
-            app:layout_constraintBottom_toBottomOf="@+id/view2"
-            app:layout_constraintStart_toEndOf="@+id/view"
-            app:layout_constraintTop_toTopOf="@+id/view2" />
-
-    <View
-            android:id="@+id/divider3"
-            android:layout_width="1dp"
-            android:layout_height="50dp"
-            android:layout_marginStart="18dp"
-            android:background="@color/grey"
-            app:layout_constraintBottom_toBottomOf="@+id/view2"
-            app:layout_constraintStart_toEndOf="@+id/view2"
-            app:layout_constraintTop_toTopOf="@+id/view2" />
-
-
     <EditText
             android:id="@+id/editTextTextPostalAddress"
             android:layout_width="900sp"
             android:layout_height="51dp"
-            android:layout_marginStart="24dp"
             android:layout_marginTop="24dp"
             android:background="@null"
             android:cursorVisible="true"
@@ -140,50 +161,25 @@
             android:ems="10"
             android:focusedByDefault="true"
             android:fontFamily="@font/source_sans_pro"
+            android:hint="Search address or place"
             android:inputType="textPostalAddress"
             android:textColor="@color/whiteTextColor"
+            android:textColorHint="@color/grey"
             android:textCursorDrawable="@drawable/cursor_color"
             android:textSize="36sp"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/textView18" />
+            app:layout_constraintStart_toStartOf="@+id/enter_destination_title_textView"
+            app:layout_constraintTop_toBottomOf="@+id/enter_destination_title_textView" />
 
     <TextView
-            android:id="@+id/textView18"
+            android:id="@+id/enter_destination_title_textView"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="24dp"
-            android:layout_marginTop="125dp"
+            android:layout_marginTop="44dp"
             android:fontFamily="@font/source_sans_pro_semibold"
             android:text="What's your destination?"
             android:textColor="@color/whiteTextColor"
-            android:textSize="32sp"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
+            android:textSize="43sp"
+            app:layout_constraintStart_toEndOf="@+id/back_to_welcome_btn"
+            app:layout_constraintTop_toBottomOf="@+id/back_to_welcome_btn" />
 
-    <View
-            android:id="@+id/view"
-            android:layout_width="290dp"
-            android:layout_height="74dp"
-            android:layout_marginStart="16dp"
-            android:layout_marginTop="45dp"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/editTextTextPostalAddress" />
-
-    <View
-            android:id="@+id/view2"
-            android:layout_width="290dp"
-            android:layout_height="74dp"
-            android:layout_marginTop="45dp"
-            app:layout_constraintEnd_toStartOf="@+id/view4"
-            app:layout_constraintStart_toEndOf="@+id/view"
-            app:layout_constraintTop_toBottomOf="@+id/editTextTextPostalAddress" />
-
-    <View
-            android:id="@+id/view4"
-            android:layout_width="290dp"
-            android:layout_height="74dp"
-            android:layout_marginTop="45dp"
-            android:layout_marginEnd="16dp"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/editTextTextPostalAddress" />
 </androidx.constraintlayout.widget.ConstraintLayout>
