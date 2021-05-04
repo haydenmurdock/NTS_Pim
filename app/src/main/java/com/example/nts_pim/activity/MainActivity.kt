@@ -21,6 +21,7 @@ import android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
 import androidx.annotation.RequiresPermission
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.Observer
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelProviders
 import androidx.navigation.NavController
 import androidx.navigation.Navigation.findNavController
@@ -28,11 +29,13 @@ import com.amazonaws.amplify.generated.graphql.*
 import com.amazonaws.mobileconnectors.appsync.AWSAppSyncClient
 import com.amazonaws.mobileconnectors.appsync.AppSyncSubscriptionCall
 import com.amazonaws.mobileconnectors.appsync.fetcher.AppSyncResponseFetchers
+import com.amazonaws.services.cognitoidentityprovider.model.UserPoolDescriptionType
 import com.apollographql.apollo.GraphQLCall
 import com.apollographql.apollo.api.Response
 import com.apollographql.apollo.exception.ApolloException
 import com.example.nts_pim.*
 import com.example.nts_pim.data.repository.TripDetails
+import com.example.nts_pim.data.repository.UpfrontPriceViewModel
 import com.example.nts_pim.data.repository.VehicleTripArrayHolder
 import com.example.nts_pim.data.repository.model_objects.CurrentTrip
 import com.example.nts_pim.data.repository.providers.ModelPreferences
@@ -63,6 +66,7 @@ import org.json.JSONObject
 import org.kodein.di.KodeinAware
 import org.kodein.di.android.closestKodein
 import org.kodein.di.generic.instance
+import java.lang.IllegalArgumentException
 import java.lang.IllegalStateException
 import java.util.*
 import kotlin.coroutines.CoroutineContext
@@ -71,6 +75,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
     override val kodein by closestKodein()
     private val viewModelFactory: VehicleSetupModelFactory by instance<VehicleSetupModelFactory>()
     private lateinit var viewModel: VehicleSetupViewModel
+    private lateinit var upfrontPriceViewModel: UpfrontPriceViewModel
     private var vehicleId = ""
     private var vehicleSubscriptionComplete = false
     private var tripSubscriptionComplete = false
@@ -134,12 +139,15 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
             .get(CallBackViewModel::class.java)
         viewModel = ViewModelProviders.of(this, viewModelFactory)
             .get(VehicleSetupViewModel::class.java)
+        val upfrontPriceFactory = InjectorUtiles.provideUpFrontPriceFactory()
+        upfrontPriceViewModel = ViewModelProvider(this, upfrontPriceFactory)
+            .get(UpfrontPriceViewModel::class.java)
         viewModel.watchSetUpComplete().observe(this, Observer { successfulSetup ->
             if (successfulSetup) {
                 mSuccessfulSetup = successfulSetup
                 vehicleId = viewModel.getVehicleID()
                 internetConnection = isOnline(this)
-                Log.i("Bluetooth", "successful setup: $mSuccessfulSetup")
+                LoggerHelper.writeToLog("MainActivity: successful setup: $successfulSetup", LogEnums.SETUP.tag)
             }
         })
         callbackViewModel.getTripHasEnded().observe(this, Observer { tripEnded ->
@@ -151,7 +159,6 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
         turnOnBluetooth()
         checkNavBar()
         registerReceivers()
-        LoggerHelper.getOrStartInternalLogs()
         callbackViewModel.getReSyncStatus().observe(this, Observer { reSync ->
             if (reSync) {
                 LoggerHelper.writeToLog("ReSync was true on MainActivity. ReSyncing trip.", LogEnums.AWS_SUBSCRIPTION.tag)
@@ -250,6 +257,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                     }
                 }
                 subscribeToUpdatePimSettings()
+                subscribeToDriverSignedIn(vehicleId)
             }
         })
 
@@ -371,8 +379,8 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
     }
 
     fun sendBluetoothPacket(ntsPimPacket: NTSPimPacket){
-        val byteArrayToSend = toBytes(ntsPimPacket)
         LoggerHelper.writeToLog("Sending packet to driver tablet. Command: ${ntsPimPacket.command} Data: ${ntsPimPacket.packetData}", LogEnums.BLUETOOTH.tag)
+        val byteArrayToSend = toBytes(ntsPimPacket)
         writeThread?.write(byteArrayToSend)
     }
 
@@ -433,9 +441,19 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
     private fun clearVehicleOfAWSTripSubscription(){
         vehicleSubscriptionComplete = false
         tripSubscriptionComplete = false
-        subscriptionWatcherDoPimPayment?.cancel()
+        try {
+            subscriptionWatcherDoPimPayment?.cancel()
+        } catch (e: IllegalArgumentException){
+           LoggerHelper.writeToLog("Issue removing subscription Watch do pim payment", LogEnums.AWS_SUBSCRIPTION.tag)
+        }
+
         subscriptionWatcherDoPimPayment = null
-        subscriptionWatcherUpdateVehTripStatus?.cancel()
+        try {
+            subscriptionWatcherUpdateVehTripStatus?.cancel()
+        } catch (e: IllegalArgumentException){
+            LoggerHelper.writeToLog("Issue removing subscription watcher update veh trip status", LogEnums.AWS_SUBSCRIPTION.tag)
+        }
+
         subscriptionWatcherUpdateVehTripStatus = null
         LoggerHelper.writeToLog("Canceled subscription to driver tablet for trip info", LogEnums.AWS_SUBSCRIPTION.tag)
     }
@@ -508,7 +526,13 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
             val pimStatus = response.data()?.onUpdateVehTripStatus()?.pimStatus()
             val tripStatus = response.data()?.onUpdateVehTripStatus()?.tripStatus()
             val awsTripId = response.data()?.onUpdateVehTripStatus()?.tripId()
-
+            val driverId = response.data()?.onUpdateVehTripStatus()?.driverId()
+            if(driverId != 0){
+               upfrontPriceViewModel.driverSignedIn()
+            }
+            if(driverId == 0) {
+               upfrontPriceViewModel.driverSignedOut()
+            }
             if (pimStatus == "_") {
                 // sends back requested current pim status
                 sendPIMStatus()
@@ -554,6 +578,35 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
         }
     }
 
+    private fun subscribeToDriverSignedIn(vehicleId: String){
+        val subscription =
+        OnUpdateDriverSignInStatusSubscription.builder().vehicleId(vehicleId).build()
+        LoggerHelper.writeToLog("Driver sign in status Subscription started. Subscripting to: $vehicleId", LogEnums.TRIP_STATUS.tag)
+        mAWSAppSyncClient?.subscribe(subscription)?.execute(subscribeToDriverSignedInCallBack)
+
+    }
+
+    private var subscribeToDriverSignedInCallBack = object: AppSyncSubscriptionCall.Callback<OnUpdateDriverSignInStatusSubscription.Data>{
+        override fun onResponse(response: Response<OnUpdateDriverSignInStatusSubscription.Data>) {
+            if(response.data()?.onUpdateDriverSignInStatus()?.error() != null){
+                LoggerHelper.writeToLog("Driver sign in status change error. Error: ${response.data()?.onUpdateDriverSignInStatus()?.error()}", LogEnums.TRIP_STATUS.tag)
+            }
+            val driverId = response.data()?.onUpdateDriverSignInStatus()?.driverId()
+            if(driverId != 0){
+                    LoggerHelper.writeToLog("Driver sign in status change:. Driver signed in. ${response.data()}", LogEnums.TRIP_STATUS.tag)
+                    upfrontPriceViewModel.driverSignedIn()
+            }
+            if(driverId == 0) {
+                LoggerHelper.writeToLog("Driver sign in status change: Driver signed out. ${response.data()} ", LogEnums.TRIP_STATUS.tag)
+                upfrontPriceViewModel.driverSignedOut()
+            }
+        }
+
+        override fun onFailure(e: ApolloException) {}
+
+        override fun onCompleted() {}
+
+    }
 
     private var subscribeToUnpairPimSubscriptionCallback = object: AppSyncSubscriptionCall.Callback<OnPimUnpairSubscription.Data> {
         override fun onResponse(response: Response<OnPimUnpairSubscription.Data>) {
@@ -673,11 +726,14 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                 val awsLog = response.data()?.onPIMSettingsUpdate()?.log()!!
                 //We will use this value if the bluetooth is changed in fleet mgmt portal
                 val useBluetooth = response.data()?.onPIMSettingsUpdate()?.useBluetooth()
-                LoggerHelper.logging = awsLog
-                if(awsLog){
-                    launch(Dispatchers.IO) {
-                        LoggerHelper.addInternalLogsToAWS(vehicleId)
+                if(LoggerHelper.logging != awsLog){
+                    LoggerHelper.logging = awsLog
+                    if(awsLog){
+                        launch(Dispatchers.IO) {
+                            LoggerHelper.addInternalLogsToAWS(vehicleId)
+                        }
                     }
+
                 }
                 if(useBluetooth != null){
                     if(!isBluetoothOnAWS && useBluetooth){

@@ -10,6 +10,7 @@ import android.os.CountDownTimer
 import android.os.Handler
 import android.provider.Settings
 import android.text.InputType
+import android.text.Layout
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.MotionEvent
@@ -17,8 +18,12 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
+import android.widget.Button
+import android.widget.TextView
 import android.widget.Toast
+import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.view.isVisible
+import androidx.core.view.iterator
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.Navigation
 import com.amazonaws.mobileconnectors.appsync.AWSAppSyncClient
@@ -27,6 +32,7 @@ import com.example.nts_pim.PimApplication
 import com.example.nts_pim.R
 import com.example.nts_pim.activity.MainActivity
 import com.example.nts_pim.data.repository.TripDetails
+import com.example.nts_pim.data.repository.UpfrontPriceViewModel
 import com.example.nts_pim.data.repository.VehicleTripArrayHolder
 import com.example.nts_pim.data.repository.model_objects.AppVersion
 import com.example.nts_pim.data.repository.model_objects.CurrentTrip
@@ -47,6 +53,8 @@ import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import com.example.nts_pim.utilities.mutation_helper.PIMMutationHelper
 import com.example.nts_pim.utilities.sound_helper.SoundHelper
 import com.example.nts_pim.utilities.view_helper.ViewHelper
+import kotlinx.android.synthetic.main.error_view.*
+import kotlinx.android.synthetic.main.up_front_price_detail_fragment.*
 import kotlinx.android.synthetic.main.welcome_screen.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -67,6 +75,7 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
     private lateinit var keyboardViewModel: SettingsKeyboardViewModel
     private lateinit var viewModel: WelcomeViewModel
     private lateinit var callBackViewModel: CallBackViewModel
+    private lateinit var upfrontPriceViewModel: UpfrontPriceViewModel
     private var mAWSAppSyncClient: AWSAppSyncClient? = null
     private var failedReaderTimer: CountDownTimer? = null
     private var vehicleId = ""
@@ -80,6 +89,7 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
     private var isOnActiveTrip = false
     private var lastTrip:Pair<Boolean?, String> = Pair(false, "")
     private val currentFragmentId = R.id.welcome_fragment
+    private var isDriverSignedIn = false
     private val logFragment = "Welcome_Screen"
 
     private val batteryCheckTimer = object : CountDownTimer( 600000, 60000) {
@@ -123,7 +133,7 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
     ): View? {
         return inflater.inflate(R.layout.welcome_screen, container, false)
     }
-    @SuppressLint("ClickableViewAccessibility")
+    @SuppressLint("ClickableViewAccessibility", "ResourceType")
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         mAWSAppSyncClient = ClientFactory.getInstance(context)
@@ -136,6 +146,9 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
             .get(WelcomeViewModel::class.java)
         keyboardViewModel = ViewModelProvider(this, keyboardViewModelFactory)
             .get(SettingsKeyboardViewModel::class.java)
+        val upfrontPriceFactory = InjectorUtiles.provideUpFrontPriceFactory()
+        upfrontPriceViewModel = ViewModelProvider(this, upfrontPriceFactory)
+            .get(UpfrontPriceViewModel::class.java)
         // checks for animation and navigates to next Screen
         setUpKeyboard()
         lastTrip = checkToSeeIfOnTrip()
@@ -148,6 +161,7 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
         vehicleId = viewModel.getVehicleId()
         updateVehicleInfoUI()
         checkAppBuildVersion()
+        isDriverSignedIn = upfrontPriceViewModel.isDriverSignedIn().value ?: false
 
         //This is encase you have to restart the app during a trip or a trip
         keyboardViewModel.isPhoneKeyboardUp().observe(this.viewLifecycleOwner, androidx.lifecycle.Observer {
@@ -173,7 +187,27 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
         enter_destination_view.setOnTouchListener{v, event ->
             when(event?.action){
                 MotionEvent.ACTION_DOWN -> {
-                    toEnterDestination()
+                    if(isDriverSignedIn){
+                        toEnterDestination()
+                    } else {
+                       val viewGroup = activity?.findViewById<View>(android.R.id.content) as ViewGroup
+                        View.inflate(activity, R.layout.error_view, viewGroup)
+                        val cancelBtn = activity?.findViewById<Button>(R.id.error_cancel_btn)
+                        val retryBtn = activity?.findViewById<Button>(R.id.error_retry_btn)
+                        val titleLabel = activity?.findViewById<TextView>(R.id.error_view_title_textView)
+                        val detailText = activity?.findViewById<TextView>(R.id.error_view_detail_textView)
+                        titleLabel?.text = "Oops! Driver not signed in"
+                        detailText?.text = "No driver is signed in for vehicle:$vehicleId"
+                        cancelBtn?.setOnClickListener {
+                            val errView = activity?.findViewById<View>(R.id.error_view_constraint)
+                            viewGroup.removeView(errView)
+                        }
+
+                        retryBtn?.setOnClickListener {
+                            val errView = activity?.findViewById<View>(R.id.error_view_constraint)
+                            viewGroup.removeView(errView)
+                        }
+                    }
                 }
             }
             v?.onTouchEvent(event) ?: true
@@ -215,7 +249,7 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
             if(meterState == MeterEnum.METER_ON.state || meterState == MeterEnum.METER_TIME_OFF.state){
                LoggerHelper.writeToLog( "Meter $meterState is picked up on welcome screen. Starting trip animation", LogEnums.TRIP_STATUS.tag)
                 changeScreenBrightness(fullBrightness)
-
+                toNextScreen()
             }
         })
 
@@ -224,6 +258,9 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
         sendPimStatusBluetooth()
         SoundHelper.turnOnSound(PimApplication.pimContext)
         VehicleTripArrayHolder.squareHasBeenSetUp = true
+        upfrontPriceViewModel.isDriverSignedIn().observe(this.viewLifecycleOwner, androidx.lifecycle.Observer {isSignedIn ->
+           isDriverSignedIn = isSignedIn
+        })
     }
 
 
@@ -280,9 +317,11 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
 
     private fun toNextScreen() {
         if(view != null && requireView().isVisible){
-            Timer().schedule(timerTask {
-                toTaxiNumber()
-            }, 5000)
+            if (welcome_text_view2 != null){
+                welcome_text_view2.animate().alpha(0f).setDuration(2500).withEndAction(Runnable {
+                    toTaxiNumber()
+                })
+             }
         }
     }
     private fun markPimStartTime(){
@@ -490,7 +529,4 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
         failedReaderTimer?.cancel()
         restartAppTimer.cancel()
     }
-
-
-
 }

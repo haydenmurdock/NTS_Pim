@@ -41,8 +41,8 @@
             android:textColorHint="@color/grey"
             android:textCursorDrawable="@drawable/cursor_color"
             android:textSize="40sp"
-            app:layout_constraintStart_toStartOf="@+id/textView18"
-            app:layout_constraintTop_toBottomOf="@+id/textView18" />
+            app:layout_constraintStart_toStartOf="@+id/enter_destination_title_textView"
+            app:layout_constraintTop_toBottomOf="@+id/enter_destination_title_textView" />
 
     <TextView
             android:id="@+id/enter_destination_title_textView"

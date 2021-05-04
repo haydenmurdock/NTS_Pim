@@ -17,5 +17,6 @@
     <color name="pink">#E291A8</color>
     <color name="cursorBlue">#4B90D9</color>
     <color name="grey_light">#cbcbcb</color>
+    <color name="error_background_color">#323840</color>
 
 </resources>

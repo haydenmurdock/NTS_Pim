@@ -39,7 +39,6 @@ class LifeCycleCallBacks : Application.ActivityLifecycleCallbacks {
     }
 
     override fun onActivityResumed(activity: Activity?) {
-
         val name = activity?.localClassName
         if (name == "com.squareup.ui.main.ApiMainActivity"){
             if(MainActivity.navigationController.currentDestination?.id != R.id.welcome_fragment){

@@ -8,32 +8,35 @@
 
 
     <View
-            android:id="@+id/view"
-            android:layout_width="270dp"
-            android:layout_height="70dp"
-            android:layout_marginTop="43dp"
-            android:background="@color/enterDestinationBtnBackground"
-            app:layout_constraintStart_toStartOf="@+id/editTextTextPostalAddress"
-            app:layout_constraintTop_toBottomOf="@+id/editTextTextPostalAddress" />
-
-    <View
-            android:id="@+id/view2"
+            android:id="@+id/address_one_view"
             android:layout_width="270dp"
             android:layout_height="70dp"
             android:layout_marginTop="42dp"
             android:background="@color/enterDestinationBtnBackground"
+            android:visibility="invisible"
+            app:layout_constraintStart_toStartOf="@+id/editTextTextPostalAddress"
+            app:layout_constraintTop_toBottomOf="@+id/editTextTextPostalAddress" />
+
+    <View
+            android:id="@+id/address_two_view"
+            android:layout_width="270dp"
+            android:layout_height="70dp"
+            android:layout_marginTop="42dp"
+            android:background="@color/enterDestinationBtnBackground"
+            android:visibility="invisible"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/editTextTextPostalAddress" />
 
     <View
-            android:id="@+id/view4"
+            android:id="@+id/address_three_view"
             android:layout_width="270dp"
             android:layout_height="70dp"
             android:layout_marginStart="12dp"
             android:layout_marginTop="42dp"
             android:background="@color/enterDestinationBtnBackground"
-            app:layout_constraintStart_toEndOf="@+id/view2"
+            android:visibility="invisible"
+            app:layout_constraintStart_toEndOf="@+id/address_two_view"
             app:layout_constraintTop_toBottomOf="@+id/editTextTextPostalAddress" />
 
     <ImageView
@@ -49,104 +52,119 @@
 
     <TextView
             android:id="@+id/address_title_one_textView"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_width="200dp"
+            android:layout_height="25dp"
             android:layout_marginStart="8dp"
             android:layout_marginTop="12dp"
             android:fontFamily="@font/source_sans_pro"
             android:text="Address One Title"
             android:textColor="@color/whiteTextColor"
             android:textSize="18sp"
-            app:layout_constraintStart_toEndOf="@+id/imageView4"
-            app:layout_constraintTop_toTopOf="@+id/view" />
+            android:visibility="invisible"
+            app:layout_constraintEnd_toEndOf="@+id/address_one_view"
+            app:layout_constraintStart_toEndOf="@+id/address_one_imageView"
+            app:layout_constraintTop_toTopOf="@+id/address_one_view" />
 
     <TextView
             android:id="@+id/address_detail_one_textView"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_width="200dp"
+            android:layout_height="25dp"
             android:fontFamily="@font/source_sans_pro"
             android:text="Address One Detail"
             android:textColor="@color/grey"
             android:textSize="16sp"
+            android:visibility="invisible"
+            app:layout_constraintEnd_toEndOf="@+id/address_one_view"
             app:layout_constraintStart_toStartOf="@+id/address_title_one_textView"
             app:layout_constraintTop_toBottomOf="@+id/address_title_one_textView" />
 
     <TextView
             android:id="@+id/address_title_two_textView"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_width="200dp"
+            android:layout_height="25dp"
             android:layout_marginStart="8dp"
             android:layout_marginTop="12dp"
             android:fontFamily="@font/source_sans_pro"
             android:text="Address Two Title"
             android:textColor="@color/whiteTextColor"
             android:textSize="18sp"
-            app:layout_constraintStart_toEndOf="@+id/imageView5"
-            app:layout_constraintTop_toTopOf="@+id/view2" />
+            android:visibility="invisible"
+            app:layout_constraintEnd_toEndOf="@+id/address_two_view"
+            app:layout_constraintStart_toEndOf="@+id/address_two_imageView"
+            app:layout_constraintTop_toTopOf="@+id/address_two_view" />
 
     <TextView
             android:id="@+id/address_detail_two_textView"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_width="200dp"
+            android:layout_height="25dp"
             android:fontFamily="@font/source_sans_pro"
             android:text="Address Two Detail"
             android:textColor="@color/grey"
             android:textSize="16sp"
+            android:visibility="invisible"
+            app:layout_constraintEnd_toEndOf="@+id/address_two_view"
             app:layout_constraintStart_toStartOf="@+id/address_title_two_textView"
             app:layout_constraintTop_toBottomOf="@+id/address_title_two_textView" />
 
     <TextView
             android:id="@+id/address_title_three_textView"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_width="200dp"
+            android:layout_height="25dp"
             android:layout_marginStart="8dp"
             android:layout_marginTop="12dp"
             android:fontFamily="@font/source_sans_pro"
             android:text="Address Three Title"
             android:textColor="@color/whiteTextColor"
             android:textSize="18sp"
-            app:layout_constraintStart_toEndOf="@+id/imageView6"
-            app:layout_constraintTop_toTopOf="@+id/view4" />
+            android:visibility="invisible"
+            app:layout_constraintEnd_toEndOf="@+id/address_three_view"
+            app:layout_constraintStart_toEndOf="@+id/address_three_imageView"
+            app:layout_constraintTop_toTopOf="@+id/address_three_view" />
 
     <TextView
             android:id="@+id/address_detail_three_textView"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_width="200dp"
+            android:layout_height="25dp"
             android:fontFamily="@font/source_sans_pro"
             android:text="Address Three Detail"
             android:textColor="@color/grey"
             android:textSize="16sp"
+            android:visibility="invisible"
+            app:layout_constraintEnd_toEndOf="@+id/address_three_view"
             app:layout_constraintStart_toStartOf="@+id/address_title_three_textView"
             app:layout_constraintTop_toBottomOf="@+id/address_title_three_textView" />
 
     <ImageView
-            android:id="@+id/imageView4"
+            android:id="@+id/address_one_imageView"
             android:layout_width="54dp"
             android:layout_height="47dp"
             android:layout_marginStart="4dp"
-            app:layout_constraintBottom_toBottomOf="@+id/view"
-            app:layout_constraintStart_toStartOf="@+id/view"
-            app:layout_constraintTop_toTopOf="@+id/view"
+            android:visibility="invisible"
+            app:layout_constraintBottom_toBottomOf="@+id/address_one_view"
+            app:layout_constraintStart_toStartOf="@+id/address_one_view"
+            app:layout_constraintTop_toTopOf="@+id/address_one_view"
             app:srcCompat="@drawable/ic_destination_pin" />
 
     <ImageView
-            android:id="@+id/imageView5"
+            android:id="@+id/address_two_imageView"
             android:layout_width="54dp"
             android:layout_height="47dp"
             android:layout_marginStart="4dp"
-            app:layout_constraintBottom_toBottomOf="@+id/view2"
-            app:layout_constraintStart_toStartOf="@+id/view2"
-            app:layout_constraintTop_toTopOf="@+id/view2"
+            android:visibility="invisible"
+            app:layout_constraintBottom_toBottomOf="@+id/address_two_view"
+            app:layout_constraintStart_toStartOf="@+id/address_two_view"
+            app:layout_constraintTop_toTopOf="@+id/address_two_view"
             app:srcCompat="@drawable/ic_destination_pin" />
 
     <ImageView
-            android:id="@+id/imageView6"
+            android:id="@+id/address_three_imageView"
             android:layout_width="54dp"
             android:layout_height="47dp"
             android:layout_marginStart="4dp"
-            app:layout_constraintBottom_toBottomOf="@+id/view4"
-            app:layout_constraintStart_toStartOf="@+id/view4"
-            app:layout_constraintTop_toTopOf="@+id/view4"
+            android:visibility="invisible"
+            app:layout_constraintBottom_toBottomOf="@+id/address_three_view"
+            app:layout_constraintStart_toStartOf="@+id/address_three_view"
+            app:layout_constraintTop_toTopOf="@+id/address_three_view"
             app:srcCompat="@drawable/ic_destination_pin" />
 
 
@@ -157,9 +175,9 @@
             android:layout_marginTop="24dp"
             android:background="@null"
             android:cursorVisible="true"
-            android:defaultFocusHighlightEnabled="true"
             android:ems="10"
-            android:focusedByDefault="true"
+            android:focusable="auto"
+            android:focusedByDefault="false"
             android:fontFamily="@font/source_sans_pro"
             android:hint="Search address or place"
             android:inputType="textPostalAddress"
@@ -181,5 +199,29 @@
             android:textSize="43sp"
             app:layout_constraintStart_toEndOf="@+id/back_to_welcome_btn"
             app:layout_constraintTop_toBottomOf="@+id/back_to_welcome_btn" />
+
+    <TextView
+            android:id="@+id/entered_address_TextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="TextView"
+            android:textSize="36sp"
+            android:visibility="invisible"
+            app:layout_constraintBottom_toBottomOf="@+id/editTextTextPostalAddress"
+            app:layout_constraintStart_toStartOf="@+id/editTextTextPostalAddress"
+            app:layout_constraintTop_toTopOf="@+id/editTextTextPostalAddress" />
+
+    <TextView
+            android:id="@+id/auto_complete_TextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="@font/source_sans_pro"
+            android:text="TextView"
+            android:textColor="@color/grey"
+            android:textSize="36sp"
+            android:visibility="invisible"
+            app:layout_constraintBottom_toBottomOf="@+id/editTextTextPostalAddress"
+            app:layout_constraintStart_toEndOf="@+id/entered_address_TextView"
+            app:layout_constraintTop_toTopOf="@+id/editTextTextPostalAddress" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

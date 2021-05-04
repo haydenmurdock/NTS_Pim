@@ -1,6 +1,7 @@
 package com.example.nts_pim.data.repository.model_objects.trip
 
 import com.example.nts_pim.utilities.bluetooth_helper.NTSPimPacket
+import com.google.gson.JsonObject
 import org.json.JSONObject
 
 class Destination(
@@ -26,6 +27,8 @@ class Destination(
         destLong = obj.optDouble(JSON_DEST_LONG)
     }
 
+
+
     override fun toJson(): JSONObject {
         val obj = JSONObject()
         try {
@@ -37,10 +40,15 @@ class Destination(
             obj.put(JSON_DEST_LAT, destLat)
             obj.put(JSON_DEST_LONG, destLong)
         } catch (ignore: Exception) {}
-        return obj
+        val destObj = JSONObject()
+        try {
+            destObj.put(JSON_DEST_ADDRESS, obj)
+        }catch (ignore: Exception){}
+        return destObj
     }
 
     companion object{
+        //Bluetooth
         private const val JSON_DEST_NAME = "name"
         private const val JSON_DEST_STATE = "state"
         private const val JSON_DEST_CITY = "city"
@@ -48,6 +56,8 @@ class Destination(
         private const val JSON_DEST_ZIP = "zip"
         private const val JSON_DEST_LAT = "latitude"
         private const val JSON_DEST_LONG = "longitude"
+        private const val JSON_DEST_ADDRESS = "destAddr"
+
     }
 
 }

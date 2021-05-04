@@ -5,15 +5,20 @@ import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.lifecycle.Observer
+import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.Navigation
 
 import com.example.nts_pim.R
+import com.example.nts_pim.data.repository.UpfrontPriceViewModel
+import com.example.nts_pim.fragments_viewmodel.InjectorUtiles
+import com.example.nts_pim.utilities.bluetooth_helper.BlueToothHelper
 import kotlinx.android.synthetic.main.calculating_upfront_price_fragment.*
 
 class CalculatingUpfrontPriceFragment : Fragment() {
     val currentFragmentId = R.id.calculatingUpfrontPriceFragment
 
-    private lateinit var viewModel: CalculatingUpfrontPriceViewModel
+    private lateinit var upfrontPriceViewModel: UpfrontPriceViewModel
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -24,8 +29,34 @@ class CalculatingUpfrontPriceFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         startProgressBar()
-        toUpFrontPriceDetail()
 
+        val upfrontPriceFactory = InjectorUtiles.provideUpFrontPriceFactory()
+        upfrontPriceViewModel = ViewModelProvider(this, upfrontPriceFactory)
+            .get(UpfrontPriceViewModel::class.java)
+
+        upfrontPriceViewModel.hasUpfrontPriceUpdated().observe(this.viewLifecycleOwner, Observer {
+            if(it){
+                receivedUpfrontPriceBtPacket()
+            }
+        })
+
+        upfrontPriceViewModel.needToSendDestUpfrontPrice().observe(this.viewLifecycleOwner, Observer {
+            if(it){
+                upfrontPriceViewModel.sentDestForUpfrontPrice()
+                sendDestinationBtPacket()
+            }
+        })
+    }
+
+    private fun sendDestinationBtPacket() {
+        val destination = upfrontPriceViewModel.getUpfrontPriceDest()
+        if (destination != null) {
+            BlueToothHelper.sendGetUpFrontPricePacket(destination, this.requireActivity())
+        }
+    }
+
+    private fun receivedUpfrontPriceBtPacket(){
+        toUpFrontPriceDetail()
     }
 
     private fun startProgressBar(){

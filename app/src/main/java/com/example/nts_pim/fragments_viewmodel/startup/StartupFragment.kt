@@ -453,6 +453,7 @@ class StartupFragment: ScopedFragment(), KodeinAware {
 
     override fun onResume() {
         super.onResume()
+        checkPermissions()
         val navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment)
         if (!permissionDraw || !permissionWrite || !permissionAccessibility) {
             checkPermissions()

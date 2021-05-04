@@ -44,9 +44,9 @@ class Pickup(
 
     companion object{
         private const val JSON_PICKUP_NAME = "name"
-        private const val JSON_PICKUP_STATE = "street"
+        private const val JSON_PICKUP_STATE = "state"
         private const val JSON_PICKUP_CITY = "city"
-        private const val JSON_PICKUP_STREET = "state"
+        private const val JSON_PICKUP_STREET = "street"
         private const val JSON_PICKUP_ZIP = "zip"
         private const val JSON_PICKUP_LAT = "latitude"
         private const val JSON_PICKUP_LONG = "longitude"

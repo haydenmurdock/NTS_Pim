@@ -14,12 +14,13 @@
             android:layout_height="30dp"
             android:layout_marginStart="16dp"
             android:layout_marginTop="24dp"
+            android:visibility="invisible"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
             app:srcCompat="@drawable/ic_left_arrow_2" />
 
     <Button
-            android:id="@+id/button4"
+            android:id="@+id/upfront_detail_cancel_btn"
             android:layout_width="131dp"
             android:layout_height="45dp"
             android:layout_marginTop="16dp"
@@ -43,7 +44,7 @@
             android:textColor="@color/whiteTextColor"
             android:textSize="38sp"
             app:layout_constraintStart_toEndOf="@+id/back_to_welcome_btn2"
-            app:layout_constraintTop_toBottomOf="@+id/button4" />
+            app:layout_constraintTop_toBottomOf="@+id/upfront_detail_cancel_btn" />
 
     <TextView
             android:id="@+id/upfront_price_textView"

@@ -45,10 +45,11 @@ class TaxiNumberFragment : ScopedFragment(), KodeinAware {
         viewModel = ViewModelProvider(this, viewModelFactory)
             .get(TaxiNumberViewModel::class.java)
         val settings = viewModel.getVehicleSettings()
+        val companyName = settings?.companyName ?: "Taxi"
         if (settings != null){
-            updateUI(settings.cabNumber)
+            updateUI(companyName, true)
             LoggerHelper.writeToLog("$logFragment: updated cab number. Starting animation", null)
-            checkAnimation()
+            checkAnimation(settings.cabNumber)
         }
         val br = Settings.System.getInt(context?.contentResolver, Settings.System.SCREEN_BRIGHTNESS)
         if(br != fullBrightness){
@@ -57,17 +58,20 @@ class TaxiNumberFragment : ScopedFragment(), KodeinAware {
         VehicleTripArrayHolder.setTripIdForPayment()
     }
 
-    private fun checkAnimation() {
+    private fun checkAnimation(cabNumber: String) {
         // Checks to see if animations are on or not
         val animationIsOn = resources.getBoolean(R.bool.animationIsOn)
-
         if (animationIsOn) {
             if (taxi_number_text_view != null){
                 taxi_number_text_view.animate().alpha(1f).setDuration(2500).withEndAction(Runnable {
                     if (taxi_number_text_view != null){
                         taxi_number_text_view.animate().alpha(0.0f).setDuration(2500).withEndAction(Runnable {
-                            println("view should be gone")
-                            navigate()
+                            updateUI(cabNumber, false)
+                            taxi_number_text_view.animate().alpha(1.0f).setDuration(2500).withEndAction {
+                                taxi_number_text_view.animate().alpha(0.0f).setDuration(2500). withEndAction {
+                                    navigate()
+                                }
+                            }
                         })
                     }else {
                         navigate()
@@ -79,8 +83,12 @@ class TaxiNumberFragment : ScopedFragment(), KodeinAware {
         }
     }
 
-    private fun updateUI(cabNumber: String){
-            taxi_number_text_view.text = "Taxi number "+ cabNumber
+    private fun updateUI(updateMessage: String, isCompanyName: Boolean){
+            if(isCompanyName) {
+                taxi_number_text_view.text = "Thank you for choosing $updateMessage"
+            } else {
+                taxi_number_text_view.text = "Taxi number "+ updateMessage
+            }
     }
 
     private fun changeScreenBrightness(screenBrightness: Int) {

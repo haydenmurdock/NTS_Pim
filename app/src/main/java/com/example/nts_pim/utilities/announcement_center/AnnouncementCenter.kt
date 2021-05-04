@@ -16,6 +16,7 @@ class AnnouncementCenter(var context: Context) {
     var textToSpeech: TextToSpeech? = null
     var initialized = false
     private val mediaPlayerEnterDest: MediaPlayer = MediaPlayer.create(context, R.raw.please_enter_your_destination)
+    private val mediaPlayerEnterName: MediaPlayer = MediaPlayer.create(context, R.raw.please_enter_name)
 
     init {
         textToSpeech = TextToSpeech(context) {
@@ -42,7 +43,16 @@ class AnnouncementCenter(var context: Context) {
         LoggerHelper.writeToLog("Playing enter destination message", LogEnums.TEXT_READER.tag)
     }
 
-    fun stopAnnouncement(){
+    fun playEnterNameMessage(){
+        mediaPlayerEnterName.setOnCompletionListener { mP ->
+            mP.release()
+        }
+        mediaPlayerEnterName.start()
+        LoggerHelper.writeToLog("Playing enter name message", LogEnums.TEXT_READER.tag)
+
+    }
+
+    private fun stopAnnouncement(){
         if(mediaPlayerEnterDest.isPlaying){
             mediaPlayerEnterDest.stop()
             mediaPlayerEnterDest.release()
@@ -63,4 +73,6 @@ class AnnouncementCenter(var context: Context) {
             )
         }
     }
+
+
 }

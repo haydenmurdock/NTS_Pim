@@ -2,9 +2,9 @@ package com.example.nts_pim.data.repository.model_objects.trip
 
 import com.example.nts_pim.utilities.bluetooth_helper.NTSPimPacket
 import org.json.JSONObject
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
-import java.time.format.FormatStyle
+import java.math.BigDecimal
+import java.math.RoundingMode
+import java.text.DecimalFormat
 import java.util.*
 
 /**
@@ -15,13 +15,14 @@ miles
 timeEst (minutes)
  */
 
-class UpFrontPrice(var price: Double,
-                   var airportFee: Double,
-                   var processingFee: Double,
-                   var miles: Double,
-                   var timeEst: Double,
-                   var timeOfArrival: Double,
-                   var error: String?
+class UpFrontPrice(
+    var price: Double,
+    var airportFee: Double,
+    var processingFee: Double,
+    var miles: Double,
+    var timeEst: Double,
+    var timeOfArrival: Double,
+    var error: String?
 ): NTSPimPacket.PimDataObj{
 
     override fun fromJson(obj: JSONObject) {
@@ -46,11 +47,28 @@ class UpFrontPrice(var price: Double,
         return obj
     }
 
-    fun getTripLength(timeEst: Double): Double {
+    fun getFormattedTime(): String {
+        val format = DecimalFormat("0")
+        return format.format(timeEst).toString()
+    }
 
-        val calendar = Calendar.getInstance()
-        //val currentTime = currentDateTime.format(DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT))
-        return 0.0
+    fun getRoundedMiles(): String {
+      return  BigDecimal(miles).setScale(1, RoundingMode.HALF_EVEN).toString()
+    }
+
+    fun getTripLength(): String {
+        val cal = Calendar.getInstance()
+        // Time estimate is returned as an integer when getting upfront price so casting to int here won't loose
+        // precision here.
+        cal.add(Calendar.MINUTE, timeEst.toInt())
+        val formatTime = "%1"+"$"+"tI:%1"+"$"+"tM%1"+"$"+"tp" // "1$" makes it so format only needs one parameter
+        return String.format(Locale.US,formatTime,cal)
+    }
+    fun getTripPrice(): String{
+        //We need to include the airport fee to the trip price
+        val decimalFormat = DecimalFormat("####00.00")
+        val totalTripPrice = price + airportFee
+        return decimalFormat.format(totalTripPrice)
     }
     companion object{
         private const val JSON_UPFRONT_PRICE = "price"

@@ -7,6 +7,8 @@ import android.bluetooth.BluetoothDevice
 import android.util.Log
 import com.example.nts_pim.activity.MainActivity
 import com.example.nts_pim.data.repository.model_objects.trip.Destination
+import com.example.nts_pim.data.repository.model_objects.trip.Passenger
+import com.example.nts_pim.data.repository.model_objects.trip.UpfrontTrip
 import com.example.nts_pim.utilities.enums.LogEnums
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import com.google.gson.Gson
@@ -54,7 +56,7 @@ object BlueToothHelper {
                 val command = json.getString(JSON_COMMAND)
                 //check the command Here
 
-                // This is the part tha would have an relevant data.
+                // This is the part that would have an relevant data.
                 val data = json.optJSONObject(JSON_DATA)
 
                 return checkForACKNAKCommands(command, data)
@@ -108,7 +110,12 @@ object BlueToothHelper {
 
             }
             NTSPimPacket.Command.UPFRONT_PRICE.command -> {
+                LoggerHelper.writeToLog("Upfront_Price_ received. Status JsonObject: $data", LogEnums.BLUETOOTH.tag)
+                sendACK(NTSPimPacket.Command.UPFRONT_PRICE.command)
+                if(data != null){
 
+                    UpfrontTrip(null, null, null, null, false, null).fromJson(data)
+                }
             }
             NTSPimPacket.Command.UPDATE_TRIP.command -> {
 
@@ -155,6 +162,16 @@ object BlueToothHelper {
             val getUpFrontPricePacket =
                 NTSPimPacket(NTSPimPacket.Command.GET_UPFRONT_PRICE, destination)
             (activity as MainActivity).sendBluetoothPacket(getUpFrontPricePacket)
+        }
+    }
+
+    fun sendUpdateTripPacket(name: String, activity: Activity){
+        val isBluetoothOn = BluetoothDataCenter.isBluetoothOn().value ?: false
+        if(isBluetoothOn){
+            LoggerHelper.writeToLog("Sending Update Trip BT Packet. PassengerName: $name", LogEnums.BLUETOOTH.tag)
+            val passenger = Passenger(name)
+            val updateTripPacket = NTSPimPacket(NTSPimPacket.Command.UPDATE_TRIP, passenger)
+            (activity as MainActivity).sendBluetoothPacket(updateTripPacket)
         }
     }
 }

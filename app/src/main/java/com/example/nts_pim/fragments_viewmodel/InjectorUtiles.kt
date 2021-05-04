@@ -1,5 +1,7 @@
 package com.example.nts_pim.fragments_viewmodel
 
+import com.example.nts_pim.data.repository.UpFrontPriceModelFactory
+import com.example.nts_pim.data.repository.UpfrontPriceRepository
 import com.example.nts_pim.data.repository.model_objects.KeyboardWatcher
 import com.example.nts_pim.data.repository.VehicleTripArrayHolder
 import com.example.nts_pim.fragments_viewmodel.callback.CallbackViewModelFactory
@@ -18,5 +20,9 @@ object InjectorUtiles {
         return SettingsKeyboardViewModelFactory(
             keyboardWatcher
         )
+    }
+    fun provideUpFrontPriceFactory(): UpFrontPriceModelFactory {
+        val upfrontPriceRep = UpfrontPriceRepository
+        return UpFrontPriceModelFactory(upfrontPriceRep)
     }
 }

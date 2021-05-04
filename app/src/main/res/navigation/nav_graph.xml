@@ -348,6 +348,9 @@
         <action
                 android:id="@+id/action_calculatingUpfrontPriceFragment_to_upFrontPriceDetailFragment"
                 app:destination="@id/upFrontPriceDetailFragment" />
+        <action
+                android:id="@+id/action_calculatingUpfrontPriceFragment_to_welcome_fragment2"
+                app:destination="@id/welcome_fragment" />
     </fragment>
     <fragment
             android:id="@+id/upFrontPriceDetailFragment"
@@ -360,12 +363,37 @@
         <action
                 android:id="@+id/action_upFrontPriceDetailFragment_to_enterNameFragment"
                 app:destination="@id/enterNameFragment" />
+        <action
+                android:id="@+id/action_upFrontPriceDetailFragment_to_welcome_fragment2"
+                app:destination="@id/welcome_fragment" />
     </fragment>
     <fragment
             android:id="@+id/enterNameFragment"
             android:name="com.example.nts_pim.fragments_viewmodel.enter_name.EnterNameFragment"
             android:label="enter_name_fragment"
-            tools:layout="@layout/enter_name_fragment" />
+            tools:layout="@layout/enter_name_fragment" >
+        <action
+                android:id="@+id/action_enterNameFragment_to_welcome_fragment"
+                app:destination="@id/welcome_fragment" />
+        <action
+                android:id="@+id/action_enterNameFragment_to_upFrontPriceDetailFragment"
+                app:destination="@id/upFrontPriceDetailFragment" />
+        <action
+                android:id="@+id/action_enterNameFragment_to_waitingForDriver"
+                app:destination="@id/waitingForDriver" />
+    </fragment>
+    <fragment
+            android:id="@+id/waitingForDriver"
+            android:name="com.example.nts_pim.fragments_viewmodel.waiting_for_driver.WaitingForDriver"
+            android:label="waiting_for_driver_fragment"
+            tools:layout="@layout/waiting_for_driver_fragment" >
+        <action
+                android:id="@+id/action_waitingForDriver_to_live_meter_fragment"
+                app:destination="@id/live_meter_fragment" />
+        <action
+                android:id="@+id/action_waitingForDriver_to_trip_review_fragment"
+                app:destination="@id/trip_review_fragment" />
+    </fragment>
 
 
 </navigation>

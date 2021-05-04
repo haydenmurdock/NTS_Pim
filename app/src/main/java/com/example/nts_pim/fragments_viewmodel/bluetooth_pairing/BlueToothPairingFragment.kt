@@ -19,6 +19,7 @@ import com.apollographql.apollo.api.Response
 import com.apollographql.apollo.exception.ApolloException
 import com.example.nts_pim.R
 import com.example.nts_pim.activity.MainActivity
+import com.example.nts_pim.data.repository.UpfrontPriceViewModel
 import com.example.nts_pim.data.repository.VehicleTripArrayHolder
 import com.example.nts_pim.fragments_viewmodel.InjectorUtiles
 import com.example.nts_pim.fragments_viewmodel.base.ClientFactory
@@ -51,6 +52,7 @@ class BlueToothPairingFragment : ScopedFragment(), KodeinAware {
     private val logTag = "Bluetooth_Pairing_Fragment"
     private var navController: NavController? = null
     private val viewModelFactory: VehicleSetupModelFactory by instance<VehicleSetupModelFactory>()
+    private lateinit var upfrontPriceViewModel: UpfrontPriceViewModel
     private var mAWSAppSyncClient: AWSAppSyncClient? = null
     private lateinit var viewModel: VehicleSetupViewModel
     private val currentFragmentId = R.id.blueToothPairingFragment
@@ -74,6 +76,9 @@ class BlueToothPairingFragment : ScopedFragment(), KodeinAware {
         super.onViewCreated(view, savedInstanceState)
         navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment)
         viewModel = ViewModelProvider(this, viewModelFactory).get(VehicleSetupViewModel::class.java)
+        val factory = InjectorUtiles.provideUpFrontPriceFactory()
+        upfrontPriceViewModel = ViewModelProvider(this, factory)
+            .get(UpfrontPriceViewModel::class.java)
         isBluetoothOn = BluetoothDataCenter.isBluetoothOn().value
         vehicleId = viewModel.getVehicleID()
         deviceId = DeviceIdCheck.getDeviceId() ?: ""
@@ -109,6 +114,13 @@ class BlueToothPairingFragment : ScopedFragment(), KodeinAware {
                 toWelcomeScreen()
             }
         })
+
+        // Leaving in commented code for driver signed in. We might want to use this value for bluetooth connection logic.
+//        upfrontPriceViewModel.isDriverSignedIn().observe(this.viewLifecycleOwner, Observer { signedIn ->
+//            if(isDriverSignedIn){
+//
+//            }
+//        })
     }
 
     private fun getDriverTabletBluetoothAddress(deviceId: String){
@@ -149,14 +161,13 @@ class BlueToothPairingFragment : ScopedFragment(), KodeinAware {
             response.data()?.status?.signinStatusTimeStamp()
            val driverId = response.data()?.status?.driverId()
             if(driverId != 0){
-                isDriverSignedIn = true
+                upfrontPriceViewModel.driverSignedIn()
                LoggerHelper.writeToLog("Driver signed in", LogEnums.TRIP_STATUS.tag)
             }
             if(driverId == 0) {
-                isDriverSignedIn = false
+                upfrontPriceViewModel.driverSignedOut()
                 LoggerHelper.writeToLog("Driver not signed in", LogEnums.TRIP_STATUS.tag)
             }
-
         }
 
         override fun onFailure(e: ApolloException) {

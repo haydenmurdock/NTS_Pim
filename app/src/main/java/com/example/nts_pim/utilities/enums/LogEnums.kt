@@ -16,5 +16,6 @@ enum class LogEnums(val tag: String) {
     PAYMENT("PAYMENT"),
     TEXT_READER("TEXT_READER"),
     SETUP("SETUP"),
+    UPFRONT_PRICE("UPFRONT_PRICE"),
     ERROR("ERROR")
 }

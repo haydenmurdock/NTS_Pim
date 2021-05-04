@@ -2,7 +2,6 @@ package com.example.nts_pim.fragments_viewmodel.enter_destination
 
 import android.Manifest
 import android.annotation.SuppressLint
-import android.app.Activity
 import android.content.Context
 import android.content.pm.PackageManager
 import android.location.LocationManager
@@ -10,23 +9,24 @@ import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.LayoutInflater
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.Observer
+import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.Navigation
 import com.example.nts_pim.R
+import com.example.nts_pim.data.repository.UpfrontPriceViewModel
 import com.example.nts_pim.data.repository.model_objects.PIMLocation
-import com.example.nts_pim.data.repository.model_objects.trip.Destination
+import com.example.nts_pim.data.repository.model_objects.here_maps.SuggestionResults
+import com.example.nts_pim.fragments_viewmodel.InjectorUtiles
 import com.example.nts_pim.fragments_viewmodel.base.ScopedFragment
 import com.example.nts_pim.utilities.announcement_center.AnnouncementCenter
-import com.example.nts_pim.utilities.bluetooth_helper.BlueToothHelper
 import com.example.nts_pim.utilities.enums.LogEnums
-import com.example.nts_pim.utilities.here_maps.CallbackFunction
 import com.example.nts_pim.utilities.here_maps.HerePlacesAPI
-import com.example.nts_pim.utilities.here_maps.PlaceSuggestion
-import com.example.nts_pim.utilities.here_maps.SuggestionResults
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import com.example.nts_pim.utilities.view_helper.ViewHelper
 import com.google.android.gms.location.FusedLocationProviderClient
@@ -40,7 +40,11 @@ class EnterDestinationFragment : ScopedFragment(), KodeinAware {
     override val kodein by closestKodein()
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private val currentFragmentId = R.id.enterDestination
-    private var destination: Destination? = null
+    private lateinit var upfrontPriceViewModel: UpfrontPriceViewModel
+    private var enteredSearchTextView = ""
+    private var finishedAddressText = ""
+    private var listOfSuggestedAddress = mutableListOf<SuggestionResults>()
+    private val numberOfChar = 3
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -52,17 +56,35 @@ class EnterDestinationFragment : ScopedFragment(), KodeinAware {
         super.onViewCreated(view, savedInstanceState)
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(requireContext())
         AnnouncementCenter(this.requireContext()).playEnterDestinationMessage()
+        val upfrontPriceFactory = InjectorUtiles.provideUpFrontPriceFactory()
+        upfrontPriceViewModel = ViewModelProvider(this, upfrontPriceFactory)
+            .get(UpfrontPriceViewModel::class.java)
+        showAddressLabels(false)
 
         back_to_welcome_btn.setOnClickListener {
             backToWelcomeScreen()
         }
+
         editTextTextPostalAddress.addTextChangedListener(object : TextWatcher {
             override fun onTextChanged(charSeq: CharSequence?, start: Int, before: Int, count: Int) {
-                 //   updateAddressResultsOnView(s.toString())
-                    //updateEditTextWithSuggestAddress(s.toString())
-                updateTitle(charSeq)
-            }
+                enteredSearchTextView = charSeq.toString()
+                entered_address_TextView.text = enteredSearchTextView
+                if(charSeq.isNullOrBlank() || charSeq.isEmpty()){
+                    showAddressLabels(false)
+                    listOfSuggestedAddress.clear()
+                    updateTitle(listOfSuggestedAddress)
+                }
+                if(charSeq.toString().count() >= numberOfChar) {
+                    updateAddressResultsOnView(charSeq.toString())
+                    updateAutoCompleteSuggestAddress(charSeq.toString())
+                }
 
+                if (charSeq != null) {
+                    if(charSeq.isEmpty()){
+                        showAddressLabels(false)
+                    }
+                }
+            }
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun afterTextChanged(s: Editable?) {
             }
@@ -70,18 +92,95 @@ class EnterDestinationFragment : ScopedFragment(), KodeinAware {
 
         editTextTextPostalAddress.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_DONE) {
-                LoggerHelper.writeToLog("Enter button tapped", LogEnums.TRIP.tag)
-                sendGetUpFrontPricePacket(destination, this.requireActivity())
+                if(listOfSuggestedAddress.isNotEmpty()){
+                    gettingDetailsAboutPrice(listOfSuggestedAddress.first())
+                }
                 toCalculatingPriceScreen()
                 true
             }
             false
         }
+
+        upfrontPriceViewModel.getUpfrontPriceSuggestDest().observe(this.viewLifecycleOwner, Observer { suggestionResultsList ->
+            if(suggestionResultsList.count() == 0){
+                listOfSuggestedAddress = suggestionResultsList
+                showAddressLabels(false)
+            }
+            if(suggestionResultsList.isNotEmpty()){
+                listOfSuggestedAddress = suggestionResultsList
+                for ((index, obj) in suggestionResultsList.withIndex()) {
+                    if(index == 0){
+                        finishedAddressText = obj.highlightedVicinity
+                        updateAutoCompleteSuggestAddress(finishedAddressText)
+                        address_title_one_textView.text = checkDestinationLengthForLabel(obj.highlightedTitle)
+                        address_detail_one_textView.text = checkDestinationLengthForLabel(obj.highlightedVicinity)
+                    }
+                    if(index == 1){
+                        address_title_two_textView.text = checkDestinationLengthForLabel(obj.highlightedTitle)
+                        address_detail_two_textView.text = checkDestinationLengthForLabel(obj.highlightedVicinity)
+                    }
+                    if(index == 2){
+                        address_title_three_textView.text = checkDestinationLengthForLabel(obj.highlightedTitle)
+                        address_detail_three_textView.text = checkDestinationLengthForLabel(obj.highlightedVicinity)
+                    }
+                }
+                showAddressLabels(true)
+            }
+            updateTitle(listOfSuggestedAddress)
+        })
+
+        address_one_view.setOnTouchListener((View.OnTouchListener{ v, event ->
+            when(event?.action) {
+                MotionEvent.ACTION_DOWN -> {
+                    if(listOfSuggestedAddress.isNotEmpty()){
+                        gettingDetailsAboutPrice(listOfSuggestedAddress.first())
+                        toCalculatingPriceScreen()
+                    }
+                    true
+                }
+                else -> {
+                    false
+                }
+            }
+        }))
+
+        address_two_view.setOnTouchListener((View.OnTouchListener{ v, event ->
+            when(event?.action) {
+                MotionEvent.ACTION_DOWN -> {
+                    if(listOfSuggestedAddress.isNotEmpty()
+                        && listOfSuggestedAddress.count() > 1){
+                        gettingDetailsAboutPrice(listOfSuggestedAddress[1])
+                        toCalculatingPriceScreen()
+                    }
+                    true
+                }
+                else -> {
+                    false
+                }
+            }
+        }))
+
+        address_three_view.setOnTouchListener((View.OnTouchListener{ v, event ->
+            when(event?.action) {
+                MotionEvent.ACTION_DOWN -> {
+                    if(listOfSuggestedAddress.isNotEmpty()
+                        && listOfSuggestedAddress.count() > 2){
+                        gettingDetailsAboutPrice(listOfSuggestedAddress[2])
+                        toCalculatingPriceScreen()
+                    }
+                    true
+                }
+                else -> {
+                    false
+                }
+            }
+        }))
     }
 
-    override fun onResume() {
-        super.onResume()
+    override fun onStart() {
+        super.onStart()
         showSoftKeyboard()
+        showAddressLabels(false)
     }
 
     private fun showSoftKeyboard(){
@@ -94,41 +193,22 @@ class EnterDestinationFragment : ScopedFragment(), KodeinAware {
     }
 
     private fun updateAddressResultsOnView(query: String){
-        var suggestions: MutableList<PlaceSuggestion>
         val currentLocation = getCurrentLatLong()
-        val callback = CallbackFunction<SuggestionResults> {
-               suggestions = it.Suggestions
-                for(place in suggestions){
-                   address_title_one_textView.text = place.title
-                    address_title_one_textView.text = place.hightedLighted
-                }
-        }
         if(currentLocation != null){
-            HerePlacesAPI.getSuggestions(currentLocation.lat, currentLocation.long, 200, query, 3, callback)
+            HerePlacesAPI.getSuggestedAddress(currentLocation.lat, currentLocation.lng, query)
         } else {
             LoggerHelper.writeToLog("Issue with current address location", LogEnums.ERROR.tag)
         }
-
     }
 
-    private fun updateTitle(editText: CharSequence?){
-       if(editText == null){
-           return
-       }
-        if(editText.toString().count() > 0){
+    private fun updateTitle(listOfSuggestionResults: MutableList<SuggestionResults>){
+        if(listOfSuggestionResults.isNotEmpty()){
             enter_destination_title_textView.text = "Tap a result to select your destination"
         } else {
             enter_destination_title_textView.text = "What's your destination?"
         }
     }
 
-    private fun sendGetUpFrontPricePacket(destination: Destination?, activity: Activity){
-        if(destination == null){
-            LoggerHelper.writeToLog("Destination packet was null. Did not send bluetooth packet to driver tablet", LogEnums.BLUETOOTH.tag)
-            return
-        }
-       BlueToothHelper.sendGetUpFrontPricePacket(destination, activity)
-    }
 
     @SuppressLint("MissingPermission")
     private fun getCurrentLatLong():PIMLocation? {
@@ -146,9 +226,13 @@ class EnterDestinationFragment : ScopedFragment(), KodeinAware {
         return PIMLocation(0.0,0.0)
     }
 
-    private fun updateEditTextWithSuggestAddress(currentText: String){
-        val suggestion = getAddressWithSuggestedAddress(address_title_one_textView.text.toString())
-        editTextTextPostalAddress.setText(currentText + suggestion)
+    private fun updateAutoCompleteSuggestAddress(finishedText: String){
+        val suggestion = getAddressWithSuggestedAddress(finishedText)
+        if(auto_complete_TextView.visibility == View.INVISIBLE){
+            auto_complete_TextView.text = suggestion
+            auto_complete_TextView.visibility = View.VISIBLE
+        }
+
     }
 
     private fun getAddressWithSuggestedAddress(firstHereAddress: String): String {
@@ -156,8 +240,56 @@ class EnterDestinationFragment : ScopedFragment(), KodeinAware {
        return firstHereAddress.replace(currentInfoEntered, "")
     }
 
-    //Navigation
+    private fun checkDestinationLengthForLabel(address: String):String {
+        if(address.length < 30){
+            return address
+        }
+        address.dropLastWhile {
+            address.length >= 30
+        }
+        if(address.length == 29){
+            return "$address..."
+        }
+        return  address
+    }
 
+    private fun showAddressLabels(boolean: Boolean){
+        val viewVisibility = if(boolean){
+            View.VISIBLE
+        } else {
+            View.INVISIBLE
+        }
+        if(listOfSuggestedAddress.count() > 0){
+            address_one_view.visibility = viewVisibility
+            address_title_one_textView.visibility = viewVisibility
+            address_detail_one_textView.visibility = viewVisibility
+            address_one_imageView.visibility = viewVisibility
+            address_one_view.isEnabled = boolean
+        }
+        if(listOfSuggestedAddress.count() > 1){
+            address_two_view.visibility = viewVisibility
+            address_title_two_textView.visibility = viewVisibility
+            address_detail_two_textView.visibility = viewVisibility
+            address_two_imageView. visibility = viewVisibility
+            address_one_view.isEnabled = boolean
+        }
+
+        if(listOfSuggestedAddress.count() > 2){
+            address_three_view.visibility = viewVisibility
+            address_title_three_textView.visibility = viewVisibility
+            address_detail_three_textView.visibility= viewVisibility
+            address_three_view.visibility = viewVisibility
+            address_three_imageView.visibility = viewVisibility
+            address_one_view.isEnabled = boolean
+        }
+    }
+
+    private fun gettingDetailsAboutPrice(addressPicked: SuggestionResults){
+        val tag = addressPicked.tag
+        HerePlacesAPI.getDetailAddress(tag)
+    }
+
+    //Navigation
     private fun backToWelcomeScreen(){
         val navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment)
         if (navController.currentDestination?.id == currentFragmentId){
@@ -172,5 +304,8 @@ class EnterDestinationFragment : ScopedFragment(), KodeinAware {
         }
     }
 
-
+    override fun onDestroy() {
+        super.onDestroy()
+        upfrontPriceViewModel.getUpfrontPriceSuggestDest().removeObservers(this.viewLifecycleOwner)
+    }
 }

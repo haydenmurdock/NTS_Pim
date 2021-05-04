@@ -1,253 +1,201 @@
 package com.example.nts_pim.utilities.here_maps
 
-import androidx.annotation.NonNull
-import com.example.nts_pim.utilities.here_maps.HereConsts.HereResultStatus
-import okhttp3.OkHttpClient
-import okhttp3.Request
+/**
+ * Suggest
+ * lat = [latitude of center point for search]
+lng = [longitude of center point for search]
+query = [query string to search for]
+Optional parameters:
+radius = [radius in meters around search center point form which to draw results, defaults to 50000]
+size = [number of results to return; defaults to 10]
+Optional filters parameter:
+options = [comma delimited list of options to filter request results]
+Current options:
+'sn'; only return results that have a street number in their title
+Examples:
+https://aza9uj33tf.execute-api.us-east-2.amazonaws.com/1/places/suggest?apiKey=020141f3-9758-43f0-9838-5420a2609e0e&lat=34.0231&lng=-118.3751&query=renaisssance+long+beach+hotel
+Response:
+{
+"status": "OK",
+"results": [
+{
+"title": "Renaissance-Long Beach Hotel",
+"highlightedTitle": "<b>Renaissance</b>-<b>Long</b> <b>Beach</b> <b>Hotel</b>",
+"vicinity": "111 E Ocean Blvd<br/>Long Beach, CA 90802",
+"highlightedVicinity": "111 E Ocean Blvd<br/>Long Beach, CA 90802",
+"tag": "ODQwOXE1Ym4tOTg3N2U1Mzg2N2I5N2ZiYzI4NWQwZWE4YmViOTFlOTQ7Y29udGV4dD1abXh2ZHkxcFpEMDVNVEUzWW1Vek1pMWxOamxsTFRWbU5HRXRPV1k1TmkweU5XUXpZekE0WW1ZeFltTmZNVFl4TnpnME9EWTNOVFUxT1Y4eE1EazBYekV3TXpJbWNtRnVhejB3",
+"lat": 33.76754,
+"lng": -118.19171,
+"distance": 33035
+},
+{
+"title": "Hotel Queen Mary (Queen Mary Long Beach)",
+"highlightedTitle": "<b>Hotel</b> Queen Mary (Queen Mary <b>Long</b> <b>Beach</b>)",
+"vicinity": "1126 Queens Hwy<br/>Long Beach, CA 90802",
+"highlightedVicinity": "1126 Queens Hwy<br/>Long Beach, CA 90802",
+"tag": "ODQwOXE1Ym4tNjYyZmM0YzRhY2Q0NDY3MGEyZTJmNjYxZTk5YmNmNzY7Y29udGV4dD1abXh2ZHkxcFpEMDVNVEUzWW1Vek1pMWxOamxsTFRWbU5HRXRPV1k1TmkweU5XUXpZekE0WW1ZeFltTmZNVFl4TnpnME9EWTNOVFUxT1Y4eE1EazBYekV3TXpJbWNtRnVhejB4",
+"lat": 33.7526,
+"lng": -118.19041,
+"distance": 34527
+}
+]
+
+
+Details
+
+Returns the detail information for a single location response, based on its 'tag' value.
+Parameter:
+tag = [value of 'tag' element in /suggest response item]
+Example:
+https://aza9uj33tf.execute-api.us-east-2.amazonaws.com/1/places/detail?apiKey=020141f3-9758-43f0-9838-5420a2609e0e&tag=ODQwOXE1Ym4tOTg3N2U1Mzg2N2I5N2ZiYzI4NWQwZWE4YmViOTFlOTQ7Y29udGV4dD1abXh2ZHkxcFpEMWxNMlZrTWpBNVlTMWtaakEzTFRWaE1tSXRZVFUxWVMwNE5UUTFOR05oWTJJeU16ZGZNVFl4TnpnME9UQTJOVEl4TjE4ME5qWXhYemszTXpVbWNtRnVhejB3
+Response:
+{
+"status": "OK",
+"detail": {
+"title": "Renaissance-Long Beach Hotel",
+"strNbr": "111",
+"strName": "E Ocean Blvd",
+"city": "Long Beach",
+"county": "Los Angeles",
+"state": "CA",
+"zip": "90802",
+"lat": 33.76754,
+"lng": -118.19171,
+"categories": [
+"500-5000-0000",
+"500-5000-0053",
+"700-7400-0284"
+]
+}
+}
+ */
+
+
+import android.util.Log
+import androidx.core.text.HtmlCompat
+import com.example.nts_pim.data.repository.UpfrontPriceRepository
+import com.example.nts_pim.data.repository.model_objects.here_maps.SuggestionResults
+import com.example.nts_pim.data.repository.model_objects.trip.Destination
+import com.example.nts_pim.data.repository.model_objects.trip.DetailDestination
+import com.example.nts_pim.utilities.enums.LogEnums
+import com.example.nts_pim.utilities.logging_service.LoggerHelper
+import com.google.gson.Gson
+import okhttp3.*
 import org.json.JSONArray
-import org.json.JSONException
-import org.json.JSONObject
-import java.net.URLEncoder
-import java.util.*
+import java.io.IOException
 import java.util.concurrent.TimeUnit
+import org.json.JSONObject
+import java.util.stream.Collectors
+import java.util.stream.IntStream
+
 
 object HerePlacesAPI {
-    private const val URL_SUGGESTION =
-        "https://2ebsozhfhb.execute-api.us-east-2.amazonaws.com/prod/suggest"
-    private const val URL_DETAIL =
-        "https://2ebsozhfhb.execute-api.us-east-2.amazonaws.com/prod/detail"
+    private const val HERE_ENGINE_BASE_URL = "https://aza9uj33tf.execute-api.us-east-2.amazonaws.com/1"
+    private const val PLACES_SUGGEST_PARAMETER = "/places/suggest?"
+    private const val PLACES_DETAIL_PARAMETER = "/places/details?"
+    private const val API_KEY = "apiKey=020141f3-9758-43f0-9838-5420a2609e0e"
+    private const val NUMBER_OF_RESULTS = 15
+    private const val RADIUS = 30000
 
-    /**
-     * Gets a list of place suggestions based on info passed in. To get more details on a place, call getDetails().
-     *
-     * @param lat    Latitude of center location to start searching for places.
-     * @param lon    Longitude of center location to start searching for places.
-     * @param radius Radius in meters to limit the search results.
-     * @param query  Address or place name text entered by user.
-     * @param size   Number of suggestions to limity the results to.
-     * @param cb     Callback function to call when the query is done.
-     */
-    fun getSuggestions(
-        lat: Double, lon: Double, radius: Int, query: String?,
-        size: Int, @NonNull cb: CallbackFunction<SuggestionResults>
-    ) {
-        Thread(Runnable {
-            var results: SuggestionResults? = null
-            val url: String
-            val client = OkHttpClient().newBuilder()
-                .connectTimeout(60, TimeUnit.SECONDS)
-                .writeTimeout(60, TimeUnit.SECONDS)
-                .readTimeout(60, TimeUnit.SECONDS)
-                .retryOnConnectionFailure(false)
-                .build()
-            try {
-                url = String.format(
-                    Locale.US,
-                    "%s?apiKey=%s&lat=%f&lng=%f&radius=%d&query=%s&size=%d",
-                    URL_SUGGESTION,
-                    HereConsts.API_KEY,
-                    lat,
-                    lon,
-                    radius,
-                    URLEncoder.encode(query, "UTF-8"),
-                    size
+    val client = OkHttpClient().newBuilder()
+        .build()
+
+    fun getSuggestedAddress(lat: Double, lng: Double, query: String){
+        val listOfSuggestedLocations = mutableListOf<SuggestionResults>()
+        val formattedQuery = query.filter { !it.isWhitespace() }.replace(" ", "+")
+        val request =  Request.Builder()
+          .url("$HERE_ENGINE_BASE_URL$PLACES_SUGGEST_PARAMETER$API_KEY&lat=$lat&lng=$lng&query=$formattedQuery&size=$NUMBER_OF_RESULTS")
+          .build()
+        Log.i("URL", "URL SUGGEST: ${request.url}")
+        client.newCall(request).enqueue(object: Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                LoggerHelper.writeToLog(
+                    "Error connecting to get suggestion api. $e",
+                    LogEnums.UPFRONT_PRICE.tag
                 )
-                // Since this API call maybe be called every couple seconds as keys are typed, make the timeouts short.
-                val request = Request.Builder()
-                    .url(url)
-                    .build()
+            }
 
-                    client.newCall(request).execute().use { response ->
-                      val responseString =  results?.parseResponse(response.toString())
-                        results = SuggestionResults(query)
-                        // The vicinity and highlighted vicinity sometimes have <br/> in them. Replace them with ", ".
-                       // resp.ResponseText = resp.ResponseText.replace("<br/>", ", ")
-                       // results.parseResponse(resp.ResponseText)
+            override fun onResponse(call: Call, response: Response) {
+                println(response)
+                if (!response.isSuccessful) throw IOException("Unexpected code $response")
+
+                val responseBody = response.body!!.string()
+                val removedBrackets = android.text.Html.fromHtml(responseBody, HtmlCompat.FROM_HTML_MODE_COMPACT).toString()
+                val jsonObject = JSONObject(removedBrackets)
+                Log.i("URL", "After JSON OBJECT: $jsonObject")
+                val status: String? = jsonObject.optString("status")
+                val results = jsonObject.getJSONArray("results")
+                for (i in 0 until results.length()) {
+                    val obj = results.getJSONObject(i).toString()
+                    Log.i("URL", "Obj in results for index $i: $obj")
+                    val suggestionResult = SuggestionResults(obj)
+                    listOfSuggestedLocations.add(suggestionResult)
+                }
+                UpfrontPriceRepository.setSuggestedDestinations(listOfSuggestedLocations)
+            }
+        })
+
+    }
+
+    fun getDetailAddress(tag: String){
+
+        /**
+         * "status": "OK",
+        "detail": {
+        "title": "Renaissance-Long Beach Hotel",
+        "strNbr": "111",
+        "strName": "E Ocean Blvd",
+        "city": "Long Beach",
+        "county": "Los Angeles",
+        "state": "CA",
+        "zip": "90802",
+        "lat": 33.76754,
+        "lng": -118.19171,
+        "categories": [
+        "500-5000-0000",
+        "500-5000-0053",
+        "700-7400-0284"
+         */
+        val request =  Request.Builder()
+            .url("$HERE_ENGINE_BASE_URL$PLACES_DETAIL_PARAMETER$API_KEY&tags=$tag")
+            .build()
+
+        Log.i("URL", "URL Detail: ${request.url}")
+        client.newCall(request).enqueue(object: Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                LoggerHelper.writeToLog(
+                    "Error connecting to get detail api. $e",
+                    LogEnums.UPFRONT_PRICE.tag
+                )
+            }
+
+            override fun onResponse(call: Call, response: Response) {
+                if (!response.isSuccessful) throw IOException("Unexpected code $response")
+
+                val responseBody = response.body!!.string()
+                val removedBrackets = android.text.Html.fromHtml(responseBody, HtmlCompat.FROM_HTML_MODE_COMPACT).toString().trim()
+                val updatedString = removedBrackets.replace("^[\n\r]", "").replace("[\n\r]$", "")
+                Log.i("URL", "Before JSON OBJECT: $removedBrackets")
+                val jsonObject = JSONObject(updatedString)
+                Log.i("URL", "After JSON OBJECT: $jsonObject")
+                val status: String? = jsonObject.optString("status")
+                val results = jsonObject.getJSONArray("details")
+                if(status == "OK"){
+                    for (i in 0 until results.length()){
+                        val obj = results.getJSONObject(i).toString()
+                        val destinationDetails =  DetailDestination(obj)
+                        Log.i("URL", "detail address: $destinationDetails")
+                        val btDestination = destinationDetails.convertToDestination()
+                        UpfrontPriceRepository.createUpfrontTrip(btDestination)
                     }
-            } catch (e: java.lang.Exception) {
-
+                }
+                if(status == "QUERY_NOT_3_OR_MORE_CHARS"){
+                    LoggerHelper.writeToLog("Error: $status", LogEnums.ERROR.tag)
+                }
             }
-            cb.callback(results)
-        }).start()
+        })
     }
+}
 
-    /**
-     * Gets more information for a suggestion result.
-     *
-     * @param tag Tag from place suggestion.
-     * @param cb  Callback function to call when query is done.
-     */
-    fun getDetails(tag: String?, @NonNull cb: CallbackFunction<DetailResults?>
-    ) {
-        Thread(Runnable {
-            var results: DetailResults? = null
-            val url: String
-            val client = OkHttpClient().newBuilder()
-                .connectTimeout(60, TimeUnit.SECONDS)
-                .writeTimeout(60, TimeUnit.SECONDS)
-                .readTimeout(60, TimeUnit.SECONDS)
-                .retryOnConnectionFailure(false)
-                .build()
-            try {
-                url = String.format(
-                    "%s?apiKey=%s&tag=%s", URL_DETAIL, HereConsts.API_KEY,
-                    URLEncoder.encode(tag, "UTF-8")
-                )
-                val request = Request.Builder()
-                    .url(url)
-                    .build()
 
-                client.newCall(request).execute().use { response ->
-                    val responseString = results?.parseResponse(response.toString())
-                    results = DetailResults()
-                    results?.parseResponse(response.toString())
-                }
-            } catch (e: Exception) {
-               // Common.logError(e, "HerePlacesAPI.getDetails")
-            }
-            cb.callback(results)
-        }).start()
-        }
-    }
-    data class PlaceSuggestion(var title: String, var highlightedTitle: String, var vicinity: String, var hightedLighted: String, var tag: String) {
-        var Latitude = 0.0
-        var Longitude = 0.0
-        var Distance = 0
-    }
 
-   data class SuggestionResults(val Query: String?) {
-        var Status: HereResultStatus
-        var SystemError: String
-        var Suggestions: ArrayList<PlaceSuggestion>
-
-        @Throws(JSONException::class)
-        fun parseResponse(resp: String?) {
-            val root: JSONObject
-            val array: JSONArray
-            val temp: String
-            root = JSONObject(resp)
-            temp = root.getString(HereConsts.JSON_STATUS)
-            when (temp) {
-                HereConsts.STATUS_OK -> {
-                    Status = HereResultStatus.OK
-                    array = root.getJSONArray(JSON_RESULTS)
-                    parseResults(array)
-                }
-                HereConsts.STATUS_INVALID_API_KEY -> Status =
-                    HereResultStatus.INVALID_API_KEY
-                HereConsts.STATUS_SYSTEM_ERROR -> {
-                    Status = HereResultStatus.SYSTEM_ERROR
-                    SystemError = root.getString(HereConsts.JSON_SYSTEM_ERROR)
-                }
-            }
-        }
-
-        @Throws(JSONException::class)
-        private fun parseResults(array: JSONArray) {
-            var obj: JSONObject
-            var sug: PlaceSuggestion
-            var i = 0
-            val n = array.length()
-            while (i < n) {
-                obj = array.getJSONObject(i)
-                sug = PlaceSuggestion(obj.optString(HereConsts.JSON_TITLE), obj.optString(JSON_HIGHLIGHTED_TITLE), obj.optString(JSON_VICINITY),obj.optString(JSON_HIGHLIGHTED_VICINITY), obj.getString(JSON_TAG))
-                sug.Latitude = obj.optDouble(HereConsts.JSON_LAT, 0.0)
-                sug.Longitude = obj.optDouble(HereConsts.JSON_LNG, 0.0)
-                sug.Distance = obj.optInt(JSON_DISTANCE)
-                Suggestions.add(sug)
-                i++
-            }
-        }
-
-        companion object {
-            private const val JSON_RESULTS = "results"
-            private const val JSON_HIGHLIGHTED_TITLE = "highlightedTitle"
-            private const val JSON_VICINITY = "vicinity"
-            private const val JSON_HIGHLIGHTED_VICINITY = "highlightedVicinity"
-            private const val JSON_TAG = "tag"
-            private const val JSON_DISTANCE = "distance"
-        }
-
-        init {
-            Status = HereResultStatus.UNKNOWN
-            SystemError = ""
-            Suggestions = ArrayList()
-        }
-    } // end of class SuggestionResults
-
-    class DetailResults internal constructor() {
-        var Status: HereResultStatus
-        var SystemError: String
-        var Title: String
-        var StreetNbr: String
-        var StreetName: String
-        var City: String
-        var County: String
-        var State: String
-        var ZipCode: String
-        var Latitude = 0.0
-        var Longitude = 0.0
-        val errorMessage: String
-            get() {
-                if (Status == HereResultStatus.INVALID_API_KEY) return "Invalid API key"
-                return if (Status == HereResultStatus.SYSTEM_ERROR) SystemError else ""
-            }
-
-        @Throws(JSONException::class)
-        fun parseResponse(resp: String?) {
-            val root: JSONObject
-            val obj: JSONObject
-            val temp: String
-
-            // Example response: {"status":"OK","detail":{"title":"Calle Tomás Aquino 100","strNbr":"100","strName":"Calle Tomás Aquino","city":"Tijuana","county":"","state":"BC","zip":"22204","lat":32.528969,"lng":-116.857651}}
-            root = JSONObject(resp)
-            temp = root.getString(HereConsts.JSON_STATUS)
-            when (temp) {
-                HereConsts.STATUS_OK -> {
-                    Status = HereResultStatus.OK
-                    obj = root.getJSONObject(JSON_DETAIL)
-                    parseResults(obj)
-                }
-                HereConsts.STATUS_INVALID_API_KEY -> Status =
-                    HereResultStatus.INVALID_API_KEY
-                HereConsts.STATUS_SYSTEM_ERROR -> {
-                    Status = HereResultStatus.SYSTEM_ERROR
-                    SystemError = root.getString(HereConsts.JSON_SYSTEM_ERROR)
-                }
-            }
-        }
-
-        private fun parseResults(obj: JSONObject) {
-            Title = obj.optString(HereConsts.JSON_TITLE)
-            StreetNbr = obj.optString(JSON_STREET_NBR)
-            StreetName = obj.optString(JSON_STREET_NAME)
-            City = obj.optString(JSON_CITY)
-            County = obj.optString(JSON_COUNTY)
-            State = obj.optString(JSON_STATE)
-            ZipCode = obj.optString(JSON_ZIP)
-            Latitude = obj.optDouble(HereConsts.JSON_LAT, 0.0)
-            Longitude = obj.optDouble(HereConsts.JSON_LNG, 0.0)
-        }
-
-        companion object {
-            private const val JSON_DETAIL = "detail"
-            private const val JSON_STREET_NBR = "strNbr"
-            private const val JSON_STREET_NAME = "strName"
-            private const val JSON_CITY = "city"
-            private const val JSON_COUNTY = "county"
-            private const val JSON_STATE = "state"
-            private const val JSON_ZIP = "zip"
-        }
-
-        init {
-            Status = HereResultStatus.UNKNOWN
-            SystemError = ""
-            Title = ""
-            StreetNbr = ""
-            StreetName = ""
-            City = ""
-            County = ""
-            State = ""
-            ZipCode = ""
-        }
-    } // end of class DetailResults

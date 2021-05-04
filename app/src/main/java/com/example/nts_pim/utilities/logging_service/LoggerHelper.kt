@@ -10,6 +10,7 @@ import com.airbnb.lottie.L
 import com.example.nts_pim.PimApplication
 import com.example.nts_pim.data.repository.model_objects.VehicleID
 import com.example.nts_pim.data.repository.providers.ModelPreferences
+import com.example.nts_pim.utilities.enums.LogEnums
 import com.example.nts_pim.utilities.enums.SharedPrefEnum
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
@@ -44,11 +45,17 @@ object LoggerHelper {
     private val pimContext = PimApplication.pimContext
     private var logArray: MutableList<String?>? = null
     private const val logLimit = 201
+    private var canAddToLog = false
 
     internal fun writeToLog(log: String, tag: String?){
+        if(!canAddToLog){
+            Log.i(LogEnums.LIFE_CYCLE.tag, "Can't add to logs since it hasn't been cleared of previous logs")
+            return
+        }
         if(tag != null){
             Log.i(tag, log)
         }
+
         val readPermission = ContextCompat.checkSelfPermission(pimContext, Manifest.permission.READ_EXTERNAL_STORAGE)
         val writePermission = ContextCompat.checkSelfPermission(pimContext, Manifest.permission.WRITE_EXTERNAL_STORAGE)
         val logTimeStamp = timeTimeStamp.format(Date())
@@ -123,23 +130,52 @@ object LoggerHelper {
     }
 
     internal fun getOrStartInternalLogs(){
+        if(!canAddToLog){
+            return
+        }
         logArray = getArrayList()
        // val logWithSizeCheck = keepTheLogCountLow(logArray)
         saveArrayList(logArray)
         Log.i("Logger", "Internal Log Started")
     }
-    private fun keepTheLogCountLow(logArray: MutableList<String?>?): MutableList<String?>?{
-        val mutableList: MutableList<String?>?
-        val count = logArray?.count() ?: 0
-        if(count >  300){
-            mutableList = mutableListOf()
-            mutableList.add("reset logs due to amount of logs saved")
-            return mutableList
+
+    fun deleteLogsOverLimit(): Boolean {
+        val mLogs = getArrayList()
+        val currentLogAmount = mLogs?.size
+        Log.i("Logger, ","current log amount before delete check. $currentLogAmount")
+        if (currentLogAmount != null) {
+            if (currentLogAmount > logLimit) {
+                Log.i("Logger", "currentAmount is larger. $currentLogAmount vs. $logLimit")
+                val deleteUpTo = currentLogAmount - logLimit
+                var numberDeleted = 0
+                Log.i("Logger", "deleting up to log limit of $deleteUpTo")
+                while (numberDeleted < deleteUpTo) {
+                    with(mLogs.iterator()) {
+                        forEach {
+                            if (it == mLogs.first()) {
+                                numberDeleted += 1
+                                remove()
+                                Log.i(
+                                    "Logger",
+                                    "number of logs deleted: $numberDeleted. Logs left: ${mLogs.count()}"
+                                )
+                            }
+                        }
+                    }
+                }
+            }
         }
-        return logArray
+        Log.i("Logger", "number of logs in mLogs after log delete check: ${mLogs?.count()}")
+        saveArrayList(mLogs)
+        canAddToLog = true
+        getOrStartInternalLogs()
+        return canAddToLog
     }
 
     private fun addLogToInternalLogs(log:String){
+        if(!canAddToLog){
+            return
+        }
         try {
             logArray?.add(log)
             removeAndAddLog(logArray)
@@ -149,14 +185,28 @@ object LoggerHelper {
     }
 
     private fun removeAndAddLog(array: MutableList<String?>?){
+        if (canAddToLog){
+            return
+        }
         if(array == null){
             return
         }
         if(array.count() > logLimit){
-            array.removeAt(0)
-            Log.i("LOGGER", "Removing log from logging array. Log count is now ${array.count()}")
+            while (array.count() > logLimit) {
+                with(array.iterator()) {
+                    forEach {
+                        if (it == array.first()) {
+                            remove()
+                            Log.i(
+                                "Logger",
+                                "deleted logs since array count was greater than log limit. Log count after deletion: ${array.count()}"
+                            )
+                        }
+                    }
+                }
+            }
         } else {
-            Log.i("LOGGER", "Internal Log hasn't hit $logLimit, Log count is now ${array?.count()}")
+            Log.i("Logger", "Internal Log hasn't hit $logLimit, Log count is now ${array?.count()}")
         }
         if(!array.isNullOrEmpty()){
             saveArrayList(array)
@@ -190,6 +240,9 @@ object LoggerHelper {
     }
 
     internal fun addInternalLogsToAWS(vehicleId: String) {
+        if(!canAddToLog){
+            return
+        }
         val logArray = logArray ?: mutableListOf<String>()
        try {
             logArray.forEach {log ->
@@ -199,8 +252,6 @@ object LoggerHelper {
        } catch (e: ConcurrentModificationException){
             Log.i("Error", "Concurrent modification exception when adding and sending logs: $e. ")
         }
-
-
         sendLogToAWS(vehicleId)
     }
 }

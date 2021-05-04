@@ -3,7 +3,6 @@ package com.example.nts_pim.utilities.bluetooth_helper
 import com.example.nts_pim.PimApplication
 import com.example.nts_pim.data.repository.TripDetails
 import com.example.nts_pim.data.repository.VehicleTripArrayHolder
-import com.example.nts_pim.data.repository.model_objects.trip.Trip
 import com.example.nts_pim.receivers.BatteryPowerReceiver
 import com.example.nts_pim.utilities.enums.LogEnums
 import com.example.nts_pim.utilities.logging_service.LoggerHelper

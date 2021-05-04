@@ -15,6 +15,7 @@ import com.example.nts_pim.fragments_viewmodel.callback.CallBackViewModel
 import com.example.nts_pim.fragments_viewmodel.vehicle_setup.VehicleSetupModelFactory
 import com.example.nts_pim.fragments_viewmodel.vehicle_setup.VehicleSetupViewModel
 import com.example.nts_pim.utilities.device_id_check.DeviceIdCheck
+import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import com.example.nts_pim.utilities.mutation_helper.PIMMutationHelper
 import org.kodein.di.KodeinAware
 import org.kodein.di.android.x.closestKodein
@@ -61,9 +62,12 @@ class DeviceIdUpdate: ScopedFragment(), KodeinAware {
 
     //Navigation
     private fun goToVehicleStartUp(){
-        val navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment)
-        if (navController.currentDestination?.id == currentFragmentId) {
-            navController.navigate(R.id.startupFragment)
-        }
+            val loggingCheckComplete = LoggerHelper.deleteLogsOverLimit()
+            if(loggingCheckComplete){
+                val navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment)
+                if (navController.currentDestination?.id == currentFragmentId) {
+                    navController.navigate(R.id.startupFragment)
+                }
+            }
     }
 }
