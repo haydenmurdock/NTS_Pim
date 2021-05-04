@@ -3,8 +3,10 @@ package com.example.nts_pim.fragments_viewmodel.upfront_price_detail
 
 import android.annotation.SuppressLint
 import android.os.Bundle
+import android.os.CountDownTimer
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import androidx.navigation.Navigation
@@ -20,6 +22,7 @@ import kotlinx.android.synthetic.main.up_front_price_detail_fragment.*
 class UpFrontPriceDetailFragment : Fragment() {
     val currentFragmentId = R.id.upFrontPriceDetailFragment
     private lateinit var upfrontPriceViewModel: UpfrontPriceViewModel
+    private var inactiveScreenTimer: CountDownTimer? = null
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -33,6 +36,7 @@ class UpFrontPriceDetailFragment : Fragment() {
         val factory = InjectorUtiles.provideUpFrontPriceFactory()
         upfrontPriceViewModel = ViewModelProvider(this, factory)
             .get(UpfrontPriceViewModel::class.java)
+        startInactivityTimeout()
         request_trip_btn.setOnClickListener {
             toEnterNameFragment()
         }
@@ -41,9 +45,31 @@ class UpFrontPriceDetailFragment : Fragment() {
         updateUIWithUpfrontPrice(upfrontTrip)
 
         upfront_detail_cancel_btn.setOnClickListener {
-            backToWelcomeFragment()
             upfrontPriceViewModel.clearUpfrontPriceTrip()
+            backToWelcomeScreen()
         }
+        view.setOnTouchListener { v, event ->
+            when (event?.action) {
+                MotionEvent.ACTION_DOWN -> {
+                    inactiveScreenTimer?.cancel()
+                    inactiveScreenTimer?.start()
+                }
+            }
+            v?.onTouchEvent(event) ?: true
+        }
+    }
+
+    private fun startInactivityTimeout(){
+        inactiveScreenTimer = object: CountDownTimer(120000, 60000) {
+            // this is set to 1 min and will finish if a new trip is started.
+            override fun onTick(millisUntilFinished: Long) {
+
+            }
+            override fun onFinish() {
+                upfrontPriceViewModel.clearUpfrontPriceTrip()
+                backToWelcomeScreen()
+            }
+        }.start()
     }
 
     @SuppressLint("SetTextI18n")
@@ -68,11 +94,21 @@ class UpFrontPriceDetailFragment : Fragment() {
         }
     }
 
-    private fun backToWelcomeFragment(){
+    private fun backToWelcomeScreen(){
         val navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment)
         if (navController.currentDestination?.id == currentFragmentId){
             navController.navigate(R.id.action_upFrontPriceDetailFragment_to_welcome_fragment)
         }
+    }
+
+    override fun onStop() {
+        super.onStop()
+        inactiveScreenTimer?.cancel()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        inactiveScreenTimer?.cancel()
     }
 
 }

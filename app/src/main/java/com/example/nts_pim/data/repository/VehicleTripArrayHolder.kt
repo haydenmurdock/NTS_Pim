@@ -102,6 +102,9 @@ object VehicleTripArrayHolder {
 
     private const val logFragment = "Vehicle_Trip_Array_Holder"
 
+    private var allowUpfrontPrice: Boolean = true
+    private var checkForDriverRejectionMLD = MutableLiveData<Boolean>()
+
     var flaggedTestVehicles: MutableList<String> = mutableListOf("ccsi_U_1496", "ccsi_Y_6801")
 
 
@@ -462,5 +465,19 @@ object VehicleTripArrayHolder {
     internal fun getPaymentMethod(): String {
         return paymentMethod
     }
+
+    internal fun allowUpfrontPrice(boolean: Boolean) {
+        allowUpfrontPrice = boolean
+        LoggerHelper.writeToLog("allow upfront price hit on vehicle Trip Array. Value: $boolean", LogEnums.BLUETOOTH.tag)
+        if(allowUpfrontPrice && meterStatePIM == "off" || allowUpfrontPrice && meterStatePIM == ""){
+           checkForDriverRejectionMLD.postValue(allowUpfrontPrice)
+            LoggerHelper.writeToLog("allow upfront price hit on vehicle Trip Array. Value: $boolean", LogEnums.BLUETOOTH.tag)
+        } else {
+            LoggerHelper.writeToLog("allow upfront price: $allowUpfrontPrice. meterStatePim $meterStatePIM", LogEnums.BLUETOOTH.tag)
+        }
+        checkForDriverRejectionMLD.postValue(false)
+    }
+
+    fun checkForDriverRejection() = checkForDriverRejectionMLD
 }
 

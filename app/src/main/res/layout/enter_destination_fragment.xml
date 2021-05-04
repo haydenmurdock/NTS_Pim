@@ -176,8 +176,8 @@
             android:background="@null"
             android:cursorVisible="true"
             android:ems="10"
-            android:focusable="auto"
-            android:focusedByDefault="false"
+            android:defaultFocusHighlightEnabled="true"
+            android:focusedByDefault="true"
             android:fontFamily="@font/source_sans_pro"
             android:hint="Search address or place"
             android:inputType="textPostalAddress"
@@ -186,7 +186,9 @@
             android:textCursorDrawable="@drawable/cursor_color"
             android:textSize="36sp"
             app:layout_constraintStart_toStartOf="@+id/enter_destination_title_textView"
-            app:layout_constraintTop_toBottomOf="@+id/enter_destination_title_textView" />
+            app:layout_constraintTop_toBottomOf="@+id/enter_destination_title_textView">
+        <requestFocus />
+    </EditText>
 
     <TextView
             android:id="@+id/enter_destination_title_textView"

@@ -25,9 +25,11 @@ import com.example.nts_pim.data.repository.model_objects.here_maps.SuggestionRes
 import com.example.nts_pim.fragments_viewmodel.InjectorUtiles
 import com.example.nts_pim.fragments_viewmodel.base.ScopedFragment
 import com.example.nts_pim.utilities.announcement_center.AnnouncementCenter
+import com.example.nts_pim.utilities.bluetooth_helper.BluetoothDataCenter
 import com.example.nts_pim.utilities.enums.LogEnums
 import com.example.nts_pim.utilities.here_maps.HerePlacesAPI
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
+import com.example.nts_pim.utilities.upfront_price_errors.UpfrontPriceErrorHelper
 import com.example.nts_pim.utilities.view_helper.ViewHelper
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
@@ -60,7 +62,7 @@ class EnterDestinationFragment : ScopedFragment(), KodeinAware {
         upfrontPriceViewModel = ViewModelProvider(this, upfrontPriceFactory)
             .get(UpfrontPriceViewModel::class.java)
         showAddressLabels(false)
-
+        showSoftKeyboard()
         back_to_welcome_btn.setOnClickListener {
             backToWelcomeScreen()
         }
@@ -86,16 +88,15 @@ class EnterDestinationFragment : ScopedFragment(), KodeinAware {
                 }
             }
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-            override fun afterTextChanged(s: Editable?) {
-            }
+            override fun afterTextChanged(s: Editable?) {}
         })
 
         editTextTextPostalAddress.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_DONE) {
-                if(listOfSuggestedAddress.isNotEmpty()){
-                    gettingDetailsAboutPrice(listOfSuggestedAddress.first())
-                }
-                toCalculatingPriceScreen()
+         //       if(listOfSuggestedAddress.isNotEmpty()){
+        //            gettingDetailsAboutPrice(listOfSuggestedAddress.first())
+         //       }
+         //       toCalculatingPriceScreen()
                 true
             }
             false
@@ -133,8 +134,13 @@ class EnterDestinationFragment : ScopedFragment(), KodeinAware {
             when(event?.action) {
                 MotionEvent.ACTION_DOWN -> {
                     if(listOfSuggestedAddress.isNotEmpty()){
-                        gettingDetailsAboutPrice(listOfSuggestedAddress.first())
-                        toCalculatingPriceScreen()
+                       val isBluetoothConnected = BluetoothDataCenter.isBluetoothSocketConnected().value ?: false
+                        if(isBluetoothConnected){
+                            gettingDetailsAboutPrice(listOfSuggestedAddress.first())
+                            toCalculatingPriceScreen()
+                        } else {
+                            UpfrontPriceErrorHelper.showNoBluetoothError(requireActivity())
+                        }
                     }
                     true
                 }
@@ -149,8 +155,13 @@ class EnterDestinationFragment : ScopedFragment(), KodeinAware {
                 MotionEvent.ACTION_DOWN -> {
                     if(listOfSuggestedAddress.isNotEmpty()
                         && listOfSuggestedAddress.count() > 1){
-                        gettingDetailsAboutPrice(listOfSuggestedAddress[1])
-                        toCalculatingPriceScreen()
+                        val isBluetoothConnected = BluetoothDataCenter.isBluetoothSocketConnected().value ?: false
+                        if(isBluetoothConnected){
+                            gettingDetailsAboutPrice(listOfSuggestedAddress[1])
+                            toCalculatingPriceScreen()
+                        } else {
+                            UpfrontPriceErrorHelper.showNoBluetoothError(requireActivity())
+                        }
                     }
                     true
                 }
@@ -165,8 +176,13 @@ class EnterDestinationFragment : ScopedFragment(), KodeinAware {
                 MotionEvent.ACTION_DOWN -> {
                     if(listOfSuggestedAddress.isNotEmpty()
                         && listOfSuggestedAddress.count() > 2){
-                        gettingDetailsAboutPrice(listOfSuggestedAddress[2])
-                        toCalculatingPriceScreen()
+                        val isBluetoothConnected = BluetoothDataCenter.isBluetoothSocketConnected().value ?: false
+                        if(isBluetoothConnected) {
+                            gettingDetailsAboutPrice(listOfSuggestedAddress[2])
+                            toCalculatingPriceScreen()
+                        } else {
+                            UpfrontPriceErrorHelper.showNoBluetoothError(requireActivity())
+                        }
                     }
                     true
                 }
@@ -177,19 +193,13 @@ class EnterDestinationFragment : ScopedFragment(), KodeinAware {
         }))
     }
 
-    override fun onStart() {
-        super.onStart()
-        showSoftKeyboard()
-        showAddressLabels(false)
-    }
-
     private fun showSoftKeyboard(){
         val imm =
                 requireActivity().getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
             imm.showSoftInput(editTextTextPostalAddress, InputMethodManager.SHOW_IMPLICIT)
             editTextTextPostalAddress.requestFocus()
             ViewHelper.hideSystemUI(requireActivity())
-            LoggerHelper.writeToLog("Showing Keyboard on enter destination fragment", null)
+            LoggerHelper.writeToLog("Showing Keyboard on enter destination fragment", LogEnums.BLUETOOTH.tag)
     }
 
     private fun updateAddressResultsOnView(query: String){

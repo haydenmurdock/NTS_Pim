@@ -24,23 +24,24 @@ import org.json.JSONObject
                 "Upfront Price Error: $errorMsg",
                 LogEnums.BLUETOOTH.tag
             )
+            UpfrontPriceRepository.errorForUpfrontPrice(errorMsg)
         } finally {
         }
         if (errorMsg.isNullOrEmpty()) {
             val pickupJson = obj.getJSONObject(JSON_PICK_UP_ADDRESS)
             val destJson = obj.getJSONObject(JSON_DEST_ADDRESS)
             val upfrontPriceJson = obj.getJSONObject(JSON_UPFRONT_PRICE)
-            val pup = Pickup("", "", "", "", "", 0.0, 0.0)
-            pup.fromJson(pickupJson)
-            pickup = pup
+            val pickUp = Pickup("", "", "", "", "", 0.0, 0.0)
+            pickUp.fromJson(pickupJson)
+            pickup = pickUp
 
-            val dup = Destination("", "", "", "", "", 0.0, 0.0)
-            dup.fromJson(destJson)
-            dest = dup
+            val destination = Destination("", "", "", "", "", 0.0, 0.0)
+            destination.fromJson(destJson)
+            dest = destination
 
-            val upup = UpFrontPrice(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, "")
-            upup.fromJson(upfrontPriceJson)
-            upfrontPrice = upup
+            val upfrontP = UpFrontPrice(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, "")
+            upfrontP.fromJson(upfrontPriceJson)
+            upfrontPrice = upfrontP
 
             UpfrontPriceRepository.updateTrip(pickup!!, upfrontPrice!!)
         }

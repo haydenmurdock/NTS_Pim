@@ -32,5 +32,15 @@ class UpfrontPriceViewModel(
 
     internal fun isDriverSignedIn() = upfrontPriceRepo.getIsDriverSignedIn()
 
+    internal fun upfrontPriceError(errMsg: String){
+        upfrontPriceRepo.errorForUpfrontPrice(errMsg)
+    }
+
+    internal fun upfrontPriceErrorDisplayed() = upfrontPriceRepo.errorDisplayed()
+
+    internal fun wasThereUpfrontPriceError() = upfrontPriceRepo.wasThereAnUpfrontError()
+
+    internal fun getUpfrontPriceError() = upfrontPriceRepo.upfrontTrip?.errorMsg
+
 
 }

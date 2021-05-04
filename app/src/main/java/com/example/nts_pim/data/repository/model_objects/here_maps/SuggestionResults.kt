@@ -6,7 +6,7 @@ import android.util.Log
 
 class SuggestionResults(json: String):JSONObject(json) {
 
-    val title = this.optString(JSON_TITLE)
+    var title = this.optString(JSON_TITLE)
     var highlightedTitle = this.optString(JSON_HIGHLIGHTED_TITLE)
     val vicinity = this.optString(JSON_VICINITY)
     var highlightedVicinity = this.optString(JSON_HIGHLIGHTED_VICINITY).replace("\n", " ")

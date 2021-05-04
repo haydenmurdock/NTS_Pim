@@ -99,11 +99,4 @@ object ViewHelper {
                 or View.SYSTEM_UI_FLAG_FULLSCREEN)
     }
 
-    fun checkForNotifications(activity: Activity) {
-        val notificationManager =
-            activity.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        val isNotificationAllowed = notificationManager.areNotificationsEnabled()
-        Log.i("Notification", "Notifications are allowed: $isNotificationAllowed")
-    }
-
 }

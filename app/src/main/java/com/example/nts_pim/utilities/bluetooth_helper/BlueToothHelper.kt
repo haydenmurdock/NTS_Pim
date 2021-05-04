@@ -11,8 +11,6 @@ import com.example.nts_pim.data.repository.model_objects.trip.Passenger
 import com.example.nts_pim.data.repository.model_objects.trip.UpfrontTrip
 import com.example.nts_pim.utilities.enums.LogEnums
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
-import com.google.gson.Gson
-import com.google.gson.JsonObject
 import org.json.JSONObject
 import java.util.*
 import kotlin.collections.ArrayList
@@ -86,7 +84,7 @@ object BlueToothHelper {
                 if(data != null){
                     sendACK("MDT_STATUS: Packet: $data")
                     LoggerHelper.writeToLog("MDT_ Status being received. Status JsonObject: $data", LogEnums.BLUETOOTH.tag)
-                   NTSPimPacket.MdtStatusObj(null,null,null,null,null,null,null,null).fromJson(data)
+                   NTSPimPacket.MdtStatusObj(null, null, null, null, null, null, null, null,null, null, null).fromJson(data)
                 }
             }
             NTSPimPacket.Command.PIM_PAYMENT.command -> {
@@ -113,7 +111,6 @@ object BlueToothHelper {
                 LoggerHelper.writeToLog("Upfront_Price_ received. Status JsonObject: $data", LogEnums.BLUETOOTH.tag)
                 sendACK(NTSPimPacket.Command.UPFRONT_PRICE.command)
                 if(data != null){
-
                     UpfrontTrip(null, null, null, null, false, null).fromJson(data)
                 }
             }

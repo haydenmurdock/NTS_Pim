@@ -3,22 +3,15 @@ package com.example.nts_pim.activity
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
-import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import android.media.AudioAttributes
-import android.media.AudioFocusRequest
-import android.media.AudioManager
-import android.media.MediaPlayer
 import android.net.ConnectivityManager
 import android.os.Bundle
 import android.os.CountDownTimer
-import android.os.Handler
 import android.util.Log
 import android.view.View
 import android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
-import androidx.annotation.RequiresPermission
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
@@ -29,7 +22,6 @@ import com.amazonaws.amplify.generated.graphql.*
 import com.amazonaws.mobileconnectors.appsync.AWSAppSyncClient
 import com.amazonaws.mobileconnectors.appsync.AppSyncSubscriptionCall
 import com.amazonaws.mobileconnectors.appsync.fetcher.AppSyncResponseFetchers
-import com.amazonaws.services.cognitoidentityprovider.model.UserPoolDescriptionType
 import com.apollographql.apollo.GraphQLCall
 import com.apollographql.apollo.api.Response
 import com.apollographql.apollo.exception.ApolloException
@@ -54,7 +46,7 @@ import com.example.nts_pim.utilities.enums.*
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import com.example.nts_pim.utilities.mutation_helper.PIMMutationHelper
 import com.example.nts_pim.utilities.overheat_email.OverHeatEmail
-import com.example.nts_pim.utilities.sound_helper.SoundHelper
+import com.example.nts_pim.utilities.upfront_price_errors.UpfrontPriceErrorHelper
 import com.example.nts_pim.utilities.view_helper.ViewHelper
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.schedulers.Schedulers
@@ -67,7 +59,6 @@ import org.kodein.di.KodeinAware
 import org.kodein.di.android.closestKodein
 import org.kodein.di.generic.instance
 import java.lang.IllegalArgumentException
-import java.lang.IllegalStateException
 import java.util.*
 import kotlin.coroutines.CoroutineContext
 
@@ -192,6 +183,11 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                     navController.currentDestination?.id != R.id.vehicle_settings_detail_fragment &&
                     navController.currentDestination?.id != R.id.vehicleSetupFragment &&
                     navController.currentDestination?.id != R.id.checkVehicleInfoFragment &&
+                    navController.currentDestination?.id != R.id.enterDestination &&
+                    navController.currentDestination?.id != R.id.calculatingUpfrontPriceFragment &&
+                    navController.currentDestination?.id != R.id.upFrontPriceDetailFragment &&
+                    navController.currentDestination?.id != R.id.enterNameFragment &&
+                    navController.currentDestination?.id != R.id.waitingForDriver &&
                     navigationController.currentDestination?.id != R.id.live_meter_fragment) {
                     val currentTripId = callbackViewModel.getTripId()
                     if(!isBluetoothOnAWS){
@@ -376,6 +372,18 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                 }
             }
         })
+        upfrontPriceViewModel.wasThereUpfrontPriceError().observe(this, Observer { receivedError ->
+            if(receivedError) {
+                val errorMsg = upfrontPriceViewModel.getUpfrontPriceError() ?: "Upfront Price Error. Please re-try"
+                receivedErrorViaBluetooth(errorMsg)
+                upfrontPriceViewModel.upfrontPriceErrorDisplayed()
+            }
+        })
+        callbackViewModel.checkForDriverRejection().observe(this, Observer { allowUpfrontPrice ->
+            if(allowUpfrontPrice){
+                checkIfDriverRejectUpfrontPrice()
+            }
+        })
     }
 
     fun sendBluetoothPacket(ntsPimPacket: NTSPimPacket){
@@ -398,6 +406,20 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
             LoggerHelper.writeToLog("requesting status request from driver tablet", LogEnums.BLUETOOTH.tag)
             sendBluetoothPacket(statusObj)
         }
+    }
+    private fun receivedErrorViaBluetooth(error: String){
+        UpfrontPriceErrorHelper.showUpfrontPriceError(this, error)
+    }
+
+    private fun checkIfDriverRejectUpfrontPrice(){
+        val navController = findNavController(this, R.id.nav_host_fragment)
+        val arrayOfUpfrontFragments = arrayListOf<Int>(R.id.enterDestination,R.id.calculatingUpfrontPriceFragment, R.id.upFrontPriceDetailFragment,R.id.upFrontPriceDetailFragment, R.id.enterNameFragment, R.id.waitingForDriver)
+        if(arrayOfUpfrontFragments.contains(navController.currentDestination?.id)){
+            LoggerHelper.writeToLog("Driver sent MDT_Status without meter value and current destination is one of the upfront price fragments. Driver must have rejected trip.", LogEnums.BLUETOOTH.tag)
+            navController.navigate(R.id.welcome_fragment)
+            upfrontPriceViewModel.clearUpfrontPriceTrip()
+        }
+
     }
 
 

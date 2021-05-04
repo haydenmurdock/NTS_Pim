@@ -52,6 +52,7 @@ import com.example.nts_pim.utilities.keyboards.PhoneKeyboard
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import com.example.nts_pim.utilities.mutation_helper.PIMMutationHelper
 import com.example.nts_pim.utilities.sound_helper.SoundHelper
+import com.example.nts_pim.utilities.upfront_price_errors.UpfrontPriceErrorHelper
 import com.example.nts_pim.utilities.view_helper.ViewHelper
 import kotlinx.android.synthetic.main.error_view.*
 import kotlinx.android.synthetic.main.up_front_price_detail_fragment.*
@@ -190,23 +191,7 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
                     if(isDriverSignedIn){
                         toEnterDestination()
                     } else {
-                       val viewGroup = activity?.findViewById<View>(android.R.id.content) as ViewGroup
-                        View.inflate(activity, R.layout.error_view, viewGroup)
-                        val cancelBtn = activity?.findViewById<Button>(R.id.error_cancel_btn)
-                        val retryBtn = activity?.findViewById<Button>(R.id.error_retry_btn)
-                        val titleLabel = activity?.findViewById<TextView>(R.id.error_view_title_textView)
-                        val detailText = activity?.findViewById<TextView>(R.id.error_view_detail_textView)
-                        titleLabel?.text = "Oops! Driver not signed in"
-                        detailText?.text = "No driver is signed in for vehicle:$vehicleId"
-                        cancelBtn?.setOnClickListener {
-                            val errView = activity?.findViewById<View>(R.id.error_view_constraint)
-                            viewGroup.removeView(errView)
-                        }
-
-                        retryBtn?.setOnClickListener {
-                            val errView = activity?.findViewById<View>(R.id.error_view_constraint)
-                            viewGroup.removeView(errView)
-                        }
+                     UpfrontPriceErrorHelper.showDriverNotSignedInError(requireActivity(), vehicleId)
                     }
                 }
             }

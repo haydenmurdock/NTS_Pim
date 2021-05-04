@@ -69,7 +69,19 @@ class NTSPimPacket {
         fun toJson(): JSONObject
     }
 
-    class MdtStatusObj(mId: Int?, mTripNbr: Int?, mMeterState: String?, mPimNoReceipt: String?, mTripId: String?, mTripStatus: String?, mOwedPrice: Double?, mPimPayAmt: Double?) : PimDataObj {
+    class MdtStatusObj(
+        mId: Int?,
+        mTripNbr: Int?,
+        mMeterState: String?,
+        mPimNoReceipt: String?,
+        mTripId: String?,
+        mTripStatus: String?,
+        mOwedPrice: Double?,
+        mPimPayAmt: Double?,
+        mVehLat: Double?,
+        mVehLng: Double?,
+        mAllowUpFrontPrice: Boolean?
+    ) : PimDataObj {
         var driverId: Int? = null
         var tripNbr: Int? = null
         var meterState: String? = null
@@ -78,6 +90,9 @@ class NTSPimPacket {
         var tripStatus: String? = null
         var owedPrice: Double? = null
         var pimPayAmt: Double? = null
+        var vehLat: Double? = null
+        var vehLng: Double? = null
+        var allowUpfrontPrice = false
         init {
             driverId = mId
             tripNbr = mTripNbr
@@ -87,6 +102,9 @@ class NTSPimPacket {
             tripStatus = mTripStatus
             owedPrice = mOwedPrice
             pimPayAmt = mPimPayAmt
+            vehLat = mVehLat
+            vehLng = mVehLng
+            allowUpfrontPrice = mAllowUpFrontPrice ?: false
         }
 
         override fun fromJson(obj: JSONObject) {
@@ -98,7 +116,11 @@ class NTSPimPacket {
             owedPrice = obj.optDouble(JSON_OWED_PRICE)
             driverId = obj.optInt(JSON_DRIVER_ID)
             meterState = obj.optString(JSON_METER_STATE)
-            LoggerHelper.writeToLog("Parsed packet from Json: tripId: $tripId, pimPayAmt: $pimPayAmt,tripNum: $tripNbr, pimNoReceipt: $pimNoReceipt, tripStatus: $tripStatus, owedPrice: $owedPrice, driverId: $driverId, meterState: $meterState", LogEnums.BLUETOOTH.tag)
+            vehLat = obj.optDouble(JSON_VEH_LAT)
+            vehLng = obj.optDouble(JSON_VEH_LNG)
+            allowUpfrontPrice = obj.optBoolean(JSON_ALLOW_UPFRONT_PRICE)
+            LoggerHelper.writeToLog("Parsed packet from Json: tripId: $tripId, pimPayAmt: $pimPayAmt,tripNum: $tripNbr, pimNoReceipt: $pimNoReceipt, tripStatus: $tripStatus, owedPrice: $owedPrice, driverId: $driverId, meterState: $meterState, lat: $vehLat, lng: $vehLng, allowUpfrontPrice: $allowUpfrontPrice", LogEnums.BLUETOOTH.tag)
+
             if(!tripId.isNullOrBlank() || !tripId.isNullOrEmpty()){
                 val thisForTheCurrentTrip = TripDetails.isThisForAnOldTrip(tripId!!)
                 if(!thisForTheCurrentTrip){
@@ -108,6 +130,7 @@ class NTSPimPacket {
                     return
                 }
             }
+            VehicleTripArrayHolder.allowUpfrontPrice(allowUpfrontPrice)
             if(pimPayAmt != null && !pimPayAmt!!.isNaN()){
                 VehicleTripArrayHolder.setPimPayment(pimPayAmt!!)
             } else {
@@ -125,13 +148,14 @@ class NTSPimPacket {
             if(tripStatus != null){
                 VehicleTripArrayHolder.addStatus(tripStatus!!)
             }
-            if(owedPrice != null){}
             if(driverId != null){
                 VehicleTripArrayHolder.setDriverId(driverId!!)
             }
             if(meterState != null){
                 VehicleTripArrayHolder.addMeterState(meterState!!)
             }
+
+
         }
 
         override fun toJson(): JSONObject {
@@ -162,6 +186,9 @@ class NTSPimPacket {
             private const val JSON_TRIP_STATUS = "tripStatus"
             private const val JSON_OWED_PRICE = "owedPrice"
             private const val JSON_PIM_PAY_AMT = "pimPayAmt"
+            private const val JSON_VEH_LAT = "vehLat"
+            private const val JSON_VEH_LNG = "vehLon"
+            private const val JSON_ALLOW_UPFRONT_PRICE = "allowUpfrontPrice"
         }
     }
 

@@ -141,5 +141,7 @@ class CallBackViewModel(
         VehicleTripArrayHolder.insertPaymentMethod(paymentMethod)
     }
 
+    internal fun checkForDriverRejection() = vehicleTripArrayHolder.checkForDriverRejection()
+
 
 }

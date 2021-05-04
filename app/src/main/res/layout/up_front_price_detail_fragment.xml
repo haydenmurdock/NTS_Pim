@@ -21,17 +21,17 @@
 
     <Button
             android:id="@+id/upfront_detail_cancel_btn"
-            android:layout_width="131dp"
-            android:layout_height="45dp"
+            android:layout_width="189dp"
+            android:layout_height="55dp"
             android:layout_marginTop="16dp"
-            android:layout_marginEnd="40dp"
+            android:layout_marginEnd="32dp"
             android:background="@drawable/no_receipt_button"
-            android:fontFamily="@font/source_sans_pro_bold"
+            android:fontFamily="@font/source_sans_pro_semibold"
             android:text="Cancel"
             android:textAllCaps="false"
             android:textColor="@color/whiteTextColor"
-            android:textSize="24sp"
-            app:layout_constraintEnd_toEndOf="parent"
+            android:textSize="30sp"
+            app:layout_constraintEnd_toEndOf="@+id/constraintLayout"
             app:layout_constraintTop_toTopOf="parent" />
 
     <TextView
@@ -39,10 +39,10 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
-            android:fontFamily="@font/source_sans_pro_bold"
+            android:fontFamily="@font/source_sans_pro_semibold"
             android:text="Your price is"
             android:textColor="@color/whiteTextColor"
-            android:textSize="38sp"
+            android:textSize="44sp"
             app:layout_constraintStart_toEndOf="@+id/back_to_welcome_btn2"
             app:layout_constraintTop_toBottomOf="@+id/upfront_detail_cancel_btn" />
 
@@ -51,10 +51,10 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
-            android:fontFamily="@font/source_sans_pro_bold"
+            android:fontFamily="@font/source_sans_pro_semibold"
             android:text="$15.25"
             android:textColor="@color/red"
-            android:textSize="38sp"
+            android:textSize="44sp"
             app:layout_constraintBottom_toBottomOf="@+id/textView13"
             app:layout_constraintStart_toEndOf="@+id/textView13"
             app:layout_constraintTop_toTopOf="@+id/textView13" />
@@ -65,9 +65,10 @@
             android:layout_height="283dp"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.654"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/textView13"
-            app:layout_constraintVertical_bias="0.179">
+            app:layout_constraintVertical_bias="0.0">
 
         <ImageView
                 android:id="@+id/imageView8"
@@ -126,9 +127,9 @@
 
         <Button
                 android:id="@+id/request_trip_btn"
-                android:layout_width="200dp"
-                android:layout_height="65dp"
-                android:layout_marginEnd="16dp"
+                android:layout_width="251dp"
+                android:layout_height="69dp"
+                android:layout_marginEnd="24dp"
                 android:background="@drawable/custom_tip_done_button"
                 android:fontFamily="@font/source_sans_pro_semibold"
                 android:text="Request Trip"
@@ -141,8 +142,8 @@
 
     <LinearLayout
             android:layout_width="883dp"
-            android:layout_height="83dp"
-            android:background="@color/enterDestinationBtnBackground"
+            android:layout_height="53dp"
+            android:background="@drawable/upfront_detail_trip_overview_background"
             android:orientation="horizontal"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
@@ -158,7 +159,7 @@
                 android:text="  Trip Time: "
                 android:textAlignment="gravity"
                 android:textColor="@color/grey"
-                android:textSize="18sp" />
+                android:textSize="27sp" />
 
         <TextView
                 android:id="@+id/upfront_trip_time_textView"
@@ -169,7 +170,7 @@
                 android:gravity="center|left"
                 android:text="7 min"
                 android:textColor="@color/whiteTextColor"
-                android:textSize="18sp" />
+                android:textSize="27sp" />
 
         <TextView
                 android:id="@+id/textView17"
@@ -185,7 +186,7 @@
                 android:gravity="center|left"
                 android:text="  Est Arrival:"
                 android:textColor="@color/grey"
-                android:textSize="18sp" />
+                android:textSize="27sp" />
 
         <TextView
                 android:id="@+id/upfront_est_textView"
@@ -195,7 +196,7 @@
                 android:gravity="center|left"
                 android:text="8:04 pm"
                 android:textColor="@color/whiteTextColor"
-                android:textSize="18sp" />
+                android:textSize="27sp" />
 
         <TextView
                 android:id="@+id/textView21"
@@ -210,20 +211,20 @@
                 android:layout_weight="0"
                 android:fontFamily="@font/source_sans_pro"
                 android:gravity="center|left"
-                android:text="  Distance:"
+                android:text="Distance:"
                 android:textColor="@color/grey"
-                android:textSize="18sp"
+                android:textSize="27sp"
                 app:layout_constraintEnd_toEndOf="parent" />
 
         <TextView
                 android:id="@+id/upfront_distance_textView"
-                android:layout_width="85dp"
+                android:layout_width="27dp"
                 android:layout_height="match_parent"
-                android:layout_weight="0"
+                android:layout_weight="1"
                 android:gravity="center|left"
                 android:text="10 miles"
                 android:textColor="@color/whiteTextColor"
-                android:textSize="18sp" />
+                android:textSize="27sp" />
 
     </LinearLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>

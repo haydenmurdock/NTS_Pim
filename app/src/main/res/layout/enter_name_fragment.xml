@@ -42,7 +42,10 @@
             android:textCursorDrawable="@drawable/cursor_color"
             android:textSize="40sp"
             app:layout_constraintStart_toStartOf="@+id/enter_destination_title_textView"
-            app:layout_constraintTop_toBottomOf="@+id/enter_destination_title_textView" />
+            app:layout_constraintTop_toBottomOf="@+id/enter_destination_title_textView">
+
+            <requestFocus />
+        </EditText>
 
     <TextView
             android:id="@+id/enter_destination_title_textView"
