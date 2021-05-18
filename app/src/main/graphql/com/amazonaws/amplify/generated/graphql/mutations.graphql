@@ -50,13 +50,11 @@ mutation SetMeterRateEncryptData($parameters: setEncryptDataInput) {
     errorCode
     increment
     maxFare
-    maxToll
     minFare
     rateId
     rateNbr
     timeDropFare
     timeRate
-    tollIncrement
   }
 }
 mutation UpdateBluetooth($parameters: updateBluetoothInput) {
@@ -79,10 +77,13 @@ mutation UpdateBluetooth($parameters: updateBluetoothInput) {
     fleetNbr
     hideStartTrip
     hideVehicle
-    surrenderedVehicle
+    lastObdBtAddr
+    lastObdBtName
     lisnr
     locReport
     log
+    loggingOnTimeStamp
+    maxToll
     meter
     meterBtAddr
     meterBtName
@@ -106,6 +107,8 @@ mutation UpdateBluetooth($parameters: updateBluetoothInput) {
     rfid
     sendPort
     serverIP
+    surrenderedVehicle
+    tollIncrement
     uploadLogs
     useBluetoothPIM
     vehBtAddr
@@ -170,10 +173,13 @@ mutation UpdateSettings($parameters: updateSettingsInput) {
     fleetNbr
     hideStartTrip
     hideVehicle
-    surrenderedVehicle
+    lastObdBtAddr
+    lastObdBtName
     lisnr
     locReport
     log
+    loggingOnTimeStamp
+    maxToll
     meter
     meterBtAddr
     meterBtName
@@ -197,6 +203,8 @@ mutation UpdateSettings($parameters: updateSettingsInput) {
     rfid
     sendPort
     serverIP
+    surrenderedVehicle
+    tollIncrement
     uploadLogs
     useBluetoothPIM
     vehBtAddr
@@ -362,10 +370,13 @@ mutation UploadSettings($parameters: updateSettingsInput) {
     fleetNbr
     hideStartTrip
     hideVehicle
-    surrenderedVehicle
+    lastObdBtAddr
+    lastObdBtName
     lisnr
     locReport
     log
+    loggingOnTimeStamp
+    maxToll
     meter
     meterBtAddr
     meterBtName
@@ -389,6 +400,8 @@ mutation UploadSettings($parameters: updateSettingsInput) {
     rfid
     sendPort
     serverIP
+    surrenderedVehicle
+    tollIncrement
     uploadLogs
     useBluetoothPIM
     vehBtAddr
@@ -425,6 +438,7 @@ mutation UpdateDeviceIdToImei($parameters: updateDeviceIdToIMEIInput) {
     errorCode
     vehicleId
     log
+    loggingOnTimeStamp
     btAddress
     appVersion
     reAuthSquare
@@ -445,6 +459,7 @@ mutation UpdateDeviceIdPim($parameters: updateDeviceIdPIMInput) {
     errorCode
     vehicleId
     log
+    loggingOnTimeStamp
     btAddress
     appVersion
     reAuthSquare
@@ -785,6 +800,7 @@ mutation ResetReAuthSquare($parameters: resetReAuthSquareInput) {
     errorCode
     vehicleId
     log
+    loggingOnTimeStamp
     btAddress
     appVersion
     reAuthSquare
@@ -805,6 +821,7 @@ mutation UpdatePimSettings($parameters: updatePIMSettingsInput) {
     errorCode
     vehicleId
     log
+    loggingOnTimeStamp
     btAddress
     appVersion
     reAuthSquare
@@ -825,6 +842,7 @@ mutation UpdatePimSettingsPortal($parameters: updatePIMSettingsPortalInput) {
     errorCode
     vehicleId
     log
+    loggingOnTimeStamp
     btAddress
     appVersion
     reAuthSquare
@@ -851,6 +869,7 @@ mutation UnpairPim($parameters: unpairPIMInput) {
     errorCode
     vehicleId
     log
+    loggingOnTimeStamp
     btAddress
     appVersion
     reAuthSquare

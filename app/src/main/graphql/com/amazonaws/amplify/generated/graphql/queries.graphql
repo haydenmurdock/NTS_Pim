@@ -70,13 +70,11 @@ query GetMeterRates($rateId: String!, $rateNbr: Int) {
     errorCode
     increment
     maxFare
-    maxToll
     minFare
     rateId
     rateNbr
     timeDropFare
     timeRate
-    tollIncrement
   }
 }
 query GetFeesAndSpecials($siteFleet: String!) {
@@ -111,6 +109,7 @@ query GetPimSettings(
     errorCode
     vehicleId
     log
+    loggingOnTimeStamp
     btAddress
     appVersion
     reAuthSquare
@@ -158,10 +157,13 @@ query GetSettings(
     fleetNbr
     hideStartTrip
     hideVehicle
-    surrenderedVehicle
+    lastObdBtAddr
+    lastObdBtName
     lisnr
     locReport
     log
+    loggingOnTimeStamp
+    maxToll
     meter
     meterBtAddr
     meterBtName
@@ -185,6 +187,8 @@ query GetSettings(
     rfid
     sendPort
     serverIP
+    surrenderedVehicle
+    tollIncrement
     uploadLogs
     useBluetoothPIM
     vehBtAddr
@@ -480,6 +484,7 @@ query GetLoggingSettings($deviceId: String!) {
     errorCode
     vehicleId
     log
+    loggingOnTimeStamp
     btAddress
     appVersion
     reAuthSquare
@@ -500,6 +505,7 @@ query GetPimInfo($vehicleId: String!) {
     errorCode
     vehicleId
     log
+    loggingOnTimeStamp
     btAddress
     appVersion
     reAuthSquare

@@ -84,10 +84,12 @@ class TaxiNumberFragment : ScopedFragment(), KodeinAware {
     }
 
     private fun updateUI(updateMessage: String, isCompanyName: Boolean){
-            if(isCompanyName) {
+            if(isCompanyName && taxi_number_text_view != null) {
                 taxi_number_text_view.text = "Thank you for choosing $updateMessage"
             } else {
-                taxi_number_text_view.text = "Taxi number "+ updateMessage
+                if(taxi_number_text_view != null){
+                    taxi_number_text_view.text = "Taxi number "+ updateMessage
+                }
             }
     }
 

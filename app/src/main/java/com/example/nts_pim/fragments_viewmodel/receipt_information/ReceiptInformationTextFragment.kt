@@ -598,7 +598,7 @@ class ReceiptInformationTextFragment: ScopedFragment(), KodeinAware {
         if(isOnline(requireContext())){
             updateCustomerPhoneNumber(vehicleId, phoneNumber,mAWSAppSyncClient!!,tripId)
         } else {
-            Log.i("Text Receipt", "Internet not connect, could not update custPhone number on AWS")
+            LoggerHelper.writeToLog("Internet not connect, could not update custPhone number on AWS", LogEnums.RECEIPT.tag)
         }
     }
     //Makes sure phone is correctly formatted.
@@ -662,7 +662,7 @@ class ReceiptInformationTextFragment: ScopedFragment(), KodeinAware {
         }
     }
     private fun updateCustomerPhoneNumber(vehicleId: String, custPhoneNumber: String, appSyncClient: AWSAppSyncClient, tripId: String){
-        LoggerHelper.writeToLog("$logFragment, entered phone number: $custPhoneNumber", LogEnums.RECEIPT.tag)
+        LoggerHelper.writeToLog(" Sending Text to phone number: $custPhoneNumber", LogEnums.RECEIPT.tag)
         val updatePaymentTypeInput = UpdateTripInput.builder().vehicleId(vehicleId).tripId(tripId).custPhoneNbr(custPhoneNumber).build()
         appSyncClient.mutate(UpdateTripMutation.builder().parameters(updatePaymentTypeInput).build())
             ?.enqueue(mutationCustomerPhoneNumberCallback )
@@ -670,10 +670,11 @@ class ReceiptInformationTextFragment: ScopedFragment(), KodeinAware {
 
     private val mutationCustomerPhoneNumberCallback = object : GraphQLCall.Callback<UpdateTripMutation.Data>() {
         override fun onResponse(response: com.apollographql.apollo.api.Response<UpdateTripMutation.Data>) {
-            Log.i("Results", "Meter Table Updated ${response.data()}")
-            LoggerHelper.writeToLog("$logFragment, entered phone number response: ${response.data()}", LogEnums.RECEIPT.tag)
+            LoggerHelper.writeToLog("entered phone number response: ${response.data()}", LogEnums.RECEIPT.tag)
             val tripId = callBackViewModel.getTripId()
             val transactionId = callBackViewModel.getTransactionId()
+
+            LoggerHelper.writeToLog("Transaction id: $transactionId. tripId: $tripId", LogEnums.RECEIPT.tag)
 
             if(response.hasErrors()){
                 LoggerHelper.writeToLog("Response from aws had errors so did not send text message ${response.errors().get(0).message()}", LogEnums.RECEIPT.tag)
@@ -682,7 +683,7 @@ class ReceiptInformationTextFragment: ScopedFragment(), KodeinAware {
             if(!response.hasErrors()){
                 if(response.data() != null){
                     launch(Dispatchers.IO) {
-                        LoggerHelper.writeToLog("$logFragment,Updated custPhone number successfully. Step 2 Complete", LogEnums.RECEIPT.tag)
+                        LoggerHelper.writeToLog("Updated customer phone number successfully. Step 2 Complete", LogEnums.RECEIPT.tag)
                         SmsHelper.sendSMS(tripId, paymentType, transactionId)
                     }
                 }

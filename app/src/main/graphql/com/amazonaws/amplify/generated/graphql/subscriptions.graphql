@@ -19,10 +19,13 @@ subscription OnSettingsUpdate($deviceId: String) {
     fleetNbr
     hideStartTrip
     hideVehicle
-    surrenderedVehicle
+    lastObdBtAddr
+    lastObdBtName
     lisnr
     locReport
     log
+    loggingOnTimeStamp
+    maxToll
     meter
     meterBtAddr
     meterBtName
@@ -46,6 +49,8 @@ subscription OnSettingsUpdate($deviceId: String) {
     rfid
     sendPort
     serverIP
+    surrenderedVehicle
+    tollIncrement
     uploadLogs
     useBluetoothPIM
     vehBtAddr
@@ -372,6 +377,7 @@ subscription OnPimSettingsUpdate($deviceId: String) {
     errorCode
     vehicleId
     log
+    loggingOnTimeStamp
     btAddress
     appVersion
     reAuthSquare
@@ -392,6 +398,7 @@ subscription OnPimUnpair($vehicleId: String) {
     errorCode
     vehicleId
     log
+    loggingOnTimeStamp
     btAddress
     appVersion
     reAuthSquare

@@ -411,17 +411,15 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
         UpfrontPriceErrorHelper.showUpfrontPriceError(this, error)
     }
 
-    private fun checkIfDriverRejectUpfrontPrice(){
+    fun checkIfDriverRejectUpfrontPrice(){
         val navController = findNavController(this, R.id.nav_host_fragment)
-        val arrayOfUpfrontFragments = arrayListOf<Int>(R.id.enterDestination,R.id.calculatingUpfrontPriceFragment, R.id.upFrontPriceDetailFragment,R.id.upFrontPriceDetailFragment, R.id.enterNameFragment, R.id.waitingForDriver)
+        val arrayOfUpfrontFragments = arrayListOf(R.id.enterDestination,R.id.calculatingUpfrontPriceFragment, R.id.upFrontPriceDetailFragment,R.id.upFrontPriceDetailFragment, R.id.enterNameFragment, R.id.waitingForDriver)
         if(arrayOfUpfrontFragments.contains(navController.currentDestination?.id)){
-            LoggerHelper.writeToLog("Driver sent MDT_Status without meter value and current destination is one of the upfront price fragments. Driver must have rejected trip.", LogEnums.BLUETOOTH.tag)
+            LoggerHelper.writeToLog("There was either a driver rejection or error during setup. Sending back to welcome screen.", LogEnums.BLUETOOTH.tag)
             navController.navigate(R.id.welcome_fragment)
             upfrontPriceViewModel.clearUpfrontPriceTrip()
         }
-
     }
-
 
     private fun toBytes(ntsPimPacket: NTSPimPacket): ByteArray? {
         var packet: ByteArray? = null
@@ -455,8 +453,6 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
        clearVehicleOfAWSTripSubscription()
         if (!isBluetoothOnAWS){
           clearVehicleOfAWSPIMSubscription()
-        } else {
-            //LoggerHelper.writeToLog("PIM is suppose to use bluetooth. keeping subscription to pimSettings and Unpair pim", LogEnums.BLUETOOTH.tag)
         }
     }
 

@@ -105,7 +105,6 @@ class EnterNameFragment : Fragment() {
         imm.showSoftInput(enter_name_editText, InputMethodManager.SHOW_IMPLICIT)
         enter_name_editText.requestFocus()
         ViewHelper.hideSystemUI(requireActivity())
-        LoggerHelper.writeToLog("Showing Keyboard on enter destination fragment", LogEnums.BLUETOOTH.tag)
     }
 
 
@@ -119,6 +118,7 @@ class EnterNameFragment : Fragment() {
     private fun sendUpdateUpfrontPriceWithName(){
         val name = upfrontPriceViewModel.getPassengersName()
         if(!name.isNullOrBlank()){
+            LoggerHelper.writeToLog("Enter Name Fragment: Sending $name via bluetooth to driver tablet", LogEnums.BLUETOOTH.tag)
             BlueToothHelper.sendUpdateTripPacket(name, this.requireActivity())
             toWaitingForDriver()
         }

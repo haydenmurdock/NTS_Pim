@@ -6,10 +6,14 @@ import android.view.ViewGroup
 import android.widget.Button
 import android.widget.TextView
 import com.example.nts_pim.R
+import com.example.nts_pim.activity.MainActivity
+import com.example.nts_pim.utilities.enums.LogEnums
+import com.example.nts_pim.utilities.logging_service.LoggerHelper
 
 object UpfrontPriceErrorHelper {
 
     fun showDriverNotSignedInError(activity: Activity, vehicleId: String){
+        LoggerHelper.writeToLog("Upfront Price Error: No driver signed in: Generating UI", LogEnums.UPFRONT_PRICE.tag)
         val viewGroup = activity.findViewById<View>(android.R.id.content) as ViewGroup
         View.inflate(activity, R.layout.error_view, viewGroup)
         val cancelBtn = activity.findViewById<Button>(R.id.error_cancel_btn)
@@ -30,6 +34,7 @@ object UpfrontPriceErrorHelper {
     }
 
     fun showNoBluetoothError(activity: Activity){
+        LoggerHelper.writeToLog("Upfront Price Error: No bluetooth error: Generating UI", LogEnums.UPFRONT_PRICE.tag)
         val viewGroup = activity.findViewById<View>(android.R.id.content) as ViewGroup
         View.inflate(activity, R.layout.error_view, viewGroup)
         val cancelBtn = activity.findViewById<Button>(R.id.error_cancel_btn)
@@ -47,6 +52,7 @@ object UpfrontPriceErrorHelper {
     }
 
     fun showUpfrontPriceError(activity: Activity, errorMsg: String){
+        LoggerHelper.writeToLog("Upfront Price Error: upfront price error: Generating UI", LogEnums.UPFRONT_PRICE.tag)
         val viewGroup = activity.findViewById<View>(android.R.id.content) as ViewGroup
         View.inflate(activity, R.layout.error_view, viewGroup)
         val cancelBtn = activity.findViewById<Button>(R.id.error_cancel_btn)
@@ -60,6 +66,7 @@ object UpfrontPriceErrorHelper {
         retryBtn?.setOnClickListener {
             val errView = activity.findViewById<View>(R.id.error_view_constraint)
             viewGroup.removeView(errView)
+            (activity as MainActivity).checkIfDriverRejectUpfrontPrice()
         }
     }
 

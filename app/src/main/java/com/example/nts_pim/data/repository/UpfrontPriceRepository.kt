@@ -4,6 +4,8 @@ import android.util.Log
 import androidx.lifecycle.MutableLiveData
 import com.example.nts_pim.data.repository.model_objects.here_maps.SuggestionResults
 import com.example.nts_pim.data.repository.model_objects.trip.*
+import com.example.nts_pim.utilities.enums.LogEnums
+import com.example.nts_pim.utilities.logging_service.LoggerHelper
 
 object UpfrontPriceRepository {
     var upfrontTrip: UpfrontTrip? = null
@@ -57,11 +59,11 @@ object UpfrontPriceRepository {
             if(!suggestion.highlightedVicinity.isBlank() ||
                 !suggestion.highlightedTitle.isNullOrBlank() ||
                     !suggestion.vicinity.isNullOrBlank() ||
-                suggestion.highlightedVicinity.isNotEmpty()
-            ){
+                suggestion.highlightedVicinity.isNotEmpty()){
                 val checkedTitleResult = updateHighlightedVicinity(suggestion)
                     filteredSuggestions.add(checkedTitleResult)
             }
+            LoggerHelper.writeToLog("Suggestion was formatted incorrectly so wasn't added to suggestion result array. Highlighted Title: ${suggestion.highlightedTitle}, HighlightedVicinity: ${suggestion.highlightedVicinity}", LogEnums.UPFRONT_PRICE.tag)
         }
         return filteredSuggestions
     }
@@ -74,6 +76,7 @@ object UpfrontPriceRepository {
                 if(char.toString() == ("(")){
                  val newTitle =  suggestionResult.highlightedTitle.removeRange(index..suggestionResult.highlightedTitle.lastIndex)
                     Log.i("New Title after removing ( == $newTitle", "URL")
+                    LoggerHelper.writeToLog("Upfront Price Repository: Suggestion result has ( in name. New title after change == $newTitle", LogEnums.UPFRONT_PRICE.tag)
                     updatedResult.highlightedTitle = newTitle
                     if(updatedResult.highlightedVicinity.contains(newTitle)){
                         val vicinityParts = updatedResult.highlightedVicinity.split(delimiter)
@@ -83,6 +86,7 @@ object UpfrontPriceRepository {
                     }
                 }
             }
+            LoggerHelper.writeToLog("Upfront Price Repository: returning Updated Result for Suggested Addresses: ${updatedResult.highlightedTitle}, ${updatedResult.highlightedVicinity}", LogEnums.UPFRONT_PRICE.tag)
             return updatedResult
         }
         if(suggestionResult.highlightedTitle == suggestionResult.highlightedVicinity){
@@ -91,7 +95,7 @@ object UpfrontPriceRepository {
             if(titleParts.count() > 3) {
                 updatedResult.highlightedVicinity = titleParts[1] + ", " + titleParts[2].filter { it.isLetter()|| it.isWhitespace() }.trim()
             }
-            Log.i("URL", "Returning suggested destination after equals check: Title: ${updatedResult.highlightedTitle}, Vinicity: ${updatedResult.highlightedVicinity}")
+            LoggerHelper.writeToLog("Upfront Price Repository: returning Updated Result for Suggested Addresses when highlighted title is the same as highlighted vicinity: ${updatedResult.highlightedTitle}, ${updatedResult.highlightedVicinity}", LogEnums.UPFRONT_PRICE.tag)
             return updatedResult
         }
         if(suggestionResult.highlightedVicinity.contains(updatedResult.title)) {
@@ -101,22 +105,13 @@ object UpfrontPriceRepository {
             if(vicinityParts.count() > 3) {
                 updatedResult.highlightedVicinity = vicinityParts[1] + ", " + vicinityParts[2].filter { it.isLetter()|| it.isWhitespace() }.trim()
             }
-            Log.i(
-                "URL",
-                "Returning suggested destination after contains check: Title: ${updatedResult.highlightedTitle}, Vicinity ${updatedResult.highlightedVicinity}"
-            )
+            LoggerHelper.writeToLog("Upfront Price Repository: returning Updated Result for Suggested Addresses when highlighted vicinity contains title: ${updatedResult.highlightedTitle}, ${updatedResult.highlightedVicinity}", LogEnums.UPFRONT_PRICE.tag)
             return updatedResult
         }
+        LoggerHelper.writeToLog("Upfront Price Repository: returning Updated Result for Suggested Addresses with no changes: ${updatedResult.highlightedTitle}, ${updatedResult.highlightedVicinity}", LogEnums.UPFRONT_PRICE.tag)
     return updatedResult
     }
 
-
-    private fun checkStateAndRemoveZipCode(highlightedVicinity: String?): String {
-        if(highlightedVicinity.isNullOrBlank()){
-            return "Word"
-        }
-        return highlightedVicinity.dropLast(6)
-    }
 
     fun getSuggestedDestinations() = suggestedDestData
 
@@ -136,6 +131,7 @@ object UpfrontPriceRepository {
         sendBTDestination.postValue(false)
         suggestedDestinations.clear()
         suggestedDestData.postValue(suggestedDestinations)
+        LoggerHelper.writeToLog("Upfront Price Repository: Cleared upfront price", LogEnums.UPFRONT_PRICE.tag)
     }
 
     fun getPassengerName(): String? {

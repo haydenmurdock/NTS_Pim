@@ -14,6 +14,8 @@ import com.example.nts_pim.R
 import com.example.nts_pim.data.repository.UpfrontPriceViewModel
 import com.example.nts_pim.fragments_viewmodel.InjectorUtiles
 import com.example.nts_pim.utilities.bluetooth_helper.BlueToothHelper
+import com.example.nts_pim.utilities.enums.LogEnums
+import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import kotlinx.android.synthetic.main.calculating_upfront_price_fragment.*
 
 class CalculatingUpfrontPriceFragment : Fragment() {
@@ -48,7 +50,6 @@ class CalculatingUpfrontPriceFragment : Fragment() {
                 sendDestinationBtPacket()
             }
         })
-
         startInactivityTimeout()
     }
 
@@ -60,6 +61,7 @@ class CalculatingUpfrontPriceFragment : Fragment() {
     }
 
     private fun receivedUpfrontPriceBtPacket(){
+        LoggerHelper.writeToLog("Calculating Price Fragment: Received upfrontPriceBTPacket", LogEnums.BLUETOOTH.tag)
         toUpFrontPriceDetail()
     }
 

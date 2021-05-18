@@ -227,11 +227,14 @@ class EnterDestinationFragment : ScopedFragment(), KodeinAware {
             val locationProvider: String = LocationManager.NETWORK_PROVIDER
             if (ContextCompat.checkSelfPermission(
                     this.requireActivity(),
-                    Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED)
-            { val lastLocation = locationManager.getLastKnownLocation(locationProvider)
+                    Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+                val lastLocation = locationManager.getLastKnownLocation(locationProvider)
                 if(lastLocation != null){
+                    LoggerHelper.writeToLog("Enter Destination Fragment: Lat: ${lastLocation.latitude}, Lng: ${lastLocation.longitude}", LogEnums.BLUETOOTH.tag)
                     return PIMLocation(lastLocation.latitude, lastLocation.longitude)
                 }
+            } else {
+                LoggerHelper.writeToLog("Enter Destination Fragment: access_coarse_location was not granted", LogEnums.SETUP.tag)
             }
         return PIMLocation(0.0,0.0)
     }
@@ -242,7 +245,6 @@ class EnterDestinationFragment : ScopedFragment(), KodeinAware {
             auto_complete_TextView.text = suggestion
             auto_complete_TextView.visibility = View.VISIBLE
         }
-
     }
 
     private fun getAddressWithSuggestedAddress(firstHereAddress: String): String {
