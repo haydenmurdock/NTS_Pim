@@ -20,8 +20,8 @@ android {
         applicationId "com.example.nts_pim"
         minSdkVersion 26
         targetSdkVersion 29
-        versionCode 11200
-        versionName "1.120"
+        versionCode 11210
+        versionName "1.121"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         multiDexEnabled true
         signingConfig signingConfigs.debug
@@ -87,8 +87,8 @@ dependencies {
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.2.0'
     implementation "androidx.preference:preference-ktx:1.1.1"
 
-    implementation 'androidx.navigation:navigation-fragment-ktx:2.3.1'
-    implementation 'androidx.navigation:navigation-ui-ktx:2.3.1'
+    implementation 'androidx.navigation:navigation-fragment-ktx:2.3.5'
+    implementation 'androidx.navigation:navigation-ui-ktx:2.3.5'
 
     //ViewModel
     implementation "androidx.lifecycle:lifecycle-extensions:$lifecycle_version"

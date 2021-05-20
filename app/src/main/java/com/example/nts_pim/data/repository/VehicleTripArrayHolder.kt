@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import com.example.nts_pim.data.repository.model_objects.CurrentTrip
+import com.example.nts_pim.data.repository.model_objects.trip.ReceiptPaymentInfo
 import com.example.nts_pim.data.repository.providers.ModelPreferences
 import com.example.nts_pim.utilities.enums.LogEnums
 import com.example.nts_pim.utilities.enums.SharedPrefEnum
@@ -21,7 +22,6 @@ object VehicleTripArrayHolder {
     private var isSquareTransactionStartedMutableLiveData =  MutableLiveData<Boolean>()
     //This is and card reader are not private since we use them for the square service
     var squareHasBeenSetUp = false
-
     var cardReaderStatusHasBeenChecked = false
     private var cardReaderStatusHasBeenCheckedMLD = MutableLiveData<Boolean>()
 
@@ -99,11 +99,14 @@ object VehicleTripArrayHolder {
     private var transDate: String? = null
     private var cardInfo: String? = null
     private var declinedMessageForTrip: String? = null
+    var receiptPaymentInfo: ReceiptPaymentInfo? = null
 
     private const val logFragment = "Vehicle_Trip_Array_Holder"
 
     private var allowUpfrontPrice: Boolean = true
     private var checkForDriverRejectionMLD = MutableLiveData<Boolean>()
+
+
 
     var flaggedTestVehicles: MutableList<String> = mutableListOf("ccsi_U_1496", "ccsi_Y_6801")
 
@@ -479,5 +482,17 @@ object VehicleTripArrayHolder {
     }
 
     fun checkForDriverRejection() = checkForDriverRejectionMLD
+
+    @JvmName("setReceiptPaymentInfo1")
+    fun setReceiptPaymentInfo(info: ReceiptPaymentInfo){
+       receiptPaymentInfo = info
+    }
+
+    fun getReceiptPaymentInfo(tripId: String): ReceiptPaymentInfo? {
+        if(receiptPaymentInfo != null && tripId == receiptPaymentInfo?.tripId){
+            return receiptPaymentInfo as ReceiptPaymentInfo
+        }
+        return null
+    }
 }
 

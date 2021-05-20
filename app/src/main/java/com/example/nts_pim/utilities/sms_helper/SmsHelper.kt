@@ -2,6 +2,8 @@ package com.example.nts_pim.utilities.sms_helper
 
 import android.util.Log
 import com.example.nts_pim.data.repository.TripDetails
+import com.example.nts_pim.data.repository.VehicleTripArrayHolder
+import com.example.nts_pim.data.repository.model_objects.trip.ReceiptPaymentInfo
 import com.example.nts_pim.utilities.enums.LogEnums
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import okhttp3.*
@@ -26,6 +28,9 @@ object SmsHelper {
     destLon
      */
     fun sendSMS(tripId: String, paymentMethod: String, transactionId: String){
+        val receiptPaymentInfo: ReceiptPaymentInfo? =
+            VehicleTripArrayHolder.getReceiptPaymentInfo(tripId) ?:
+            return LoggerHelper.writeToLog("ReceiptPaymentInfo object was null. Not sending receipt to receiptAPI. Step 3 Failure", LogEnums.RECEIPT.tag)
         val client = OkHttpClient().newBuilder()
             .connectTimeout(60, TimeUnit.SECONDS)
             .writeTimeout(60, TimeUnit.SECONDS)
@@ -40,16 +45,16 @@ object SmsHelper {
                 json.put("tripId",tripId)
                 json.put("src", "pim")
                 json.put("paymentId",transactionId)
-                json.put("pimPayAmt", 10.00)
-                json.put("owdPrice", 10.00)
-                json.put("tipAmt", 2.00)
-                json.put("tipPercent", 0.20)
-                json.put("airPortFee", 1.10)
-                json.put("discountAmt", 1.00)
-                json.put("toll", 1.0)
-                json.put("discountPercent", 00.10)
-                json.put("destLat", 123.00)
-                json.put("destLon", -123.00)
+                json.put("pimPayAmt", receiptPaymentInfo?.pimPayAmount)
+                json.put("owedPrice", receiptPaymentInfo?.owedPrice)
+                json.put("tipAmt", receiptPaymentInfo?.tipAmt)
+                json.put("tipPercent", receiptPaymentInfo?.tipPercent)
+                json.put("airPortFee", receiptPaymentInfo?.airPortFee)
+                json.put("discountAmt", receiptPaymentInfo?.discountAmt)
+                json.put("toll", receiptPaymentInfo?.toll)
+                json.put("discountPercent", receiptPaymentInfo?.discountAmt)
+                json.put("destLat", receiptPaymentInfo?.destLat)
+                json.put("destLon", receiptPaymentInfo?.destLon)
             } catch (e: JSONException){
                 Log.i("ERROR", "JSON error $e")
              }
