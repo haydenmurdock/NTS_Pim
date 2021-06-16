@@ -196,7 +196,8 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                     LoggerHelper.writeToLog("${logFragment}, New trip was started by the driver while the pim trip was not finished", logFragment)
                     callbackViewModel.getMeterState().observe(this, Observer { meterValue ->
                         if(meterValue == MeterEnum.METER_ON.state){
-                            sendDriverReceipt()
+                            val tripIdOfPreviousTrip = TripDetails.getIncompleteDriverReceiptTripId()
+                            sendDriverReceipt(tripIdOfPreviousTrip)
                             callbackViewModel.clearAllTripValues()
                             navController.navigate(R.id.action_global_taxi_number_fragment)
                             clearObserverOnMeter()
@@ -219,7 +220,8 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                         OverHeatEmail.sendMail(vehicleId, startTime, overheat)
                             .subscribeOn(Schedulers.io())
                             .observeOn(AndroidSchedulers.mainThread())
-                            .subscribe{(LoggerHelper.writeToLog("Overheating email sent: overheat timeStamp:$overheat", LogEnums.OVERHEATING.tag))
+                            .subscribe{
+                                (LoggerHelper.writeToLog("Overheating email sent: overheat timeStamp:$overheat", LogEnums.OVERHEATING.tag))
                                 VehicleTripArrayHolder.updateInternalPIMStatus(PIMStatusEnum.OVERHEATING.status)
                                 val dataObject = NTSPimPacket.PimStatusObj()
                                 val statusObj =  NTSPimPacket(NTSPimPacket.Command.PIM_STATUS, dataObject)
@@ -947,13 +949,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
         }
     }
 
-    private fun sendDriverReceipt() = launch(Dispatchers.IO){
-        val tripIdForPayment = VehicleTripArrayHolder.getTripIdForPayment()
-        val tripIdForReceipt = if(tripIdForPayment != ""){
-            tripIdForPayment
-        } else {
-            callbackViewModel.getTripId()
-        }
+    private fun sendDriverReceipt(tripId: String) = launch(Dispatchers.IO){
         var transactionType = VehicleTripArrayHolder.paymentTypeSelected
         if(transactionType == "none"){
             transactionType = PaymentTypeEnum.CASH.paymentType
@@ -962,7 +958,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
         if(transactionId == ""){
             transactionId = UUID.randomUUID().toString()
         }
-        DriverReceiptHelper.sendReceipt(tripIdForReceipt,transactionType, transactionId)
+        DriverReceiptHelper.sendReceipt(tripId, transactionType, transactionId)
     }
 
     private fun checkNavBar(){

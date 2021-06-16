@@ -673,6 +673,7 @@ class ReceiptInformationTextFragment: ScopedFragment(), KodeinAware {
             LoggerHelper.writeToLog("entered phone number response: ${response.data()}", LogEnums.RECEIPT.tag)
             val tripId = callBackViewModel.getTripId()
             val transactionId = callBackViewModel.getTransactionId()
+            val custPhoneNumber = response.data()?.updateTrip()?.custPhoneNbr()
 
             LoggerHelper.writeToLog("Transaction id: $transactionId. tripId: $tripId", LogEnums.RECEIPT.tag)
 
@@ -684,7 +685,7 @@ class ReceiptInformationTextFragment: ScopedFragment(), KodeinAware {
                 if(response.data() != null){
                     launch(Dispatchers.IO) {
                         LoggerHelper.writeToLog("Updated customer phone number successfully. Step 2 Complete", LogEnums.RECEIPT.tag)
-                        SmsHelper.sendSMS(tripId, paymentType, transactionId)
+                        SmsHelper.sendSMS(tripId, paymentType, transactionId, custPhoneNumber)
                     }
                 }
             }

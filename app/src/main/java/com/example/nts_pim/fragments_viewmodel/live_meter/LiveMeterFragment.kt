@@ -99,7 +99,7 @@ class LiveMeterFragment: ScopedFragment(), KodeinAware {
                 LoggerHelper.writeToLog("$logFragment: Had to query Meter Owed for $tripId", LogEnums.TRIP_STATUS.tag)
             }
         }
-
+        TripDetails.tripIncompleteUseThisTripIdForDriverReceipt(tripId)
         checkCurrentTrip()
         updatePIMStatus()
         updateMeterFromTripReview()

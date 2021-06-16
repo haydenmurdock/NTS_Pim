@@ -290,7 +290,7 @@
     <action android:id="@+id/action_global_welcome_fragment" app:destination="@id/welcome_fragment"/>
     <fragment
             android:id="@+id/bluetoothSetupFragment"
-            android:name="com.example.nts_pim.fragments_viewmodel.bluetooth_setup.BluetoothSetupFragment"
+            android:name="com.example.nts_pim.fragments_viewmodel.square_setup.SquareSetupFragment"
             android:label="BluetoothSetupFragment" >
         <argument
                 android:name="lastCheckedStatus"

@@ -18,10 +18,24 @@ import java.net.URL
 
 object EmailHelper {
 
-    fun sendEmail(tripId: String,  paymentMethod: String, transactionId: String){
+    fun sendEmail(tripId: String,  paymentMethod: String, transactionId: String, custEmail: String?){
         val receiptPaymentInfo: ReceiptPaymentInfo? =
-            VehicleTripArrayHolder.getReceiptPaymentInfo(tripId) ?:
-            return LoggerHelper.writeToLog("ReceiptPaymentInfo object was null. Not sending receipt to receiptAPI. Step 3 Failure", LogEnums.RECEIPT.tag)
+            VehicleTripArrayHolder.getReceiptPaymentInfo(tripId)
+        LoggerHelper.writeToLog("Sending to receipt API." +
+                " tripId: $tripId," +
+                " paymentMethod: ${paymentMethod.toLowerCase()}," +
+                " transactionId: $transactionId," +
+                " custEmail: $custEmail," +
+                " pimPayAmount: ${receiptPaymentInfo?.pimPayAmount}," +
+                " owedPrice: ${receiptPaymentInfo?.owedPrice}," +
+                " tipAmt: ${receiptPaymentInfo?.tipAmt}," +
+                " tipPercent: ${receiptPaymentInfo?.tipPercent}," +
+                " airportFee: ${receiptPaymentInfo?.airPortFee}, " +
+                " discountAmt: ${receiptPaymentInfo?.discountAmt}," +
+                " toll: ${receiptPaymentInfo?.toll}," +
+                " discountPercent: ${receiptPaymentInfo?.discountPercent}," +
+                " destLat: ${receiptPaymentInfo?.destLat}, " +
+                " destLon: ${receiptPaymentInfo?.destLon}", LogEnums.RECEIPT.tag)
         val client = OkHttpClient().newBuilder()
             .connectTimeout(60, TimeUnit.SECONDS)
             .writeTimeout(60, TimeUnit.SECONDS)
@@ -36,6 +50,8 @@ object EmailHelper {
             json.put("tripId","$tripId" )
             json.put("src","pim")
             json.put("paymentId", transactionId)
+            json.put("custPhoneNbr", null)
+            json.put("custEmail", custEmail)
             json.put("pimPayAmt", receiptPaymentInfo?.pimPayAmount)
             json.put("owedPrice", receiptPaymentInfo?.owedPrice)
             json.put("tipAmt", receiptPaymentInfo?.tipAmt)
@@ -52,8 +68,8 @@ object EmailHelper {
         }
         val body = json.toString().toRequestBody(jSON)
 
-      //  val url = "https://5s27urxc78.execute-api.us-east-2.amazonaws.com/prod/sendReceipt"
-        val url = URL("https://5s27urxc78.execute-api.us-east-2.amazonaws.com/test/sendReceipt")
+       val url = "https://5s27urxc78.execute-api.us-east-2.amazonaws.com/prod/sendReceipt"
+       // val url = URL("https://5s27urxc78.execute-api.us-east-2.amazonaws.com/test/sendReceipt")
         val request = Request.Builder()
             .url(url)
             .post(body)
@@ -61,18 +77,17 @@ object EmailHelper {
         try {
            client.newCall(request).execute().use {response ->
                 if (!response.isSuccessful) {
-                    Log.i("Email Receipt", "Not successful: please check Email Helper function: response code: ${response.code}")
+                    LoggerHelper.writeToLog("Send email receipt unsuccessful. response message:${response.message} Step 3: Complete", LogEnums.RECEIPT.tag)
                 }
                 else {
-                    Log.i("Email Receipt", "Receipt Successful: please check Email Helper function: response code: ${response.code}")
-                    Log.i("Email Receipt", "sent receipt to email successfully. Step 3: complete")
+                    LoggerHelper.writeToLog("Send Email receipt successful. Step 3: Complete", LogEnums.RECEIPT.tag)
                     TripDetails.isReceiptSent = true
                     TripDetails.receiptCode = response.code
                     TripDetails.receiptMessage = response.message
                 }
             }
         }  catch (e: IOException) {
-            Log.i("Email Receipt", "Not successful: please check Email Helper function")
+            LoggerHelper.writeToLog("Send email receipt unsuccessful. exception: $e", LogEnums.RECEIPT.tag)
             TripDetails.isReceiptSent = false
             TripDetails.receiptCode = e.hashCode()
             TripDetails.receiptMessage = e.localizedMessage ?: ""

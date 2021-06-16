@@ -5,7 +5,6 @@ ext {
 buildscript {
     ext.kotlin_version = '1.4.31'
     ext.room_version = '2.2.0-rc01'
-    ext.navigation_version = '1.0.0-alpha06'
     ext.lifecycle_version = '2.2.0'
     ext.kodein_version = '5.2.0'
 
@@ -22,17 +21,13 @@ buildscript {
                password SQUARE_READER_SDK_REPOSITORY_PASSWORD
            }
        }
+
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:3.6.3'
+         classpath 'com.android.tools.build:gradle:3.6.3'
         classpath 'android.arch.navigation:navigation-safe-args-gradle-plugin:1.0.0-alpha05'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
         classpath 'com.amazonaws:aws-android-sdk-appsync-gradle-plugin:3.0.1'
-
-
-        // NOTE: Do not place your application dependencies here; they belong
-        // in the individual module build.gradle files
-
 
     }
 }
@@ -51,6 +46,7 @@ allprojects {
             }
         }
         jcenter()
+
     }
 }
 

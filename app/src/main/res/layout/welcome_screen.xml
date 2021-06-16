@@ -15,7 +15,7 @@
             android:text="Welcome"
             android:textColor="#FFFFFF"
             android:textSize="60sp"
-            android:visibility="invisible"
+            android:visibility="visible"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintHorizontal_bias="0.501"
@@ -47,7 +47,7 @@
             android:text="What's your destination?"
             android:textColor="#FFFFFF"
             android:textSize="46sp"
-            android:visibility="visible"
+            android:visibility="gone"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
@@ -121,7 +121,7 @@
             android:text="Good Afternoon!"
             android:textColor="@color/whiteTextColor"
             android:textSize="36sp"
-            android:visibility="visible"
+            android:visibility="invisible"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 
@@ -131,7 +131,7 @@
             android:layout_height="75dp"
             android:layout_marginTop="32dp"
             android:background="@drawable/enter_destination_button"
-            android:visibility="visible"
+            android:visibility="gone"
             app:layout_constraintStart_toStartOf="@+id/welcome_text_view"
             app:layout_constraintTop_toBottomOf="@+id/welcome_text_view" />
 
@@ -141,7 +141,7 @@
             android:layout_height="37dp"
             android:layout_marginStart="15dp"
             android:tint="@color/red"
-            android:visibility="visible"
+            android:visibility="gone"
             app:layout_constraintBottom_toBottomOf="@+id/enter_destination_view"
             app:layout_constraintStart_toStartOf="@+id/enter_destination_view"
             app:layout_constraintTop_toTopOf="@+id/enter_destination_view"
@@ -157,18 +157,18 @@
             android:text="Search address or place"
             android:textColor="@color/grey"
             android:textSize="28sp"
-            android:visibility="visible"
+            android:visibility="gone"
             app:layout_constraintBottom_toBottomOf="@+id/enter_destination_view"
             app:layout_constraintStart_toEndOf="@+id/imageView2"
             app:layout_constraintTop_toTopOf="@+id/enter_destination_view"
-            tools:visibility="visible" />
+            tools:visibility="gone" />
 
     <ImageView
             android:id="@+id/imageView3"
             android:layout_width="60dp"
             android:layout_height="42dp"
             android:layout_marginTop="2dp"
-            android:visibility="visible"
+            android:visibility="invisible"
             app:layout_constraintBottom_toBottomOf="@+id/greetings_textView"
             app:layout_constraintStart_toEndOf="@+id/greetings_textView"
             app:layout_constraintTop_toTopOf="@+id/greetings_textView"

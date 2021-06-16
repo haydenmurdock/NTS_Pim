@@ -78,7 +78,6 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
     private lateinit var callBackViewModel: CallBackViewModel
     private lateinit var upfrontPriceViewModel: UpfrontPriceViewModel
     private var mAWSAppSyncClient: AWSAppSyncClient? = null
-    private var failedReaderTimer: CountDownTimer? = null
     private var vehicleId = ""
     private var tripId = ""
     private var cabNumber = ""
@@ -435,7 +434,7 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
                 }
             }
             else -> {
-                LoggerHelper.writeToLog("${logFragment}: Build Version is the same from last startup. Build version $currentBuildVersion", LogEnums.TRIP_STATUS.tag)
+                LoggerHelper.writeToLog("Build version check: Build Version is the same from last startup. Build version $currentBuildVersion", LogEnums.TRIP_STATUS.tag)
             }
         }
     }
@@ -482,7 +481,6 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
         keyboardViewModel.bothKeyboardsDown()
         batteryCheckTimer.cancel()
         dimScreenTimer.cancel()
-        failedReaderTimer?.cancel()
     }
 
     override fun onPause() {
@@ -491,7 +489,6 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
         ViewHelper.hideSystemUI(requireActivity())
         batteryCheckTimer.cancel()
         dimScreenTimer.cancel()
-        failedReaderTimer?.cancel()
     }
 
     override fun onResume() {
@@ -511,7 +508,7 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
             callBackViewModel.isPimPaired().removeObservers(this)
             callBackViewModel.getMeterState().removeObservers(this)
         }
-        failedReaderTimer?.cancel()
         restartAppTimer.cancel()
+        batteryCheckTimer.cancel()
     }
 }

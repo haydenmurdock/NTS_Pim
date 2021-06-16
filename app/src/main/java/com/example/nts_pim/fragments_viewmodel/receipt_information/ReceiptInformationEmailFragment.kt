@@ -261,6 +261,7 @@ class ReceiptInformationEmailFragment: ScopedFragment(), KodeinAware {
             LoggerHelper.writeToLog("email callback response: ${response.data()}", LogEnums.RECEIPT.tag)
             val tripId = callBackViewModel.getTripId()
             val transactionId = callBackViewModel.getTransactionId()
+            val updatedCustEmail = response.data()?.updateTrip()?.custEmail()
 
             if (response.hasErrors()) {
                 Log.i("Email Receipt", "Response from Aws had errors so did not send email")
@@ -271,7 +272,7 @@ class ReceiptInformationEmailFragment: ScopedFragment(), KodeinAware {
                  {
                     launch(Dispatchers.IO) {
                         LoggerHelper.writeToLog("$logFragment, update custEmail successfully. Step 2: complete", LogEnums.RECEIPT.tag)
-                        EmailHelper.sendEmail(tripId, paymentType, transactionId)
+                        EmailHelper.sendEmail(tripId, paymentType, transactionId, updatedCustEmail)
                     }
                 }
             }

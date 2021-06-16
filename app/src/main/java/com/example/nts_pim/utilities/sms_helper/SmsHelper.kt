@@ -27,10 +27,28 @@ object SmsHelper {
     destLat
     destLon
      */
-    fun sendSMS(tripId: String, paymentMethod: String, transactionId: String){
+    fun sendSMS(tripId: String, paymentMethod: String, transactionId: String, custPhoneNumber: String?){
+        if(transactionId.isNullOrEmpty() || transactionId == " "){
+            LoggerHelper.writeToLog("Issue with transactionId: transactionId == $transactionId", LogEnums.RECEIPT.tag)
+        }
+
         val receiptPaymentInfo: ReceiptPaymentInfo? =
-            VehicleTripArrayHolder.getReceiptPaymentInfo(tripId) ?:
-            return LoggerHelper.writeToLog("ReceiptPaymentInfo object was null. Not sending receipt to receiptAPI. Step 3 Failure", LogEnums.RECEIPT.tag)
+            VehicleTripArrayHolder.getReceiptPaymentInfo(tripId)
+        LoggerHelper.writeToLog("Sending to receipt API." +
+                " tripId: $tripId," +
+                " paymentMethod: ${paymentMethod.toLowerCase()}," +
+                " transactionId: $transactionId," +
+                "custPhoneNumber: $custPhoneNumber," +
+                " pimPayAmount: ${receiptPaymentInfo?.pimPayAmount}," +
+                " owedPrice: ${receiptPaymentInfo?.owedPrice}," +
+                " tipAmt: ${receiptPaymentInfo?.tipAmt}," +
+                " tipPercent: ${receiptPaymentInfo?.tipPercent}," +
+                " airportFee: ${receiptPaymentInfo?.airPortFee}, " +
+                " discountAmt: ${receiptPaymentInfo?.discountAmt}," +
+                " toll: ${receiptPaymentInfo?.toll}," +
+                " discountPercent: ${receiptPaymentInfo?.discountPercent}," +
+                " destLat: ${receiptPaymentInfo?.destLat}, " +
+                " destLon: ${receiptPaymentInfo?.destLon}", LogEnums.RECEIPT.tag)
         val client = OkHttpClient().newBuilder()
             .connectTimeout(60, TimeUnit.SECONDS)
             .writeTimeout(60, TimeUnit.SECONDS)
@@ -45,6 +63,8 @@ object SmsHelper {
                 json.put("tripId",tripId)
                 json.put("src", "pim")
                 json.put("paymentId",transactionId)
+                json.put("custPhoneNbr", custPhoneNumber)
+                json.put("custEmail", null)
                 json.put("pimPayAmt", receiptPaymentInfo?.pimPayAmount)
                 json.put("owedPrice", receiptPaymentInfo?.owedPrice)
                 json.put("tipAmt", receiptPaymentInfo?.tipAmt)
@@ -61,8 +81,8 @@ object SmsHelper {
 
         val body = json.toString().toRequestBody(jSON)
         Log.i("URL","Json body : $json")
-        //val url = URL("https://5s27urxc78.execute-api.us-east-2.amazonaws.com/prod/sendReceipt")
-        val url = URL("https://5s27urxc78.execute-api.us-east-2.amazonaws.com/test/sendReceipt")
+        val url = URL("https://5s27urxc78.execute-api.us-east-2.amazonaws.com/prod/sendReceipt")
+        //val url = URL("https://5s27urxc78.execute-api.us-east-2.amazonaws.com/test/sendReceipt")
         val request = Request.Builder()
             .url(url)
             .post(body)
@@ -85,7 +105,6 @@ object SmsHelper {
                   }
               }
           } catch (e: Error){
-              Log.i("Text Receipt", "Send Text receipt unsuccessful. Step 3: Fail. Error")
               LoggerHelper.writeToLog("Send Text receipt unsuccessful. Client call error: $e", LogEnums.RECEIPT.tag)
               TripDetails.isReceiptSent = false
               TripDetails.receiptCode = e.hashCode()

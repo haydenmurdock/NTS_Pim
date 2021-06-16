@@ -15,6 +15,7 @@ import com.example.nts_pim.fragments_viewmodel.vehicle_settings_detail.VehicleSe
 import com.example.nts_pim.fragments_viewmodel.vehicle_setup.VehicleSetupModelFactory
 import com.example.nts_pim.fragments_viewmodel.welcome.WelcomeViewModelFactory
 import com.example.nts_pim.utilities.LifeCycleCallBacks
+import com.example.nts_pim.utilities.Square_Service.SquareHelper
 import com.example.nts_pim.utilities.enums.LogEnums
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import com.jakewharton.threetenabp.AndroidThreeTen
@@ -64,12 +65,7 @@ class PimApplication : Application(), KodeinAware{
             }
             AndroidThreeTen.init(this)
             registerActivityLifecycleCallbacks(LifeCycleCallBacks())
-            try {
-                ReaderSdk.initialize(this)
-                LoggerHelper.writeToLog("Square's Reader SDK initialized", LogEnums.SQUARE.tag)
-            } catch(e: Exception){
-               LoggerHelper.writeToLog("Issue initializing square. Error: $e", LogEnums.SQUARE.tag)
-            }
+            SquareHelper.initReaderSdk(this)
         }
 
 }

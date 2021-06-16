@@ -13,8 +13,8 @@ object TripDetails {
     var receiptCode = 0
     var receiptMessage = ""
     var receiptSentTo = ""
-
     var completedTripIds = mutableListOf<String>()
+    var tripIncompleteIdForDriverReceipt = ""
 
     init {
         textToSpeechActivated = false
@@ -53,6 +53,11 @@ object TripDetails {
         }
         return false
     }
+
+    fun tripIncompleteUseThisTripIdForDriverReceipt(tripId: String){
+        tripIncompleteIdForDriverReceipt = tripId
+    }
+    fun getIncompleteDriverReceiptTripId() = tripIncompleteIdForDriverReceipt
 
 
    private fun removeOldestTripId(){

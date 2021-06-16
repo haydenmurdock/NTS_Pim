@@ -157,6 +157,39 @@ object PIMMutationHelper {
             }
         }
 
+    fun pimPaymentSquareMutation(vehicleId: String, tripId: String, tipAmt: Double, cardInfo: String, tipPercent: Double, paidAmount: Double, transactionDate: String, transactionId: String){
+    LoggerHelper.writeToLog("pim payment builder structure. VehicleId: $vehicleId, TripId: $tripId, tipAmt: $tipAmt, cardInfo: $cardInfo, tipPercent: $tipPercent, pimPaidAmt: $paidAmount, PimTransactionDate: $transactionDate, pimTransId: $transactionId, paymentType: card", LogEnums.PAYMENT.tag)
+    val pimPaymentInput = PimPaymentMadeInput.builder()
+        .vehicleId(vehicleId)
+        .tripId(tripId)
+        .tipAmt(tipAmt)
+        .cardInfo(cardInfo)
+        .tipPercent(tipPercent)
+        .pimPaidAmt(paidAmount)
+        .pimTransDate(transactionDate)
+        .pimTransId(transactionId)
+        .paymentType("card")
+        .build()
+
+    mAppSyncClient?.mutate(PimPaymentMadeMutation.builder().parameters(pimPaymentInput).build())
+    ?.enqueue(pimPaymentMadeCallback)
+}
+    private val pimPaymentMadeCallback = object : GraphQLCall.Callback<PimPaymentMadeMutation.Data>() {
+        override fun onResponse(response: Response<PimPaymentMadeMutation.Data>) {
+            LoggerHelper.writeToLog("pim Payment Made - Response data: ${response.data()}", LogEnums.PAYMENT.tag)
+            if(!response.hasErrors()){
+                LoggerHelper.writeToLog("Pim Payment Made: No errors in response: response package: ${response.data()}", LogEnums.PAYMENT.tag)
+            }
+            if(response.hasErrors()){
+                LoggerHelper.writeToLog("Pim Payment Made: There was an error in the response. ${response.errors()}}", LogEnums.PAYMENT.tag)
+            }
+        }
+
+        override fun onFailure(e: ApolloException) {
+            LoggerHelper.writeToLog("pimPaymentMade error. $e", LogEnums.PAYMENT.tag)
+        }
+    }
+
     fun updatePaymentDetails(
         transactionId: String,
         tripNumber: Int,

@@ -49,7 +49,7 @@ object LoggerHelper {
 
     internal fun writeToLog(log: String, tag: String?){
         if(!canAddToLog){
-            Log.i(LogEnums.LIFE_CYCLE.tag, "Can't add to logs since it hasn't been cleared of previous logs")
+            Log.i(tag, "Can't add: $log to official logs since it hasn't been cleared of previous logs")
             return
         }
         if(tag != null){

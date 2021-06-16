@@ -2,14 +2,14 @@ package com.example.nts_pim.data.repository.model_objects.trip
 
 
 
-data class ReceiptPaymentInfo(val tripId: String,
-                              val pimPayAmount: Double,
-                              val owedPrice: Double,
-                              val tipAmt: Double,
-                              val tipPercent: Double,
-                              val airPortFee: Double,
-                              val discountAmt: Double,
-                              val toll: Double,
-                              val discountPercent: Double,
-                              val destLat: Double,
-                              val destLon: Double)
+data class ReceiptPaymentInfo(var tripId: String,
+                              var pimPayAmount: Double,
+                              var owedPrice: Double,
+                              var tipAmt: Double,
+                              var tipPercent: Double,
+                              var airPortFee: Double,
+                              var discountAmt: Double,
+                              var toll: Double,
+                              var discountPercent: Double,
+                              var destLat: Double,
+                              var destLon: Double)

@@ -89,10 +89,17 @@ class NTSPimPacket {
         var tripId: String? = null
         var tripStatus: String? = null
         var owedPrice: Double? = null
+        var airPortFee: Double? = null
+        var toll: Double? = null
+        var discountAmt:Double? = null
+        var discountPercent: Double? = null
         var pimPayAmt: Double? = null
         var vehLat: Double? = null
-        var vehLng: Double? = null
+        var vehLon: Double? = null
+        var destLat: Double? = null
+        var destLon: Double? = null
         var allowUpfrontPrice = false
+
         init {
             driverId = mId
             tripNbr = mTripNbr
@@ -103,7 +110,7 @@ class NTSPimPacket {
             owedPrice = mOwedPrice
             pimPayAmt = mPimPayAmt
             vehLat = mVehLat
-            vehLng = mVehLng
+            vehLon= mVehLng
             allowUpfrontPrice = mAllowUpFrontPrice ?: false
         }
 
@@ -117,9 +124,15 @@ class NTSPimPacket {
             driverId = obj.optInt(JSON_DRIVER_ID)
             meterState = obj.optString(JSON_METER_STATE)
             vehLat = obj.optDouble(JSON_VEH_LAT)
-            vehLng = obj.optDouble(JSON_VEH_LNG)
+            vehLon = obj.optDouble(JSON_VEH_LNG)
             allowUpfrontPrice = obj.optBoolean(JSON_ALLOW_UPFRONT_PRICE)
-            LoggerHelper.writeToLog("Parsed packet from Json: tripId: $tripId, pimPayAmt: $pimPayAmt,tripNum: $tripNbr, pimNoReceipt: $pimNoReceipt, tripStatus: $tripStatus, owedPrice: $owedPrice, driverId: $driverId, meterState: $meterState, lat: $vehLat, lng: $vehLng, allowUpfrontPrice: $allowUpfrontPrice", LogEnums.BLUETOOTH.tag)
+            airPortFee = obj.optDouble(JSON_AIRPORT_FEE)
+            toll = obj.optDouble(JSON_TOLL_FEE)
+            discountAmt = obj.optDouble(JSON_DISCOUNT_AMT)
+            discountPercent = obj.optDouble(JSON_DISCOUNT_PERCENT)
+            destLat = obj.optDouble(JSON_DEST_LAT)
+            destLon = obj.optDouble(JSON_DEST_LON)
+            LoggerHelper.writeToLog("Parsed packet from Json: tripId: $tripId, pimPayAmt: $pimPayAmt,tripNum: $tripNbr, pimNoReceipt: $pimNoReceipt, tripStatus: $tripStatus, owedPrice: $owedPrice, driverId: $driverId, meterState: $meterState, lat: $vehLat, lng: $vehLon, allowUpfrontPrice: $allowUpfrontPrice", LogEnums.BLUETOOTH.tag)
 
             if(!tripId.isNullOrBlank() || !tripId.isNullOrEmpty()){
                 val thisForTheCurrentTrip = TripDetails.isThisForAnOldTrip(tripId!!)
@@ -154,7 +167,7 @@ class NTSPimPacket {
             if(meterState != null){
                 VehicleTripArrayHolder.addMeterState(meterState!!)
             }
-
+            VehicleTripArrayHolder.updateReceiptPaymentInfo(tripId!!, pimPayAmt, owedPrice, 0.0, 0.0, airPortFee, discountAmt, toll, discountPercent, destLat, destLon)
 
         }
 
@@ -186,6 +199,12 @@ class NTSPimPacket {
             private const val JSON_TRIP_STATUS = "tripStatus"
             private const val JSON_OWED_PRICE = "owedPrice"
             private const val JSON_PIM_PAY_AMT = "pimPayAmt"
+            private const val JSON_AIRPORT_FEE = "airportFee"
+            private const val JSON_TOLL_FEE = "toll"
+            private const val JSON_DISCOUNT_AMT = "discountAmt"
+            private const val JSON_DISCOUNT_PERCENT = "discountPercent"
+            private const val JSON_DEST_LAT = "destLat"
+            private const val JSON_DEST_LON = "destLon"
             private const val JSON_VEH_LAT = "vehLat"
             private const val JSON_VEH_LNG = "vehLon"
             private const val JSON_ALLOW_UPFRONT_PRICE = "allowUpfrontPrice"

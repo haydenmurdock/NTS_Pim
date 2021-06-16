@@ -396,8 +396,7 @@ class SquareService : OnLayoutChangeListener,
                     if(squareReaderState.contains("Establishing Secure Connection") ||
                         squareReaderState.contains("Connecting - Tap Here to Learn More")){
                         LoggerHelper.writeToLog("$tag, Reader checked via readerCheckTimer. Timer has finished. Reader is still establishing connection after 60 seconds. Reader Failed", LogEnums.SQUARE.tag)
-                        VehicleTripArrayHolder.updateReaderStatus(ReaderStatusEnum.FAILED.status)
-                        VehicleTripArrayHolder.needToReAuthorizeSquare()
+                        VehicleTripArrayHolder.updateReaderStatus(ReaderStatusEnum.CONNECTED.status)
                         removeSquareReaderView()
                     }
                     if(squareReaderState.contains("Press Button on Reader to Connect – Learn More")){

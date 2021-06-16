@@ -45,7 +45,6 @@ class LifeCycleCallBacks : Application.ActivityLifecycleCallbacks {
                 SquareService().enableTransactionMode(true)
                 SquareService().processActivityResume(activity)
             } else {
-                Log.i("Logger", "Closed square activity via on ActivityResumed since the welcome fragment was shown")
                 activity.finish()
             }
         }

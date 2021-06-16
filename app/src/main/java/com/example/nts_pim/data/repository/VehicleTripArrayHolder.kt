@@ -485,7 +485,9 @@ object VehicleTripArrayHolder {
 
     @JvmName("setReceiptPaymentInfo1")
     fun setReceiptPaymentInfo(info: ReceiptPaymentInfo){
+
        receiptPaymentInfo = info
+        LoggerHelper.writeToLog("set Receipt Payment hit.", LogEnums.RECEIPT.tag)
     }
 
     fun getReceiptPaymentInfo(tripId: String): ReceiptPaymentInfo? {
@@ -494,5 +496,49 @@ object VehicleTripArrayHolder {
         }
         return null
     }
-}
+
+    fun updateReceiptPaymentInfo(tripId: String, pimPayAmount: Double?, owedPrice: Double?, tipAmt: Double?, tipPercent: Double?, airPortFee: Double?, discountAmt: Double?, toll: Double?, discountPercent: Double?, destLat: Double?, destLon: Double?){
+        val receiptPaymentInfo = getReceiptPaymentInfo(tripId)
+        if(receiptPaymentInfo != null){
+            if(pimPayAmount != null){
+                receiptPaymentInfo.pimPayAmount = pimPayAmount
+            }
+            if(owedPrice != null){
+                receiptPaymentInfo.owedPrice = owedPrice
+            }
+            if(tipAmt != null){
+                receiptPaymentInfo.tipAmt = tipAmt
+            }
+            if(tipPercent != null){
+                receiptPaymentInfo.tipPercent = tipPercent
+            }
+            if(airPortFee != null){
+                receiptPaymentInfo.airPortFee = airPortFee
+            }
+            if(discountAmt != null){
+                receiptPaymentInfo.discountAmt = discountAmt
+            }
+            if(toll != null){
+                receiptPaymentInfo.toll = toll
+            }
+            if(discountPercent != null){
+                receiptPaymentInfo.discountPercent = discountPercent
+            }
+            if(destLat != null && destLat != receiptPaymentInfo.destLat){
+                receiptPaymentInfo.destLat = destLat
+            }
+            if(destLon != null && destLon != receiptPaymentInfo.destLon){
+                receiptPaymentInfo.destLon = destLon
+            }
+        }
+        if(receiptPaymentInfo == null && pimPayAmount
+            != null && owedPrice != null
+            && airPortFee != null && discountAmt != null
+            && toll != null && discountPercent != null &&
+            destLat != null && destLon != null){
+            setReceiptPaymentInfo(ReceiptPaymentInfo(tripId, pimPayAmount,owedPrice,0.0,0.0,airPortFee, discountAmt, toll, discountPercent,destLat, destLon))
+            }
+        }
+    }
+
 

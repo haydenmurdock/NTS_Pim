@@ -18,8 +18,21 @@ import java.util.concurrent.TimeUnit
 object DriverReceiptHelper {
     fun sendReceipt(tripId: String, paymentMethod: String, transactionId: String){
         val receiptPaymentInfo: ReceiptPaymentInfo? =
-            VehicleTripArrayHolder.getReceiptPaymentInfo(tripId) ?:
-            return LoggerHelper.writeToLog("ReceiptPaymentInfo object was null. Not sending receipt to receiptAPI for driver receipt", LogEnums.RECEIPT.tag)
+            VehicleTripArrayHolder.getReceiptPaymentInfo(tripId)
+        LoggerHelper.writeToLog("Sending to receipt API for driver receipt." +
+                " tripId: $tripId," +
+                " paymentMethod: ${paymentMethod.toLowerCase()}," +
+                " transactionId: $transactionId," +
+                " pimPayAmount: ${receiptPaymentInfo?.pimPayAmount}," +
+                " owedPrice: ${receiptPaymentInfo?.owedPrice}," +
+                " tipAmt: ${receiptPaymentInfo?.tipAmt}," +
+                " tipPercent: ${receiptPaymentInfo?.tipPercent}," +
+                " airportFee: ${receiptPaymentInfo?.airPortFee}, " +
+                " discountAmt: ${receiptPaymentInfo?.discountAmt}," +
+                " toll: ${receiptPaymentInfo?.toll}," +
+                " discountPercent: ${receiptPaymentInfo?.discountPercent}," +
+                " destLat: ${receiptPaymentInfo?.destLat}, " +
+                " destLon: ${receiptPaymentInfo?.destLon}", LogEnums.RECEIPT.tag)
         val client = OkHttpClient().newBuilder()
             .connectTimeout(60, TimeUnit.SECONDS)
             .writeTimeout(60, TimeUnit.SECONDS)
@@ -34,6 +47,8 @@ object DriverReceiptHelper {
             json.put("tripId",tripId)
             json.put("src", "pim")
             json.put("paymentId",transactionId)
+            json.put("custPhoneNbr", null)
+            json.put("custEmail", null)
             json.put("pimPayAmt", receiptPaymentInfo?.pimPayAmount)
             json.put("owedPrice", receiptPaymentInfo?.owedPrice)
             json.put("tipAmt", receiptPaymentInfo?.tipAmt)
@@ -50,8 +65,8 @@ object DriverReceiptHelper {
 
         val body = json.toString().toRequestBody(jSON)
         Log.i("URL","Json body :  $json")
-        //val url = URL("https://5s27urxc78.execute-api.us-east-2.amazonaws.com/prod/sendReceipt")
-        val url = URL("https://5s27urxc78.execute-api.us-east-2.amazonaws.com/test/sendReceipt")
+        val url = URL("https://5s27urxc78.execute-api.us-east-2.amazonaws.com/prod/sendReceipt")
+        //val url = URL("https://5s27urxc78.execute-api.us-east-2.amazonaws.com/test/sendReceipt")
 
         val request = Request.Builder()
             .url(url)
@@ -61,12 +76,12 @@ object DriverReceiptHelper {
             client.newCall(request).execute().use { response ->
                 Log.i("URL","response code : ${response.code} response message: ${response.message}")
                 if (response.isSuccessful){
-                    Log.i("Driver Receipt", "Sent Driver receipt successful.")
+                    LoggerHelper.writeToLog("Send driver receipt successful.", LogEnums.RECEIPT.tag)
                     TripDetails.isReceiptSent = true
                     TripDetails.receiptCode = response.code
                     TripDetails.receiptMessage = response.message
                 } else {
-                    Log.i("Driver Receipt", "Sent Driver receipt successful.")
+                    LoggerHelper.writeToLog("Send driver receipt unsuccessful. ${response.message}", LogEnums.RECEIPT.tag)
                     TripDetails.isReceiptSent = false
                     TripDetails.receiptCode = response.code
                     TripDetails.receiptMessage = response.message

@@ -695,11 +695,15 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
                 "card",
                 tripIdForPayment)
              }
+        VehicleTripArrayHolder.updateReceiptPaymentInfo(tripIdForPayment, null, null, tipAmountPassedToSquare, tipPercentPicked, null, null, null, null, null,null)
     }
 
     private fun updatePaymentDetail(transactionId: String, tripNumber: Int, vehicleId: String, awsAppSyncClient: AWSAppSyncClient, paymentType: String, tripId: String) = launch(Dispatchers.IO){
         LoggerHelper.writeToLog("$logFragment,  Updated Payment Detail Api. transaction id: $transactionId, trip number: $tripNumber, payment type, $paymentType, trip id: $tripId", LogEnums.PAYMENT.tag)
-        PIMMutationHelper.updatePaymentDetails(transactionId, tripNumber, vehicleId, awsAppSyncClient, paymentType, tripId)
+        launch(Dispatchers.IO) {
+            PIMMutationHelper.updatePaymentDetails(transactionId, tripNumber, vehicleId, awsAppSyncClient, paymentType, tripId)
+        }
+
     }
 
     private fun resetScreen() = launch(Dispatchers.Main.immediate){
@@ -736,41 +740,13 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
             }
         }
     }
-    private fun updateTransactionInfo(tipAmount: Double, cardInfo: String, tipPercent: Double, paidAmount: Double, transactionDate: String, transactionId: String, tripId: String) = launch(Dispatchers.IO) {
-    if(!paymentSentForSquare){
-        paymentSentForSquare = true
-       val vehicleIdForPayment = viewModel.getVehicleID()
-        LoggerHelper.writeToLog("pim payment builder structure. VehicleId: $vehicleIdForPayment, TripId: $tripId, tipAmt: $tipAmount, cardInfo: $cardInfo, tipPercent: $tipPercent, pimPaidAmt: $paidAmount, PimTransactionDate: $transactionDate, pimTransId: $transactionId, paymentType: card", LogEnums.PAYMENT.tag)
-        val pimPaymentInput = PimPaymentMadeInput.builder()
-            .vehicleId(vehicleIdForPayment)
-            .tripId(tripId)
-            .tipAmt(tipAmount)
-            .cardInfo(cardInfo)
-            .tipPercent(tipPercent)
-            .pimPaidAmt(paidAmount)
-            .pimTransDate(transactionDate)
-            .pimTransId(transactionId)
-            .paymentType("card")
-            .build()
-
-        mAWSAppSyncClient?.mutate(PimPaymentMadeMutation.builder().parameters(pimPaymentInput).build())
-            ?.enqueue(pimPaymentMadeCallback)
-        }
-    }
-
-    private val pimPaymentMadeCallback = object : GraphQLCall.Callback<PimPaymentMadeMutation.Data>() {
-        override fun onResponse(response: Response<PimPaymentMadeMutation.Data>) {
-            LoggerHelper.writeToLog("pim Payment Made", LogEnums.PAYMENT.tag)
-            if(!response.hasErrors()){
-                LoggerHelper.writeToLog("Pim Payment Made: No errors in response: response package: ${response.data()}", LogEnums.PAYMENT.tag)
+    private fun updateTransactionInfo(tipAmt: Double, cardInfo: String, tipPercent: Double, paidAmount: Double, transactionDate: String, transactionId: String, tripId: String){
+        if (!paymentSentForSquare) {
+            paymentSentForSquare = true
+            val vehicleIdForPayment = viewModel.getVehicleID()
+          launch(Dispatchers.IO)  {
+              PIMMutationHelper.pimPaymentSquareMutation(vehicleIdForPayment, tripId, tipAmt, cardInfo, tipPercent, paidAmount, transactionDate, transactionId)
             }
-            if(response.hasErrors()){
-                LoggerHelper.writeToLog("Pim Payment Made: There was an error in the response. ${response.errors()}}", LogEnums.PAYMENT.tag)
-            }
-        }
-
-        override fun onFailure(e: ApolloException) {
-           LoggerHelper.writeToLog("pimPaymentMade error. $e", LogEnums.PAYMENT.tag)
         }
     }
 
