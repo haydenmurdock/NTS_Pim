@@ -5,4 +5,156 @@
         android:id="@+id/linearLayout2"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="#303030"/>
+        android:background="@color/screenBackgroundColor">
+
+    <ScrollView
+            android:id="@+id/scrollView2"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent">
+
+        <LinearLayout
+                android:id="@+id/linearLayout12"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="vertical">
+
+            <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_marginTop="44dp"
+                    android:orientation="horizontal">
+
+                <ImageButton
+                        android:id="@+id/stepOneImageButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center_vertical"
+                        android:layout_marginStart="44dp"
+                        android:background="@null"
+                        android:src="@drawable/ic_plus_btn_white" />
+
+                <TextView
+                        android:id="@+id/stepOne_title_textView"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="32dp"
+                        android:text="Step 1: Connecting To AWS"
+                        android:textColor="@color/whiteTextColor"
+                        android:textSize="30sp" />
+
+                <ImageView
+                        android:id="@+id/step_one_status_imageView"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:layout_marginStart="117dp"
+                        android:visibility="invisible"
+                        app:srcCompat="@drawable/ic_checkmark_btn_green" />
+
+            </LinearLayout>
+
+            <ListView
+                    android:id="@+id/stepOneListView"
+                    android:layout_width="match_parent"
+                    android:layout_height="170dp"
+                    android:background="@color/enterDestinationBtnBackground"
+                    android:visibility="gone">
+
+            </ListView>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="horizontal">
+
+                <ImageButton
+                        android:id="@+id/stepTwoImageButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:layout_marginStart="44dp"
+                        android:background="@null"
+                        android:src="@drawable/ic_plus_btn_white" />
+
+            <TextView
+                    android:id="@+id/stepTwo_title_textView"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="32dp"
+                    android:text="Step 2: Checking Square Reader"
+                    android:textColor="@color/whiteTextColor"
+                    android:textSize="30sp" />
+
+                <ImageView
+                        android:id="@+id/step_two_status_ImageView"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:layout_marginStart="57dp"
+                        android:visibility="invisible"
+                        app:srcCompat="@drawable/ic_checkmark_btn_green" />
+
+        </LinearLayout>
+
+            <ListView
+                    android:id="@+id/stepTwoListView"
+                    android:layout_width="match_parent"
+                    android:layout_height="235dp"
+                    android:background="@color/enterDestinationBtnBackground"
+                    android:visibility="gone">
+
+            </ListView>
+        <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="horizontal">
+
+            <ImageButton
+                    android:id="@+id/stepThreeImageButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:layout_marginStart="44dp"
+                    android:background="@null"
+                    android:cropToPadding="false"
+                    android:src="@drawable/ic_plus_btn_white" />
+
+            <TextView
+                    android:id="@+id/stepThree_title_textView"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="32dp"
+                    android:text="Step 3: Connecting To Driver tablet"
+                    android:textColor="@color/whiteTextColor"
+                    android:textSize="30sp" />
+
+            <ImageView
+                    android:id="@+id/step_three_status_ImageView"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:layout_marginStart="20dp"
+                    android:adjustViewBounds="false"
+                    android:cropToPadding="false"
+                    android:visibility="invisible"
+                    app:srcCompat="@drawable/ic_checkmark_btn_green" />
+
+        </LinearLayout>
+
+            <ListView
+                    android:id="@+id/stepThreeListView"
+                    android:layout_width="match_parent"
+                    android:layout_height="170dp"
+                    android:background="@color/enterDestinationBtnBackground"
+                    android:visibility="gone">
+
+            </ListView>
+
+        </LinearLayout>
+    </ScrollView>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

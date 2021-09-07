@@ -5,6 +5,7 @@ import android.bluetooth.BluetoothSocket
 import android.os.Handler
 import android.util.Log
 import com.example.nts_pim.activity.MainActivity
+import com.example.nts_pim.data.repository.PIMSetupHolder
 import com.example.nts_pim.utilities.enums.LogEnums
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import java.io.IOException
@@ -43,32 +44,33 @@ class ConnectThread(device: BluetoothDevice, activity: MainActivity) : Thread() 
              LoggerHelper.writeToLog("Went to run connect thread but bluetooth is off in AWS", LogEnums.BLUETOOTH.tag)
              return
          }
-        try{
-            mmSocket?.connect()
-            if(mmSocket!!.isConnected){
-                BluetoothDataCenter.clearNumberOfAttempts()
-                LoggerHelper.writeToLog("Connected_Thread: Socket is connected", LogEnums.BLUETOOTH.tag)
-                BluetoothDataCenter.blueToothSocketIsConnected(mmSocket!!)
-            }
-            } catch (e: IOException){
-            LoggerHelper.writeToLog("Driver tablet bluetooth error: $e", LogEnums.BLUETOOTH.tag)
-            hasBeenInit = false
+         try{
+             mmSocket?.connect()
+             if(mmSocket!!.isConnected){
+                     BluetoothDataCenter.clearNumberOfAttempts()
+                     LoggerHelper.writeToLog("Connected_Thread: Socket is connected", LogEnums.BLUETOOTH.tag)
+                     PIMSetupHolder.foundDriverTablet()
+                     BluetoothDataCenter.blueToothSocketIsConnected(mmSocket!!)
+                 }
+             } catch (e: IOException){
+                 LoggerHelper.writeToLog("Driver tablet bluetooth error: $e", LogEnums.BLUETOOTH.tag)
+                 hasBeenInit = false
+             } finally {
+                 if(!mmSocket!!.isConnected) {
+                     BluetoothDataCenter.thereWasUnsuccessfulBTConnection()
+                     val numberOfAttempts = BluetoothDataCenter.howManyBTAttempts()
+                     if(BluetoothDataCenter.wasBluetoothPaired() && numberOfAttempts == 6){
+                         LoggerHelper.writeToLog("There has been 6 unsuccessful attempts (1:00 min) for socket  re-connection. Turning on AWS Connection", LogEnums.BLUETOOTH.tag)
+                         (mActivity as MainActivity).restartDriverTabletAWSConnection()
+                     }
+                     connectThreadHandler.postDelayed(Runnable {
+                         LoggerHelper.writeToLog("Trying to re-connect socket via connect thread handler", LogEnums.BLUETOOTH.tag)
+                         ConnectThread(mDevice, mActivity!!).start()
+                     }, 10000)
+                 }
+             }
+         }
 
-           } finally {
-                if(!mmSocket!!.isConnected) {
-                    BluetoothDataCenter.thereWasUnsuccessfulBTConnection()
-                    val numberOfAttempts = BluetoothDataCenter.howManyBTAttempts()
-                    if(BluetoothDataCenter.wasBluetoothPaired() && numberOfAttempts == 6){
-                        LoggerHelper.writeToLog("There has been 6 unsuccessful attempts (1:00 min) for socket  re-connection. Turning on AWS Connection", LogEnums.BLUETOOTH.tag)
-                        (mActivity as MainActivity).restartDriverTabletAWSConnection()
-                    }
-                    connectThreadHandler.postDelayed(Runnable {
-                        LoggerHelper.writeToLog("Trying to re-connect socket via connect thread handler", LogEnums.BLUETOOTH.tag)
-                        ConnectThread(mDevice, mActivity!!).start()
-                    }, 10000)
-                }
-           }
-        }
     fun cancel() {
         try {
             connectThreadHandler.removeCallbacksAndMessages(null)
@@ -186,10 +188,12 @@ class ACKThread(private var mmSocket: BluetoothSocket?, activity: MainActivity):
     internal fun write(bytes: ByteArray?) {
         try {
             mmOutStream?.write(bytes)
+            PIMSetupHolder.receivedTestPacket()
             mmOutStream?.flush()
         } catch (e: IOException) {
             LoggerHelper.writeToLog("ACK/NACK  was disconnected. $e", LogEnums.BLUETOOTH.tag)
         }
+
     }
 
   fun cancel() {

@@ -2,61 +2,81 @@ package com.example.nts_pim.utilities.Square_Service
 
 import android.app.Activity
 import android.app.Application
-import androidx.annotation.MainThread
+import android.content.Context
 import androidx.lifecycle.MutableLiveData
 import com.example.nts_pim.PimApplication
-import com.example.nts_pim.activity.MainActivity
+import com.example.nts_pim.data.repository.PIMSetupHolder
 import com.example.nts_pim.data.repository.model_objects.JsonAuthCode
+import com.example.nts_pim.data.repository.model_objects.square.MAC
+import com.example.nts_pim.data.repository.providers.ModelPreferences
 import com.example.nts_pim.utilities.enums.LogEnums
+import com.example.nts_pim.utilities.enums.SharedPrefEnum
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
+import com.example.nts_pim.utilities.view_helper.ViewHelper
 import com.google.gson.Gson
 import com.squareup.sdk.reader.ReaderSdk
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.IOException
 import java.lang.Error
+import java.time.LocalTime
+import java.util.*
 
 object SquareHelper {
     //variable to check if we have successfully init square reader sdk.
-    private var isReaderSdkInit = false
     val logTag = LogEnums.SQUARE.tag
     val application = PimApplication.instance
     var isSquareAuthorized = false
     var isSquareAuthorizedMLD: MutableLiveData<Boolean>? = null
 
-
-    private fun getSdkStatus() = isReaderSdkInit
-
-
-   fun getAuthStatus():Boolean {
-        isSquareAuthorized = ReaderSdk.authorizationManager().authorizationState.isAuthorized
-        isSquareAuthorizedMLD?.postValue(isSquareAuthorized)
-        return isSquareAuthorized
-    }
-
-    fun reauthorizeSquare(vehicleId: String?, mainActivity: Activity){
-        val readerStatus = getSdkStatus()
-        if(!readerStatus){
-            initReaderSdk(application)
-        }
-        if(vehicleId == null){
-            LoggerHelper.writeToLog("Can't re-auth square. No vehicle Id attached to pim", logTag)
-            return
-        }
-        if(ReaderSdk.authorizationManager().authorizationState.canDeauthorize()){
-            ReaderSdk.authorizationManager().deauthorize()
-            LoggerHelper.writeToLog("Reader was de-authorized", logTag)
-        }
-        if(vehicleId.isNotEmpty()){
-            LoggerHelper.writeToLog("$vehicleId: Trying to reauthorize", logTag)
-            getAuthorizationCode(vehicleId, mainActivity)
+    fun saveMAC(id: String, context: Context){
+        val lastMAC = getLastMAC(context)
+        val isExpired = lastMAC?.isMACExpired(LocalTime.now()) ?: true
+        LoggerHelper.writeToLog("Saving MAC. Checking to see if it's expired. Last MAC expired: $isExpired", "Square")
+        if(!isExpired){
+            val mac = MAC(id, LocalTime.now())
+            ModelPreferences(context).putObject(SharedPrefEnum.MAC.key, mac)
         }
     }
 
-    private fun getAuthorizationCode(vehicleId: String, mainActivity: Activity) {
-        val url = "https://i8xgdzdwk5.execute-api.us-east-2.amazonaws.com/prod/CheckOAuthToken?vehicleId=$vehicleId"
+    fun getLastMAC(context: Context):MAC? {
+        return ModelPreferences(context).getObject(SharedPrefEnum.MAC.key, MAC::class.java)
+    }
+
+     fun isMACExpired(context: Context):Boolean {
+     return getLastMAC(context)?.isMACExpired(LocalTime.now()) ?: true
+    }
+
+    fun authorizeSquare(vehicleId: String?, mainActivity: Activity){
+            if(ReaderSdk.authorizationManager().authorizationState.canDeauthorize()){
+                ReaderSdk.authorizationManager().deauthorize()
+                LoggerHelper.writeToLog("Reader was de-authorized", SquareHelper.logTag)
+            }
+            val isLastMACExpired = isMACExpired(mainActivity.applicationContext)
+            if(isLastMACExpired){
+                LoggerHelper.writeToLog("MAC was expired or didn't exist. Getting NEW MAC for authorization.", LogEnums.SQUARE.tag)
+                getMobileAuthCode(vehicleId!!, mainActivity)
+            } else {
+                val lastMACid = getLastMAC(mainActivity.applicationContext)?.getId() ?: ""
+                LoggerHelper.writeToLog("Last mac id was less than 1 hour old. Using OLD MAC for authorization. Id: $lastMACid", LogEnums.SQUARE.tag)
+                if(lastMACid != ""){
+                    mainActivity.runOnUiThread {
+                        ReaderSdk.authorizationManager().authorize(lastMACid)
+                    }
+                } else {
+                    LoggerHelper.writeToLog("Last mac id was less than 1 hour old, but MAC wasn't formatted correctly. Getting new MAC", LogEnums.SQUARE.tag)
+                    getMobileAuthCode(vehicleId!!, mainActivity)
+                }
+            }
+    }
+
+    private fun getMobileAuthCode(vehicleId: String, mainActivity: Activity) {
+        val dateTime = ViewHelper.formatDateUtcIso(Date())
+        val url = "https://i8xgdzdwk5.execute-api.us-east-2.amazonaws.com/prod/CheckOAuthToken?vehicleId=$vehicleId&source=PIM&eventTimeStamp=2021-08-26T$dateTime&extraInfo=TipScreen"
         val client = OkHttpClient()
         val request = Request.Builder()
             .url(url)
@@ -96,20 +116,8 @@ object SquareHelper {
        mainActivity.runOnUiThread {
            ReaderSdk.authorizationManager().authorize(authorizationCode)
        }
+        saveMAC(authorizationCode, mainActivity.applicationContext)
         isSquareAuthorized = true
         isSquareAuthorizedMLD?.postValue(isSquareAuthorized)
-    }
-
-    fun initReaderSdk(application: Application){
-        //This might not get logged due to the logging function not being setup at the time of call
-        isReaderSdkInit = try{
-            ReaderSdk.initialize(application)
-            LoggerHelper.writeToLog("Square's Reader SDK initialized", logTag)
-            true
-        } catch (e: Exception){
-            LoggerHelper.writeToLog("Issue initializing square. Error: $e", logTag)
-            false
-        }
-            LoggerHelper.writeToLog("Reader was init: $isReaderSdkInit", logTag)
     }
 }

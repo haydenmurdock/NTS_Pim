@@ -1,7 +1,7 @@
 package com.example.nts_pim.fragments_viewmodel.square_setup
 
 import android.annotation.SuppressLint
-import android.app.Activity
+import android.bluetooth.BluetoothAdapter
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
@@ -9,34 +9,35 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import android.widget.Toast
-import androidx.annotation.MainThread
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.NavController
 import androidx.navigation.Navigation
 import com.amazonaws.mobileconnectors.appsync.AWSAppSyncClient
 import com.example.nts_pim.R
-import com.example.nts_pim.activity.MainActivity
+import com.example.nts_pim.data.repository.PIMSetupHolder
 import com.example.nts_pim.data.repository.VehicleTripArrayHolder
 import com.example.nts_pim.data.repository.model_objects.JsonAuthCode
 import com.example.nts_pim.fragments_viewmodel.InjectorUtiles
 import com.example.nts_pim.fragments_viewmodel.base.ClientFactory
 import com.example.nts_pim.fragments_viewmodel.base.ScopedFragment
 import com.example.nts_pim.fragments_viewmodel.callback.CallBackViewModel
+import com.example.nts_pim.fragments_viewmodel.startup.adapter.StartupAdapter
 import com.example.nts_pim.fragments_viewmodel.vehicle_setup.VehicleSetupModelFactory
 import com.example.nts_pim.fragments_viewmodel.vehicle_setup.VehicleSetupViewModel
 import com.example.nts_pim.utilities.Square_Service.SquareHelper
 import com.example.nts_pim.utilities.enums.LogEnums
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import com.example.nts_pim.utilities.mutation_helper.PIMMutationHelper
+import com.example.nts_pim.utilities.view_helper.ViewHelper
 import com.google.gson.Gson
 import com.squareup.sdk.reader.ReaderSdk
 import com.squareup.sdk.reader.authorization.AuthorizeCallback
-import com.squareup.sdk.reader.authorization.DeauthorizeCallback
 import com.squareup.sdk.reader.core.CallbackReference
 import com.squareup.sdk.reader.core.Result
 import com.squareup.sdk.reader.core.ResultError
 import com.squareup.sdk.reader.hardware.ReaderSettingsErrorCode
+import kotlinx.android.synthetic.main.startup.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import okhttp3.Call
@@ -48,6 +49,9 @@ import org.kodein.di.android.x.closestKodein
 import org.kodein.di.generic.instance
 import java.io.IOException
 import java.lang.Error
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.util.*
 import kotlin.collections.ArrayList
 
 class SquareSetupFragment: ScopedFragment(), KodeinAware {
@@ -68,13 +72,12 @@ class SquareSetupFragment: ScopedFragment(), KodeinAware {
     private val currentFragmentId = R.id.bluetoothSetupFragment
     private var vehicleId: String? = null
     private var numberOfReaderFailedAttempts = 0
+    private var adapterOne: StartupAdapter? = null
+    private var adapterTwo: StartupAdapter? = null
+    private var adapterThree: StartupAdapter? = null
 
 
-    private val deauthorizeCallback = DeauthorizeCallback {
-        LoggerHelper.writeToLog("de-authcallback, {${it.error}}}", LogEnums.SQUARE.tag)
-    }
-
-    private val authCallback = AuthorizeCallback{authorized ->
+    private val authCallback = AuthorizeCallback{ authorized ->
         if(!authorized.isSuccess){
             LoggerHelper.writeToLog("auth callback, not successful. Error = ${authorized.error}", LogEnums.SQUARE.tag)
             if(view != null){
@@ -87,7 +90,7 @@ class SquareSetupFragment: ScopedFragment(), KodeinAware {
             }
             if (numberOfReaderFailedAttempts <= 2){
                 Log.i(logtag, "Reader was authorized $numberOfReaderFailedAttempts number of times. Starting square card reader check")
-                startSquareCardReaderCheck(this.requireActivity())
+                startSquareCardReaderCheck()
                 numberOfReaderFailedAttempts += 1
             } else {
                 PIMMutationHelper.updateReaderStatus(
@@ -104,7 +107,7 @@ class SquareSetupFragment: ScopedFragment(), KodeinAware {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
-        return inflater.inflate(R.layout.square_setup_screen, container, false)
+        return inflater.inflate(R.layout.startup, container, false)
     }
     @SuppressLint("MissingPermission")
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -123,53 +126,192 @@ class SquareSetupFragment: ScopedFragment(), KodeinAware {
         mArrayAdapter = ArrayAdapter(this.requireContext(), R.layout.dialog_select_bluetooth_device)
         navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment)
         getArgs()
-        startSquareCardReaderCheck(this.requireActivity())
-        val authStatus = SquareHelper.getAuthStatus()
-        LoggerHelper.writeToLog("auth complete at beginning of square setup: $authStatus", LogEnums.SQUARE.tag)
+        turnOnBluetooth()
+        initRecyclerViews()
+
+        stepOneImageButton.setOnClickListener {
+            openCloseStepOneListView()
+        }
+
+        stepTwoImageButton.setOnClickListener {
+            openCloseStepTwoListView()
+        }
+
+        stepThreeImageButton.setOnClickListener {
+            openCloseStepThreeListView()
+        }
         callBackViewModel.doWeNeedToReAuthorizeSquare().observe(this.viewLifecycleOwner, Observer {needsAuthorization->
             if(needsAuthorization){
-               startSquareCardReaderCheck(this.requireActivity())
+               reauthorizeSquare()
             }
         })
         callBackViewModel.isReaderConnected().observe(this.viewLifecycleOwner, Observer { connected ->
             if(connected){
+                if(VehicleTripArrayHolder.cardReaderStatus != "default") {
+                    PIMSetupHolder.foundReaderStatus(VehicleTripArrayHolder.cardReaderStatus)
+                }
                 LoggerHelper.writeToLog("Reader connected == true on Square setup fragment. Attempting to update AWS and going to bluetooth pairing", LogEnums.SQUARE.tag)
                 if(VehicleTripArrayHolder.cardReaderStatus != "default" || lastCheckStatus != VehicleTripArrayHolder.cardReaderStatus){
                     PIMMutationHelper.updateReaderStatus(
                         vehicleId!!,
                         VehicleTripArrayHolder.cardReaderStatus,
                         mAWSAppSyncClient!!)
-                } else {
-                   LoggerHelper.writeToLog("last reader check == $lastCheckStatus. Internal status of reader is ${VehicleTripArrayHolder.cardReaderStatus}. Did Not update AWS with reader status.", LogEnums.SQUARE.tag)
                 }
-                toBluetoothPairing()
             }
         })
-        SquareHelper.isSquareAuthorizedMLD?.observe(this.viewLifecycleOwner, Observer {authStatus ->
-            if(!authStatus){
-              SquareHelper.reauthorizeSquare(vehicleId, this.requireActivity())
-            }
-            if(authStatus){
-                startSquareCardReaderCheck(this.requireActivity())
-            }
 
+        PIMSetupHolder.isBluetoothON().observe(this.viewLifecycleOwner, Observer {
+            if(it){
+                updateAdapter(adapterTwo!!)
+                checkBluetoothAdapter()
+            }
+            if(!it){
+                updateAdapter(adapterTwo!!)
+            }
         })
+
+        PIMSetupHolder.isBluetoothAdapterReady().observe(this.viewLifecycleOwner, Observer { available ->
+            if(available){
+                updateAdapter(adapterTwo!!)
+                startSquareCardReaderCheck()
+            }
+            if(!available){
+                updateAdapter(adapterTwo!!)
+            }
+        })
+
+        PIMSetupHolder.isSquareInit().observe(this.viewLifecycleOwner, Observer { init ->
+            if(init){
+                updateAdapter(adapterTwo!!)
+            }
+        })
+
+        PIMSetupHolder.isAuthorizedWithSquare().observe(this.viewLifecycleOwner, Observer { authorized ->
+            if(authorized){
+                updateAdapter(adapterTwo!!)
+            } else {
+                updateAdapter(adapterTwo!!)
+            }
+        })
+        PIMSetupHolder.hasContactedReader().observe(this.viewLifecycleOwner, Observer {foundReader ->
+            if(foundReader){
+                updateAdapter(adapterTwo!!)
+            }
+        })
+        PIMSetupHolder.hasFoundReaderStatus().observe(this.viewLifecycleOwner, Observer { foundStatus ->
+            if(foundStatus){
+                updateAdapter(adapterTwo!!)
+            }
+        })
+        PIMSetupHolder.hasUpdatedAWSWithReaderStatus().observe(this.viewLifecycleOwner, Observer {updatedAWS ->
+            if(updatedAWS){
+                updateAdapter(adapterTwo!!)
+                 toBluetoothPairing()
+            }
+        })
+
+    }
+
+    private fun turnOnBluetooth(){
+        val mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
+        if (mBluetoothAdapter == null){
+            PIMSetupHolder.pimBluetoothIsOff()
+            return
+        }
+        if (!mBluetoothAdapter.isEnabled) {
+            mBluetoothAdapter.enable()
+            PIMSetupHolder.pimBluetoothIsOn()
+        } else {
+            LoggerHelper.writeToLog("bluetooth was on during start up", LogEnums.BLUETOOTH.tag)
+            PIMSetupHolder.pimBluetoothIsOn()
+        }
+    }
+    private fun openCloseStepOneListView(){
+        if(stepOneListView.visibility == View.VISIBLE) {
+            stepOneListView.visibility = View.GONE
+            stepOneImageButton.setImageResource(R.drawable.ic_plus_btn_white)
+            return
+        }
+
+        if(stepOneListView.visibility == View.GONE){
+            stepOneListView.visibility = View.VISIBLE
+            stepOneImageButton.setImageResource(R.drawable.ic_close_btn_white)
+        }
+    }
+
+    private fun openCloseStepTwoListView(){
+        if(stepTwoListView.visibility == View.VISIBLE) {
+            stepTwoListView.visibility = View.GONE
+            stepTwoImageButton.setImageResource(R.drawable.ic_plus_btn_white)
+            return
+        }
+
+        if(stepTwoListView.visibility == View.GONE){
+            stepTwoListView.visibility = View.VISIBLE
+            stepTwoImageButton.setImageResource(R.drawable.ic_close_btn_white)
+        }
+    }
+
+    private fun openCloseStepThreeListView(){
+        if(stepThreeListView.visibility == View.VISIBLE) {
+            stepThreeListView.visibility = View.GONE
+            stepThreeImageButton.setImageResource(R.drawable.ic_plus_btn_white)
+            return
+        }
+
+        if(stepThreeListView.visibility == View.GONE){
+            stepThreeListView.visibility = View.VISIBLE
+            stepThreeImageButton.setImageResource(R.drawable.ic_close_btn_white)
+        }
+    }
+
+    private fun updateAdapter(adapter: StartupAdapter){
+        adapter.notifyDataSetChanged()
+    }
+    private fun initRecyclerViews(){
+        makeStartupList()
+        if(stepOneListView != null) {
+            stepOneListView.adapter = adapterOne as StartupAdapter
+        }
+        if(stepTwoListView != null) {
+            stepTwoListView.adapter = adapterTwo as StartupAdapter
+        }
+        if(stepThreeListView != null){
+            stepThreeListView.adapter = adapterThree as StartupAdapter
+        }
+    }
+
+    private fun makeStartupList() {
+        stepOne_title_textView.text = "AWS: Connected"
+        step_one_status_imageView.visibility = View.VISIBLE
+
+        val stepOneList = PIMSetupHolder.getStepOneList()
+        val stepTwoList = PIMSetupHolder.getStepTwoList()
+        val stepThreeList = PIMSetupHolder.getStepThreeList()
+        adapterOne = StartupAdapter(requireContext(), stepOneList)
+        adapterTwo = StartupAdapter(requireContext(), stepTwoList)
+        adapterThree = StartupAdapter(requireContext(), stepThreeList)
     }
     private fun getArgs(){
         lastCheckStatus = arguments?.getString("lastCheckedStatus")
     }
     private fun setUpSquareAuthCallbacks(){
         readerSdk.addAuthorizeCallback(authCallback)
-        readerSdk.addDeauthorizeCallback(deauthorizeCallback)
     }
-    private fun startSquareCardReaderCheck(mainActivity: Activity){
-       val isReaderSDKAuthorized = ReaderSdk.authorizationManager().authorizationState.isAuthorized
-        if(!isReaderSDKAuthorized){
-            LoggerHelper.writeToLog("Reader SDK wasn't authorized at time of square card reader check. Reauthorizing. ", LogEnums.SQUARE.tag)
-            SquareHelper.reauthorizeSquare(vehicleId, mainActivity)
+    private fun startSquareCardReaderCheck(){
+       val doesMACExist = ReaderSdk.authorizationManager().authorizationState.isAuthorized
+        /**
+         * 8/24/21 After talking with Freeland @ SQUARE, this isAuthorized means the MAC exists or not in the readerSDK.
+         * It does not mean that the Tablet is actually authorized to take payments!
+         */
+        if(!doesMACExist){
+            LoggerHelper.writeToLog("Reader SDK did not MAC at time of starting square reader check. Getting MAC ", LogEnums.SQUARE.tag)
+            PIMSetupHolder.notAuthorized()
+            reauthorizeSquare()
         } else {
-            LoggerHelper.writeToLog("Reader SDK authorized at time of square card reader check. Starting reader check", LogEnums.SQUARE.tag)
+            LoggerHelper.writeToLog("Reader SDK has a MAC. Starting Chip Reader status check", LogEnums.SQUARE.tag)
             ReaderSdk.readerManager().startReaderSettingsActivity(requireContext())
+            PIMSetupHolder.isAuthorized()
         }
 
     }
@@ -188,22 +330,107 @@ class SquareSetupFragment: ScopedFragment(), KodeinAware {
                         "SDK not authorized, trying to reauthorized square", Toast.LENGTH_LONG
                     ).show()
                     LoggerHelper.writeToLog("SDK not authorized, trying to reauthorized square", LogEnums.SQUARE.tag)
-                    SquareHelper.reauthorizeSquare(vehicleId, this.requireActivity())
+                    PIMSetupHolder.notAuthorized()
+                    reauthorizeSquare()
                 }
                 ReaderSettingsErrorCode.USAGE_ERROR -> {
-                    Toast.makeText(
-                        requireContext(),
-                        "Usage Error: ${error.message}", Toast.LENGTH_LONG
-                    ).show()
-                    LoggerHelper.writeToLog("usage error: ${error.debugCode}, trying to reauthorized square", LogEnums.SQUARE.tag)
-                    SquareHelper.reauthorizeSquare(vehicleId, this.requireActivity())
+                    LoggerHelper.writeToLog("usage error: ${error.debugCode}", LogEnums.SQUARE.tag)
+                    readerSettingsCallbackRef?.clear()
                 }
             }
+        }
+    }
+    private fun reauthorizeSquare(){
+        if(ReaderSdk.authorizationManager().authorizationState.canDeauthorize()){
+            ReaderSdk.authorizationManager().deauthorize()
+            LoggerHelper.writeToLog("Reader was de-authorized", SquareHelper.logTag)
+        }
+        val isLastMACExpired = SquareHelper.isMACExpired(requireContext())
+            if(isLastMACExpired){
+                LoggerHelper.writeToLog("MAC was expired or didn't exist. Getting NEW MAC for authorization.", LogEnums.SQUARE.tag)
+                getMobileAuthorizationCode()
+            } else {
+                val lastMACid = SquareHelper.getLastMAC(requireContext())?.getId() ?: ""
+                LoggerHelper.writeToLog("Last mac id was less than 1 hour old. Using OLD MAC for authorization. Id: $lastMACid", LogEnums.SQUARE.tag)
+                if(lastMACid != ""){
+                    launch(Dispatchers.Main.immediate){
+                        ReaderSdk.authorizationManager().authorize(lastMACid)
+                    }
+                } else {
+                    LoggerHelper.writeToLog("Last mac id was less than 1 hour old, but MAC wasn't formatted correctly. Getting new MAC", LogEnums.SQUARE.tag)
+                    getMobileAuthorizationCode()
+                }
+            }
+    }
+
+
+    private fun getMobileAuthorizationCode() {
+        val dateTime = ViewHelper.formatDateUtcIso(Date())
+        val url = "https://i8xgdzdwk5.execute-api.us-east-2.amazonaws.com/prod/CheckOAuthToken?vehicleId=$vehicleId&source=PIM&eventTimeStamp=2021-08-26T$dateTime&extraInfo=squareSetup"
+        LoggerHelper.writeToLog("Sending MAC request to: $url", LogEnums.SQUARE.tag)
+        val client = OkHttpClient()
+        val request = Request.Builder()
+            .url(url)
+            .build()
+        try {
+            client.newCall(request).enqueue(object : Callback {
+                override fun onResponse(call: Call, response: okhttp3.Response) {
+                    if (response.code == 200) {
+                        val gson = Gson()
+                        val convertedObject =
+                            gson.fromJson(response.body?.string(), JsonAuthCode::class.java)
+                        val authCode = convertedObject.authCode
+                        LoggerHelper.writeToLog("Successfully got MAC from Square_OAuth Lambda. MAC: $authCode",
+                            SquareHelper.logTag
+                        )
+                        onAuthorizationCodeRetrieved(authCode)
+                    }
+                    if(response.code == 404) {
+                        LoggerHelper.writeToLog("Vehicle not found in fleet. Error Code: ${response.code}",
+                            SquareHelper.logTag
+                        )
+                    }
+                    if (response.code == 401) {
+                        LoggerHelper.writeToLog("Need to authorize fleet with log In. Error Code: ${response.code}",
+                            SquareHelper.logTag
+                        )
+                    }
+                    if(response.code == 500){
+                        LoggerHelper.writeToLog("Error code 500: error message: ${response.message}",
+                            SquareHelper.logTag
+                        )
+                    }
+                }
+                override fun onFailure(call: Call, e: IOException) {
+                    LoggerHelper.writeToLog("Failure getting auth code", SquareHelper.logTag)
+                }
+            })
+        } catch (e: Error) {
+            LoggerHelper.writeToLog("Error requesting auth code from aws. Error: $e", LogEnums.SQUARE.tag)
+        }
+    }
+
+    private fun onAuthorizationCodeRetrieved(authorizationCode: String)  {
+        LoggerHelper.writeToLog("Authorizing SQUARE on the MainThread", LogEnums.SQUARE.tag)
+        launch(Dispatchers.Main.immediate){
+            ReaderSdk.authorizationManager().authorize(authorizationCode)
+        }
+        SquareHelper.saveMAC(authorizationCode, this.requireContext())
+        PIMSetupHolder.isAuthorized()
+        startSquareCardReaderCheck()
+    }
+
+    private fun checkBluetoothAdapter(){
+        if(BluetoothAdapter.getDefaultAdapter().state == BluetoothAdapter.STATE_ON){
+            PIMSetupHolder.blueToothAdapterIsReady()
+        } else {
+            PIMSetupHolder.blueToothAdapterNotReady()
         }
     }
     //Navigation
     private fun toBluetoothPairing(){
         if (navController?.currentDestination?.id == currentFragmentId) {
+            readerSettingsCallbackRef?.clear()
             LoggerHelper.writeToLog("Going to bluetoothPairing Fragment", LogEnums.LIFE_CYCLE.tag)
             navController?.navigate(R.id.action_bluetoothSetupFragment_to_blueToothPairingFragment)
         }
@@ -218,13 +445,8 @@ class SquareSetupFragment: ScopedFragment(), KodeinAware {
                 }
             })
         }
-    }
 
-    override fun onStop() {
-        if(view != null){
-          //  readerSettingsCallbackRef?.clear()
-        }
-        super.onStop()
+        updateAdapter(adapterTwo!!)
     }
 
     override fun onDestroyView() {

@@ -118,6 +118,7 @@ object BluetoothDataCenter {
     internal fun blueToothSocketIsDisconnected(){
         blueToothSocket = null
         blueToothSocketAccepted = false
+        LoggerHelper.writeToLog("bluetooth socket disconnected Bluetooth Data center", LogEnums.BLUETOOTH.tag)
         bluetoothSocketAcceptedMLD.postValue(blueToothSocketAccepted)
     }
 
@@ -132,6 +133,13 @@ object BluetoothDataCenter {
         connectedToDriverTablet = false
         connectedToDriverTabletMLD.postValue(connectedToDriverTablet)
     }
+
+    internal fun disconnectFromDriverTablet(){
+        btDriverTabletAddress = ""
+        driverTabletFound = false
+        driverTabletFoundMLD.postValue(driverTabletFound)
+    }
+
 
     internal fun isConnectedToDriverTablet():LiveData<Boolean> = connectedToDriverTabletMLD
 }

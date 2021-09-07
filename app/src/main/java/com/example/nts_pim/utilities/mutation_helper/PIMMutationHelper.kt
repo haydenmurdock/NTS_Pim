@@ -2,7 +2,6 @@ package com.example.nts_pim.utilities.mutation_helper
 
 import android.annotation.SuppressLint
 import android.util.Log
-import android.widget.Toast
 import com.amazonaws.amplify.generated.graphql.*
 import com.amazonaws.mobileconnectors.appsync.AWSAppSyncClient
 import com.amazonaws.mobileconnectors.appsync.fetcher.AppSyncResponseFetchers
@@ -11,6 +10,7 @@ import com.apollographql.apollo.api.Response
 import com.apollographql.apollo.exception.ApolloException
 import com.example.nts_pim.PimApplication
 import com.example.nts_pim.data.repository.AdInfoHolder
+import com.example.nts_pim.data.repository.PIMSetupHolder
 import com.example.nts_pim.data.repository.VehicleTripArrayHolder
 import com.example.nts_pim.data.repository.model_objects.DeviceID
 import com.example.nts_pim.data.repository.model_objects.PimError
@@ -21,7 +21,6 @@ import com.example.nts_pim.utilities.enums.LogEnums
 import com.example.nts_pim.utilities.enums.SharedPrefEnum
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import type.*
-import java.lang.StringBuilder
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -59,10 +58,12 @@ object PIMMutationHelper {
         object : GraphQLCall.Callback<UpdateVehTripStatusMutation.Data>() {
             override fun onResponse(response: Response<UpdateVehTripStatusMutation.Data>) {
                 Log.i("Results", "PIM Status Updated ${response.data()}")
+
             }
 
             override fun onFailure(e: ApolloException) {
                 Log.e("Error", "There was an issue updating the pimStatus: $e")
+
             }
         }
 
@@ -90,10 +91,17 @@ object PIMMutationHelper {
         object : GraphQLCall.Callback<UpdateVehTripStatusMutation.Data>() {
             override fun onResponse(response: Response<UpdateVehTripStatusMutation.Data>) {
                 Log.i("Results", "ReaderStatus Updated ${response.data()}")
+                if(response.data()?.updateVehTripStatus()?.error() == null){
+                    PIMSetupHolder.updatedAWSWithReaderStatus()
+                }
+                if(response.data()?.updateVehTripStatus()?.error() != null){
+                    PIMSetupHolder.didNotUpdateAWSWithReaderStatus(response.data()?.updateVehTripStatus()?.error())
+                }
             }
 
             override fun onFailure(e: ApolloException) {
                 Log.e("Error", "There was an issue updating the pimStatus: $e")
+                PIMSetupHolder.didNotUpdateAWSWithReaderStatus("Issue updating reader status. onFailure ${e.message}")
             }
         }
 
@@ -199,10 +207,13 @@ object PIMMutationHelper {
         tripId: String
     ) {
         LoggerHelper.writeToLog("Pim Mutation Helper: updatePaymentDetails: TransactionId: $transactionId, tripNumber: $tripNumber, vehicleId: $vehicleId, paymentMethod: $paymentMethod, tripID: $tripId", LogEnums.BLUETOOTH.tag)
-        val updatePaymentInput =
+        val updatePaymentInput = if(paymentMethod == "CASH" || paymentMethod == "cash"){
             SavePaymentDetailsInput.builder().paymentId(transactionId).tripNbr(tripNumber)
-                .vehicleId(vehicleId).paymentMethod(paymentMethod).tripId(tripId).build()
-
+                .vehicleId(vehicleId).paymentMethod(paymentMethod).paymentSource(null).tripId(tripId).build()
+        } else {
+            SavePaymentDetailsInput.builder().paymentId(transactionId).tripNbr(tripNumber)
+                .vehicleId(vehicleId).paymentMethod(paymentMethod).paymentSource("PIM").tripId(tripId).build()
+        }
         appSyncClient.mutate(
             SavePaymentDetailsMutation.builder().parameters(updatePaymentInput).build()
         ).enqueue(
@@ -411,33 +422,5 @@ object PIMMutationHelper {
         override fun onFailure(e: ApolloException) {
 
         }
-    }
-    private fun getVehicleId(message: String?): String {
-        // "E.g. message: Phone Number is already registered to a different device (ccsi_A_1 Driver Tablet)"
-        // We use this to find previous vehicle to unpair for duplicate phone number error.
-        // Find the start/End index of vehicle id, and append to previous vehicleId String.
-        var startIndex: Int? = null
-        var endIndex: Int? = null
-        var previousVehicleId = ""
-        if(message != null){
-            for ((index,char)  in message.withIndex()) {
-                if (char.toString() == "("){
-                    startIndex = index + 1
-                }
-                if(char.toString() == "D"){
-                    endIndex = index - 2
-                }
-            }
-            for((index, char) in message.withIndex()){
-                if(startIndex != null && endIndex != null){
-                    if (index >= startIndex && index <= endIndex) {
-                        var sb = StringBuilder(previousVehicleId)
-                        sb.insert(0, char)
-                        previousVehicleId = sb.toString()
-                    }
-                }
-            }
-        }
-        return previousVehicleId.reversed()
     }
 }

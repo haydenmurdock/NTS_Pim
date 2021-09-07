@@ -37,12 +37,14 @@ import com.apollographql.apollo.api.Response
 import com.apollographql.apollo.exception.ApolloException
 import com.example.nts_pim.BuildConfig
 import com.example.nts_pim.R
+import com.example.nts_pim.activity.MainActivity
 import com.example.nts_pim.data.repository.model_objects.*
 import com.example.nts_pim.data.repository.providers.ModelPreferences
 import com.example.nts_pim.fragments_viewmodel.InjectorUtiles
 import com.example.nts_pim.fragments_viewmodel.base.ClientFactory
 import com.example.nts_pim.fragments_viewmodel.base.ScopedFragment
 import com.example.nts_pim.fragments_viewmodel.vehicle_settings.setting_keyboard_viewModels.SettingsKeyboardViewModel
+import com.example.nts_pim.utilities.Square_Service.SquareHelper
 import com.example.nts_pim.utilities.device_id_check.DeviceIdCheck
 import com.example.nts_pim.utilities.dialog_composer.PIMDialogComposer
 import com.example.nts_pim.utilities.enums.LogEnums
@@ -155,7 +157,7 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
             } else {
                 checkDeviceID(view, adapter as MyCustomAdapter, this.requireActivity())
                 showUIForSavedVehicleID()
-                checkAuthorization(vehicleID, authManager)
+                checkAuthorization(vehicleID, requireActivity().parent as MainActivity)
             }
 
         viewModel.isThereAuthCode().observe(this.viewLifecycleOwner, Observer {
@@ -189,12 +191,13 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
             if(authorized) {
                 setUpComplete()
                 SoundHelper.turnOnSound(requireContext())
+                readerSettingsCallbackRef?.clear()
                 toCheckVehicleInfo()
             } else {
                 setup_detail_text_view.isVisible = false
                 setup_complete_btn.isVisible = false
                 auth_progressBar.animate()
-                checkAuthorization(vehicleID, authManager)
+                checkAuthorization(vehicleID, requireActivity().parent as MainActivity)
             }
         }
     }
@@ -308,7 +311,6 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
                     vehicleID = callBackVehicleID
                     val telephonyManager = context?.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
                     val phoneNumber = telephonyManager.line1Number
-                    //val testNumber = "0000000008"
                     updatePimSettings(blueToothAddress,appVersion,phoneNumber,mAWSAppSyncClient!!, deviceId)
                     createPin(pin, adapter)
                 }
@@ -367,7 +369,7 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
                     val telephonyManager = context?.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
                     val phoneNumber = telephonyManager.line1Number
                     updatePimSettings(blueToothAddress,appVersion,phoneNumber,mAWSAppSyncClient!!, deviceId)
-                    checkAuthorization(vehicleID, authManager)
+                    checkAuthorization(vehicleID, requireActivity().parent as MainActivity)
                     if(checkedAndroidId){
                         updateDeviceId(deviceId,vehicleID)
                     }
@@ -414,7 +416,7 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
         launch(Dispatchers.Main.immediate) {
             viewModel.vehicleIDExists()
             showUIForSavedVehicleID()
-            checkAuthorization(vehicleId, authManager)
+            checkAuthorization(vehicleId, requireActivity().parent as MainActivity)
         }
 
         Log.i(
@@ -422,16 +424,26 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
             "Vehicle ID: ${vehicleID.vehicleID} saved to System Preferences"
         )
     }
-    private fun checkAuthorization(vehicleID: String, authManager: AuthorizationManager)
-            = launch(Dispatchers.IO) {
-        if (authManager.authorizationState.isAuthorized) {
-            launch(Dispatchers.Main.immediate) {
-                viewModel.squareIsAuthorized()
-                showAuthorizationToast()
-            }
+    private fun checkAuthorization(vehicleId: String, mainActivity: MainActivity) = launch(Dispatchers.IO) {
+        if(ReaderSdk.authorizationManager().authorizationState.canDeauthorize()){
+            ReaderSdk.authorizationManager().deauthorize()
+            LoggerHelper.writeToLog("Reader was de-authorized", SquareHelper.logTag)
+        }
+        val isLastMACExpired = SquareHelper.isMACExpired(requireActivity().applicationContext)
+        if(isLastMACExpired){
+            LoggerHelper.writeToLog("MAC was expired or didn't exist. Getting NEW MAC for authorization.", LogEnums.SQUARE.tag)
+           getMobileAuthCode(vehicleId)
         } else {
-            launch {
-                getAuthorizationCode(vehicleID)
+            val lastMACid = SquareHelper.getLastMAC(requireActivity().applicationContext)?.getId() ?: ""
+            LoggerHelper.writeToLog("Last mac id was less than 1 hour old. Using OLD MAC for authorization. Id: $lastMACid", LogEnums.SQUARE.tag)
+            if(lastMACid != ""){
+               mainActivity.runOnUiThread {
+                    ReaderSdk.authorizationManager().authorize(lastMACid)
+                    viewModel.squareIsAuthorized()
+                }
+            } else {
+                LoggerHelper.writeToLog("Last mac id was less than 1 hour old, but MAC wasn't formatted correctly. Getting new MAC", LogEnums.SQUARE.tag)
+               getMobileAuthCode(vehicleId)
             }
         }
     }
@@ -441,6 +453,7 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
     private fun onAuthorizationCodeRetrieved(authorizationCode: String)
             = launch {
         ReaderSdk.authorizationManager().authorize(authorizationCode)
+        SquareHelper.saveMAC(authorizationCode, activity!!.applicationContext)
     }
     //onResults
     private fun onAuthorizeResult(result: Result<Location, ResultError<AuthorizeErrorCode>>) {
@@ -474,14 +487,16 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
                     showErrorToastUsageReader(error)
             }
         }
+
         if(result.isSuccess){
             if(setup_complete_btn != null){
                 checkIfBlueToothReaderIsConnected()
             }
         }
     }
-    private fun getAuthorizationCode(vehicleID: String) {
-        val url = "https://i8xgdzdwk5.execute-api.us-east-2.amazonaws.com/prod/CheckOAuthToken?vehicleId=$vehicleID"
+    private fun getMobileAuthCode(vehicleId: String) {
+        val dateTime = ViewHelper.formatDateUtcIso(Date())
+        val url = "https://i8xgdzdwk5.execute-api.us-east-2.amazonaws.com/prod/CheckOAuthToken?vehicleId=$vehicleId&source=PIM&eventTimeStamp=2021-08-26T$dateTime&extraInfo=PairingSetup"
         val client = OkHttpClient()
         val request = Request.Builder()
             .url(url)
@@ -516,7 +531,7 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
                             ).show()
                         }
                         launch {
-                            goToAuthWebView(vehicleID)
+                            goToAuthWebView(vehicleId)
                         }
                     }
                 }

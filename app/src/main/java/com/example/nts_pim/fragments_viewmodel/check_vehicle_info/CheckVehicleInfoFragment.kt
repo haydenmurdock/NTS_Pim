@@ -17,12 +17,15 @@ import com.apollographql.apollo.GraphQLCall
 import com.apollographql.apollo.api.Response
 import com.apollographql.apollo.exception.ApolloException
 import com.example.nts_pim.R
+import com.example.nts_pim.data.repository.PIMSetupHolder
 import com.example.nts_pim.data.repository.model_objects.VehicleSettings
 import com.example.nts_pim.data.repository.providers.ModelPreferences
 import com.example.nts_pim.fragments_viewmodel.InjectorUtiles
 import com.example.nts_pim.fragments_viewmodel.base.ClientFactory
 import com.example.nts_pim.fragments_viewmodel.base.ScopedFragment
 import com.example.nts_pim.fragments_viewmodel.callback.CallBackViewModel
+import com.example.nts_pim.fragments_viewmodel.welcome.WelcomeViewModel
+import com.example.nts_pim.fragments_viewmodel.welcome.WelcomeViewModelFactory
 import com.example.nts_pim.utilities.bluetooth_helper.BluetoothDataCenter
 import com.example.nts_pim.utilities.enums.SharedPrefEnum
 import com.github.ybq.android.spinkit.style.ThreeBounce
@@ -37,7 +40,9 @@ class CheckVehicleInfoFragment: ScopedFragment(), KodeinAware {
 
     override val kodein by closestKodein()
     private val viewModelFactory: CheckVehicleInfoModelFactory by instance<CheckVehicleInfoModelFactory>()
+    private val welcomeViewModelFactory: WelcomeViewModelFactory by instance<WelcomeViewModelFactory>()
     private lateinit var viewModel: CheckVehicleInfoViewModel
+    private lateinit var welcomeViewModel: WelcomeViewModel
     private lateinit var callBackViewModel: CallBackViewModel
     private var mAWSAppSyncClient: AWSAppSyncClient? = null
     private var mArrayAdapter: ArrayAdapter<String>? = null
@@ -57,6 +62,8 @@ class CheckVehicleInfoFragment: ScopedFragment(), KodeinAware {
         super.onViewCreated(view, savedInstanceState)
         viewModel = ViewModelProvider(this, viewModelFactory)
             .get(CheckVehicleInfoViewModel::class.java)
+        welcomeViewModel = ViewModelProvider(this, welcomeViewModelFactory)
+            .get(WelcomeViewModel::class.java)
         mAWSAppSyncClient = ClientFactory.getInstance(context)
         val callBackFactory = InjectorUtiles.provideCallBackModelFactory()
         callBackViewModel = ViewModelProvider(this, callBackFactory)
@@ -75,8 +82,10 @@ class CheckVehicleInfoFragment: ScopedFragment(), KodeinAware {
             if(companyNameExists){
                 saveVehicleSettings()
 //                activity?.recreate()
+                welcomeViewModel.isSetupComplete()
+                PIMSetupHolder.subscribedToAWS()
                 val navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment)
-                navController.navigate(R.id.action_checkVehicleInfoFragment_to_blueToothPairingFragment)
+                navController.navigate(R.id.action_checkVehicleInfoFragment_to_startupFragment)
             }
         })
     }

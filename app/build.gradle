@@ -20,8 +20,8 @@ android {
         applicationId "com.example.nts_pim"
         minSdkVersion 26
         targetSdkVersion 29
-        versionCode 11220
-        versionName "1.122"
+        versionCode 11330
+        versionName "1.33"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         multiDexEnabled true
         signingConfig signingConfigs.debug
@@ -72,7 +72,7 @@ androidExtensions {
 }
 
 dependencies {
-    def readerSdkVersion = "1.4.1"
+    def readerSdkVersion = "1.4.4"
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
     implementation 'androidx.appcompat:appcompat:1.2.0'
@@ -127,9 +127,6 @@ dependencies {
     implementation "org.kodein.di:kodein-di-generic-jvm:$kodein_version"
     implementation "org.kodein.di:kodein-di-framework-android-x:$kodein_version"
 
-    //Better date-time support even on older Android versions
-   // implementation 'com.jakewharton.threetenabp:threetenabp:1.2.4'
-
     //okhttp
     implementation('com.squareup.okhttp3:okhttp:4.8.1')
 
@@ -151,4 +148,5 @@ dependencies {
     implementation files('libs/mail.jar')
     implementation files('libs/activation.jar')
     implementation files('libs/additionnal.jar')
+
 }

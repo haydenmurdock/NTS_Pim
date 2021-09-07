@@ -167,7 +167,9 @@ class NTSPimPacket {
             if(meterState != null){
                 VehicleTripArrayHolder.addMeterState(meterState!!)
             }
-            VehicleTripArrayHolder.updateReceiptPaymentInfo(tripId!!, pimPayAmt, owedPrice, 0.0, 0.0, airPortFee, discountAmt, toll, discountPercent, destLat, destLon)
+
+
+            VehicleTripArrayHolder.updateReceiptPaymentInfo(tripId!!, pimPayAmt, owedPrice, null, null, airPortFee, discountAmt, toll, discountPercent, destLat, destLon)
 
         }
 

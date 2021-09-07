@@ -69,10 +69,10 @@ object SmsHelper {
                 json.put("owedPrice", receiptPaymentInfo?.owedPrice)
                 json.put("tipAmt", receiptPaymentInfo?.tipAmt)
                 json.put("tipPercent", receiptPaymentInfo?.tipPercent)
-                json.put("airPortFee", receiptPaymentInfo?.airPortFee)
+                json.put("airportFee", receiptPaymentInfo?.airPortFee)
                 json.put("discountAmt", receiptPaymentInfo?.discountAmt)
                 json.put("toll", receiptPaymentInfo?.toll)
-                json.put("discountPercent", receiptPaymentInfo?.discountAmt)
+                json.put("discountPercent", receiptPaymentInfo?.discountPercent)
                 json.put("destLat", receiptPaymentInfo?.destLat)
                 json.put("destLon", receiptPaymentInfo?.destLon)
             } catch (e: JSONException){

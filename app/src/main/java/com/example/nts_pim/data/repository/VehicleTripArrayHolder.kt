@@ -106,8 +106,6 @@ object VehicleTripArrayHolder {
     private var allowUpfrontPrice: Boolean = true
     private var checkForDriverRejectionMLD = MutableLiveData<Boolean>()
 
-
-
     var flaggedTestVehicles: MutableList<String> = mutableListOf("ccsi_U_1496", "ccsi_Y_6801")
 
 

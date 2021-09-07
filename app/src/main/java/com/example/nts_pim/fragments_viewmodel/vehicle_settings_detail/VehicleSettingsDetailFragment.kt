@@ -41,6 +41,7 @@ import com.apollographql.apollo.exception.ApolloException
 import com.example.nts_pim.receivers.BatteryPowerReceiver
 import com.example.nts_pim.BuildConfig
 import com.example.nts_pim.activity.MainActivity
+import com.example.nts_pim.data.repository.PIMSetupHolder
 import com.example.nts_pim.data.repository.VehicleTripArrayHolder
 import com.example.nts_pim.data.repository.model_objects.*
 import com.example.nts_pim.data.repository.providers.ModelPreferences
@@ -289,8 +290,13 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
             BluetoothDataCenter.turnOffBlueTooth()
             BluetoothDataCenter.blueToothSocketIsDisconnected()
             BluetoothDataCenter.disconnectedToDriverTablet()
+            PIMSetupHolder.clearStartupList()
+            VehicleTripArrayHolder.cardReaderStatusHasBeenChecked = false
+            (activity as MainActivity).clearVehicleOfAWSTripSubscription()
+            (activity as MainActivity).closeBluetoothThreads()
+            BluetoothDataCenter.disconnectFromDriverTablet()
+
             Log.i("Vehicle Settings", "unpair successful, restarting Pim")
-           // activity?.recreate()
             toStartUp()
         } else {
             Log.i("Vehicle Settings",

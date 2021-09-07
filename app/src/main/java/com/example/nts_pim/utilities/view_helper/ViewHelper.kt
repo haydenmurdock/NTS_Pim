@@ -69,8 +69,8 @@ object ViewHelper {
 
     fun formatDateUtcIso(date: Date?): String {
         if (date == null) return ""
-        val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ", Locale.US)
-        sdf.setTimeZone(TimeZone.getTimeZone("UTC"))
+        val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS", Locale.US)
+        sdf.timeZone = TimeZone.getTimeZone("UTC")
         val formattedDateString = sdf.format(date)
         val fS = formattedDateString.removeSuffix("+0000")
         return fS.plus("Z")

@@ -92,16 +92,7 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
     private var isDriverSignedIn = false
     private val logFragment = "Welcome_Screen"
 
-    private val batteryCheckTimer = object : CountDownTimer( 600000, 60000) {
-        //Every 10 minutes  we are doing a battery check.
-        override fun onTick(millisUntilFinished: Long) {}
 
-        override fun onFinish() {
-            if (!resources.getBoolean(R.bool.isSquareBuildOn)){
-                batteryStatusCheck()
-            }
-        }
-    }
     private val dimScreenTimer = object : CountDownTimer(120000, 60000) {
         //after a status has changed to end we run a 2 min timer to dimScreen
         override fun onTick(millisUntilFinished: Long) {}
@@ -157,7 +148,7 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
             tripId = lastTrip.second
         }
         getTimeOfDayAndUpdateUI()
-        viewModel.isSetupComplete()
+
         vehicleId = viewModel.getVehicleId()
         updateVehicleInfoUI()
         checkAppBuildVersion()
@@ -336,30 +327,7 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
         phoneKeyboard.setInputConnection(ic)
     }
 
-    private fun batteryStatusCheck() {
-        val batteryStatus: Intent? = IntentFilter(Intent.ACTION_BATTERY_CHANGED).let { ifilter ->
-            context?.registerReceiver(null, ifilter)
-        }
-        val status: Int = batteryStatus?.getIntExtra(BatteryManager.EXTRA_STATUS, -1) ?: -1
-        val isCharging: Boolean = status == BatteryManager.BATTERY_STATUS_CHARGING
-                || status == BatteryManager.BATTERY_STATUS_FULL
-        if (!isCharging) {
-            LoggerHelper.writeToLog("$logFragment: Battery Check: is charging: $isCharging, sending request for shutdown", LogEnums.OVERHEATING.tag)
-            val action =  "com.claren.tablet_control.shutdown"
-            val p = "com.claren.tablet_control"
-            val intent = Intent()
-            intent.action = action
-            intent.`package` = p
-            intent.addFlags(Intent.FLAG_INCLUDE_STOPPED_PACKAGES)
-            activity?.sendBroadcast(intent)
-        }
 
-        if (isCharging) {
-            LoggerHelper.writeToLog("$logFragment: Battery Check: is charging: $isCharging", LogEnums.OVERHEATING.tag)
-            batteryCheckTimer.cancel()
-            batteryCheckTimer.start()
-        }
-    }
 
     private fun changeScreenBrightness(screenBrightness: Int) {
         Settings.System.putInt(
@@ -438,6 +406,7 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
             }
         }
     }
+
     private fun saveAppBuildVersion(){
         val buildName = BuildConfig.VERSION_NAME
         val appVersion = AppVersion(buildName)
@@ -479,7 +448,6 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
         super.onStop()
         Log.i("PimApplication", "OnStop")
         keyboardViewModel.bothKeyboardsDown()
-        batteryCheckTimer.cancel()
         dimScreenTimer.cancel()
     }
 
@@ -487,7 +455,6 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
         super.onPause()
         Log.i("PimApplication", "OnPause")
         ViewHelper.hideSystemUI(requireActivity())
-        batteryCheckTimer.cancel()
         dimScreenTimer.cancel()
     }
 
@@ -495,8 +462,6 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
         super.onResume()
         ViewHelper.hideSystemUI(requireActivity())
         vehicleId = viewModel.getVehicleId()
-        batteryCheckTimer.cancel()
-        batteryCheckTimer.start()
         dimScreenTimer.cancel()
         dimScreenTimer.start()
     }
@@ -509,6 +474,5 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
             callBackViewModel.getMeterState().removeObservers(this)
         }
         restartAppTimer.cancel()
-        batteryCheckTimer.cancel()
     }
 }

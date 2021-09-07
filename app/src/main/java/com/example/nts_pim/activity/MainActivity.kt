@@ -7,6 +7,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.net.ConnectivityManager
+import android.os.BatteryManager
 import android.os.Bundle
 import android.os.CountDownTimer
 import android.util.Log
@@ -26,6 +27,7 @@ import com.apollographql.apollo.GraphQLCall
 import com.apollographql.apollo.api.Response
 import com.apollographql.apollo.exception.ApolloException
 import com.example.nts_pim.*
+import com.example.nts_pim.data.repository.PIMSetupHolder
 import com.example.nts_pim.data.repository.TripDetails
 import com.example.nts_pim.data.repository.UpfrontPriceViewModel
 import com.example.nts_pim.data.repository.VehicleTripArrayHolder
@@ -138,6 +140,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                 mSuccessfulSetup = successfulSetup
                 vehicleId = viewModel.getVehicleID()
                 internetConnection = isOnline(this)
+
                 LoggerHelper.writeToLog("MainActivity: successful setup: $successfulSetup", LogEnums.SETUP.tag)
             }
         })
@@ -147,6 +150,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                 LoggerHelper.writeToLog("$logFragment, Trip ended and meterStateQueryComplete is set to false", logFragment)
             }
         })
+        batteryCheckTimer.start()
         turnOnBluetooth()
         checkNavBar()
         registerReceivers()
@@ -238,6 +242,12 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
         }
 
         callbackViewModel.getIsPimOnline().observe(this, Observer { onlineStatus ->
+            if(onlineStatus){
+                PIMSetupHolder.internetIsConnected()
+            }
+            if(!onlineStatus){
+                PIMSetupHolder.internetDisconnected()
+            }
             if(!onlineStatus && mSuccessfulSetup){
                 clearAllSubscriptions()
             }
@@ -272,17 +282,28 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                                 blueToothAddressDriverTablet != null &&
                                 blueToothAddressDriverTablet != " " &&
                                 BluetoothDataCenter.isBluetoothAddressFormatted(blueToothAddressDriverTablet)){
+                                PIMSetupHolder.driverBTAddressIsCorrect(blueToothAddressDriverTablet!!)
                                 driverTablet = bAdapter.getRemoteDevice(blueToothAddressDriverTablet)
-                            } else {
+                            } else  {
+                                if(blueToothAddressDriverTablet == null){
+                                    PIMSetupHolder.driverBTAddressNotCorrect("Null")
+                                } else{
+                                    PIMSetupHolder.driverBTAddressNotCorrect(blueToothAddressDriverTablet!!)
+                                }
+
                                 LoggerHelper.writeToLog("Bluetooth, Issue with driver's bluetooth address. It is either blank or null when fetched to setup driver tablet connection. Driver Bt address == $blueToothAddressDriverTablet", LogEnums.BLUETOOTH.tag)
                             }
                         }
                         val setupComplete = viewModel.isSetUpComplete()
                         if(driverTablet != null && setupComplete){
-                                    Log.i("Bluetooth", "trying to start connect thread. connect thread status: Running: ${connectThread?.isAlive}")
-                                    connectThread = ConnectThread(driverTablet!!, this)
-                                    connectThread?.start()
-                                    LoggerHelper.writeToLog("Driver tablet != null and setup was complete. Starting ConnectThread", LogEnums.BLUETOOTH.tag)
+                                    if(connectThread == null) {
+                                        LoggerHelper.writeToLog("Driver tablet != null and setup was complete. Starting ConnectThread.", LogEnums.BLUETOOTH.tag)
+                                        connectThread = ConnectThread(driverTablet!!, this)
+                                        connectThread?.start()
+                                }  else {
+                                        Log.i("BLUETOOTH", "trying to start connect thread, but it already exists")
+                                    }
+
                         } else {
                             LoggerHelper.writeToLog("Connect thread didn't start. driverTablet: $driverTablet. Setup: $mSuccessfulSetup", LogEnums.BLUETOOTH.tag)
                         }
@@ -295,8 +316,9 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
         })
         BluetoothDataCenter.isBluetoothSocketConnected().observe(this, Observer { socketConnected ->
             if(isBluetoothOnAWS && socketConnected) {
-                LoggerHelper.writeToLog("Socket is connected and aws bluetooth is on. Creating read/write thread", LogEnums.BLUETOOTH.tag)
+
                 val socket = BluetoothDataCenter.getBTSocket()
+                LoggerHelper.writeToLog("Socket is connected and aws bluetooth is on. Creating read/write thread this socket is $socket", LogEnums.BLUETOOTH.tag)
                 if (socket != null) {
                     if (readThread == null) {
                         readThread = ReadThread(socket, this)
@@ -350,6 +372,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                 }
             if(isBluetoothOnAWS && !socketConnected){
                 val socket = BluetoothDataCenter.getBTSocket()
+                LoggerHelper.writeToLog("The socket connection has happened", LogEnums.BLUETOOTH.tag)
                 if(socket == null){
                     LoggerHelper.writeToLog("The socket connection hasn't happened for the first time", LogEnums.BLUETOOTH.tag)
                 }
@@ -358,13 +381,16 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
         BluetoothDataCenter.isConnectedToDriverTablet().observe(this, Observer { readWriteConnected ->
             if(!readWriteConnected){
                 val socket = BluetoothDataCenter.getBTSocket()
+                LoggerHelper.writeToLog("Socket for re-connect was $socket", LogEnums.BLUETOOTH.tag)
                 if(socket != null){
+                    connectThread?.cancel()
                     readThread?.cancel()
                     LoggerHelper.writeToLog("Read_Thread is canceled on  MainActivity", LogEnums.BLUETOOTH.tag)
                     writeThread?.cancel()
                     LoggerHelper.writeToLog("Write_Thread is canceled on  MainActivity", LogEnums.BLUETOOTH.tag)
                     ackThread?.cancel()
                     LoggerHelper.writeToLog("ACK_Thread is canceled on  MainActivity", LogEnums.BLUETOOTH.tag)
+                    connectThread = null
                     writeThread = null
                     readThread = null
                     ackThread = null
@@ -458,7 +484,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
         }
     }
 
-    private fun clearVehicleOfAWSTripSubscription(){
+    fun clearVehicleOfAWSTripSubscription(){
         vehicleSubscriptionComplete = false
         tripSubscriptionComplete = false
         try {
@@ -478,7 +504,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
         LoggerHelper.writeToLog("Canceled subscription to driver tablet for trip info", LogEnums.AWS_SUBSCRIPTION.tag)
     }
 
-    private fun clearVehicleOfAWSPIMSubscription(){
+   fun clearVehicleOfAWSPIMSubscription(){
         subscriptionWatcherUpdatePimSettings?.cancel()
         subscriptionWatcherUpdatePimSettings = null
         subscriptionWatcherUnPairPIM?.cancel()
@@ -737,6 +763,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
             subscriptionWatcherUpdatePimSettings = mAWSAppSyncClient?.subscribe(subscription)
             subscriptionWatcherUpdatePimSettings?.execute(updatePimSettingsCallback)
             LoggerHelper.writeToLog("Tried to subscribe to updatePIM with deviceID $deviceId", LogEnums.AWS_SUBSCRIPTION.tag)
+            PIMSetupHolder.subscribedToAWS()
         }
     }
     private var updatePimSettingsCallback = object : AppSyncSubscriptionCall.Callback<OnPimSettingsUpdateSubscription.Data>{
@@ -909,9 +936,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
 
         mBluetoothReceiver = BluetoothReceiver()
         val filter = IntentFilter()
-        filter.addAction(BluetoothDevice.ACTION_FOUND)
-        filter.addAction(BluetoothDevice.ACTION_ACL_CONNECTED)
-        filter.addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED)
+        filter.addAction(BluetoothAdapter.ACTION_STATE_CHANGED)
         registerReceiver(mBluetoothReceiver, filter)
 
     }
@@ -1012,6 +1037,46 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
 
         }
     }
+    private val batteryCheckTimer = object : CountDownTimer( 600000, 60000) {
+        //Every 10 minutes  we are doing a battery check.
+        override fun onTick(millisUntilFinished: Long) {}
+
+        override fun onFinish() {
+            if (!resources.getBoolean(R.bool.isSquareBuildOn)){
+                batteryStatusCheck()
+            }
+        }
+    }
+
+    private fun batteryStatusCheck() {
+        val batteryStatus: Intent? = IntentFilter(Intent.ACTION_BATTERY_CHANGED).let { ifilter ->
+            this.applicationContext.registerReceiver(null, ifilter)
+        }
+        val status: Int = batteryStatus?.getIntExtra(BatteryManager.EXTRA_STATUS, -1) ?: -1
+        val isCharging: Boolean = status == BatteryManager.BATTERY_STATUS_CHARGING
+                || status == BatteryManager.BATTERY_STATUS_FULL
+        val isOnActiveTrip = ModelPreferences(applicationContext)
+            .getObject(SharedPrefEnum.CURRENT_TRIP.key,
+                CurrentTrip::class.java)?.isActive ?: false
+        if (!isCharging &&
+            mSuccessfulSetup &&
+               !isOnActiveTrip) {
+            LoggerHelper.writeToLog("$logFragment: Battery Check: is charging: $isCharging, sending request for shutdown", LogEnums.OVERHEATING.tag)
+            val action =  "com.claren.tablet_control.shutdown"
+            val p = "com.claren.tablet_control"
+            val intent = Intent()
+            intent.action = action
+            intent.`package` = p
+            intent.addFlags(Intent.FLAG_INCLUDE_STOPPED_PACKAGES)
+            sendBroadcast(intent)
+        }
+
+        if (isCharging) {
+            LoggerHelper.writeToLog("$logFragment: Battery Check: is charging: $isCharging", LogEnums.OVERHEATING.tag)
+            batteryCheckTimer.cancel()
+            batteryCheckTimer.start()
+        }
+    }
 
     override fun onDestroy() {
         subscriptionWatcherUpdateVehTripStatus?.cancel()
@@ -1026,6 +1091,8 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
         stopLogTimer()
         vehicleSubscriptionTimer?.cancel()
         LoggerHelper.writeToLog("$logFragment, MainActivity onDestroy hit", LogEnums.LIFE_CYCLE.tag)
+        batteryCheckTimer.cancel()
+
         super.onDestroy()
     }
 

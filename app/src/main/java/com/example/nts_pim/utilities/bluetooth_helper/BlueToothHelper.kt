@@ -6,6 +6,7 @@ import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.util.Log
 import com.example.nts_pim.activity.MainActivity
+import com.example.nts_pim.data.repository.PIMSetupHolder
 import com.example.nts_pim.data.repository.model_objects.trip.Destination
 import com.example.nts_pim.data.repository.model_objects.trip.Passenger
 import com.example.nts_pim.data.repository.model_objects.trip.UpfrontTrip
@@ -65,7 +66,6 @@ object BlueToothHelper {
 
     private fun checkForACKNAKCommands(command: String, data: JSONObject?): Boolean{
         // we are going to check to see if this is an ACK or Nak
-        Log.i("Bluetooth", "Filtered command from data parse == $command")
         when(command){
             NTSPimPacket.Command.ACK.command -> {
             // stop sending previous message

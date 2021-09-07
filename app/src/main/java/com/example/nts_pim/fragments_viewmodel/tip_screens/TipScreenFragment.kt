@@ -1,5 +1,6 @@
 package com.example.nts_pim.fragments_viewmodel.tip_screens
 
+import android.annotation.SuppressLint
 import android.os.Bundle
 import android.util.Log
 import android.view.*
@@ -25,6 +26,7 @@ import com.example.nts_pim.fragments_viewmodel.base.ScopedFragment
 import com.example.nts_pim.fragments_viewmodel.callback.CallBackViewModel
 import com.example.nts_pim.fragments_viewmodel.live_meter.LiveMeterViewModel
 import com.example.nts_pim.fragments_viewmodel.live_meter.LiveMeterViewModelFactory
+import com.example.nts_pim.utilities.Square_Service.SquareHelper
 import com.example.nts_pim.utilities.bluetooth_helper.BlueToothHelper
 import com.example.nts_pim.utilities.bluetooth_helper.BluetoothDataCenter
 import com.example.nts_pim.utilities.bluetooth_helper.NTSPimPacket
@@ -111,8 +113,7 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
         }
         tripNumber = callbackViewModel.getTripNumber()
         driverId = callbackViewModel.getDriverId()
-        val checkoutManager = ReaderSdk.checkoutManager()
-        checkoutCallbackRef = checkoutManager.addCheckoutActivityCallback(this::onCheckoutResult)
+        checkCheckoutManagerRef()
         getArgsFromCustomTipScreen()
         PIMMutationHelper.updatePIMStatus(vehicleId, PIMStatusEnum.TIP_SCREEN.status, mAWSAppSyncClient!!)
         sendPimStatusBluetooth()
@@ -318,6 +319,7 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
             (activity as MainActivity).sendBluetoothPacket(statusObj)
         }
     }
+    @SuppressLint("SetTextI18n")
     private fun updateUI() {
         if(tripTotal < 10.00){
             if (fifteen_percent_text_view != null &&
@@ -327,11 +329,9 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
                 fifteenPercent = 01.00
                 tripTotalOption1 = tripTotal + 1
 
-                fifteen_percent_tip_amount_text_view.setLayoutParams(
-                    FrameLayout.LayoutParams(
-                        FrameLayout.LayoutParams.MATCH_PARENT,
-                        FrameLayout.LayoutParams.MATCH_PARENT
-                    )
+                fifteen_percent_tip_amount_text_view.layoutParams = FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.MATCH_PARENT,
+                    FrameLayout.LayoutParams.MATCH_PARENT
                 )
             }
             if(twenty_percent_text_view != null &&
@@ -341,11 +341,9 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
                 twentyPercent = 02.00
                 tripTotalOption2 = tripTotal + 2
 
-                twenty_percent_tip_amount_text_view.setLayoutParams(
-                    FrameLayout.LayoutParams(
-                        FrameLayout.LayoutParams.MATCH_PARENT,
-                        FrameLayout.LayoutParams.MATCH_PARENT
-                    )
+                twenty_percent_tip_amount_text_view.layoutParams = FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.MATCH_PARENT,
+                    FrameLayout.LayoutParams.MATCH_PARENT
                 )
             }
 
@@ -356,11 +354,9 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
                 twentyFivePercent = 03.00
                 tripTotalOption3 = tripTotal + 3
 
-                twenty_five_percent_tip_amount_text_view.setLayoutParams(
-                    FrameLayout.LayoutParams(
-                        FrameLayout.LayoutParams.MATCH_PARENT,
-                        FrameLayout.LayoutParams.MATCH_PARENT
-                    )
+                twenty_five_percent_tip_amount_text_view.layoutParams = FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.MATCH_PARENT,
+                    FrameLayout.LayoutParams.MATCH_PARENT
                 )
             }
             if (thirty_percent_text_view != null &&
@@ -370,11 +366,9 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
                 thirtyPercent = 04.00
                 tripTotalOption4 = tripTotal + 4
 
-                thirty_percent_tip_amount_text_view.setLayoutParams(
-                    FrameLayout.LayoutParams(
-                        FrameLayout.LayoutParams.MATCH_PARENT,
-                        FrameLayout.LayoutParams.MATCH_PARENT
-                    )
+                thirty_percent_tip_amount_text_view.layoutParams = FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.MATCH_PARENT,
+                    FrameLayout.LayoutParams.MATCH_PARENT
                 )
             }
 
@@ -488,6 +482,7 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
         VehicleTripArrayHolder.updateInternalPIMStatus(PIMStatusEnum.STARTED_SQUARE_PAYMENT.status)
         sendPimStatusBluetooth()
         callbackViewModel.setAmountForSquareDisplay(checkOutAmount)
+        checkCheckoutManagerRef()
         val p = checkOutAmount * 100.00
         val checkOutTotal = Math.round(p)
         val amountMoney = Money(checkOutTotal, CurrencyCode.current())
@@ -607,13 +602,14 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
                 CheckoutErrorCode.SDK_NOT_AUTHORIZED -> {
                     Toast.makeText(
                         context,
-                        "SDK not authorized",
+                        "SDK not authorized, please try again",
                         Toast.LENGTH_LONG
                     ).show()
                     PIMMutationHelper.updatePIMStatus(vehicleId, PIMStatusEnum.SDK_NOT_AUTHORIZED.status, mAWSAppSyncClient!!)
                     sendPimStatusBluetooth()
                     updateInternalInfoDeclinedPayment("${error.message}, ${PIMStatusEnum.SDK_NOT_AUTHORIZED.status}")
                     LoggerHelper.writeToLog("$logFragment,  SDK not authorized for square transaction", LogEnums.PAYMENT.tag)
+                    SquareHelper.authorizeSquare(vehicleId, this.requireActivity())
                 }
                 CheckoutErrorCode.CANCELED -> {
                     val toast = Toast.makeText(context,
@@ -628,14 +624,14 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
                 }
                 CheckoutErrorCode.USAGE_ERROR -> {
                     Toast.makeText(context,
-                        "Usage ERROR: ${error.message}, ErrorDebug Message: ${error.debugMessage}",
+                        "Usage ERROR: ${error.message} please try again, ErrorDebug Message: ${error.debugMessage}",
                         Toast.LENGTH_LONG
                     ).show()
                     LoggerHelper.writeToLog("Usage_Error: ${error.message} ${error.debugMessage}", LogEnums.PAYMENT.tag)
                     PIMMutationHelper.updatePIMStatus(vehicleId, PIMStatusEnum.USAGE_ERROR.status, mAWSAppSyncClient!!)
                     sendPimStatusBluetooth()
                     updateInternalInfoDeclinedPayment("${error.message}, ${PIMStatusEnum.USAGE_ERROR.status}")
-                    LoggerHelper.writeToLog("$logFragment,  Usage Error from square sdk", LogEnums.PAYMENT.tag)
+                    checkoutCallbackRef?.clear()
                 }
                 else -> {
                     Toast.makeText(context,
@@ -646,6 +642,14 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
                     LoggerHelper.writeToLog("$logFragment,  Error: ${error.message}, debugMessage: ${error.debugMessage}", LogEnums.PAYMENT.tag)
                 }
             }
+        }
+    }
+    private fun checkCheckoutManagerRef(){
+        //With usage errors, we make the checkoutCallbackRef clear. We need to double check before we take a payment
+        if(checkoutCallbackRef == null){
+            LoggerHelper.writeToLog("checkoutCallbackRef was null at time of payment. Added new checkoutCallbackRef before payment", LogEnums.SQUARE.tag)
+            val checkoutManager = ReaderSdk.checkoutManager()
+            checkoutCallbackRef = checkoutManager.addCheckoutActivityCallback(this::onCheckoutResult)
         }
     }
     private fun updateInternalInfoDeclinedPayment(message: String){
@@ -699,11 +703,10 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
     }
 
     private fun updatePaymentDetail(transactionId: String, tripNumber: Int, vehicleId: String, awsAppSyncClient: AWSAppSyncClient, paymentType: String, tripId: String) = launch(Dispatchers.IO){
-        LoggerHelper.writeToLog("$logFragment,  Updated Payment Detail Api. transaction id: $transactionId, trip number: $tripNumber, payment type, $paymentType, trip id: $tripId", LogEnums.PAYMENT.tag)
         launch(Dispatchers.IO) {
             PIMMutationHelper.updatePaymentDetails(transactionId, tripNumber, vehicleId, awsAppSyncClient, paymentType, tripId)
         }
-
+        LoggerHelper.writeToLog("$logFragment,  Updated Payment Detail Api. transaction id: $transactionId, trip number: $tripNumber, payment type, $paymentType, trip id: $tripId", LogEnums.PAYMENT.tag)
     }
 
     private fun resetScreen() = launch(Dispatchers.Main.immediate){
@@ -777,7 +780,7 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
     override fun onPause() {
         super.onPause()
         ViewHelper.hideSystemUI(requireActivity())
-        callbackViewModel.hasSquareTimedOut().observe(this, Observer { hasSquareTimedOut ->
+        callbackViewModel.hasSquareTimedOut().observe(this, { hasSquareTimedOut ->
             if (hasSquareTimedOut) {
                 val navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment)
                 if (navController.currentDestination?.id == (R.id.tipScreenFragment)) {

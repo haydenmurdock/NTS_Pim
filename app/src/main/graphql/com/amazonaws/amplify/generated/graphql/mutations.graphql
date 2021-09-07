@@ -109,6 +109,7 @@ mutation UpdateBluetooth($parameters: updateBluetoothInput) {
     serverIP
     surrenderedVehicle
     tollIncrement
+    upExtendedTripTimeInc
     uploadLogs
     useBluetoothPIM
     vehBtAddr
@@ -205,6 +206,7 @@ mutation UpdateSettings($parameters: updateSettingsInput) {
     serverIP
     surrenderedVehicle
     tollIncrement
+    upExtendedTripTimeInc
     uploadLogs
     useBluetoothPIM
     vehBtAddr
@@ -284,6 +286,7 @@ mutation UpdateTrip($parameters: updateTripInput) {
     owedPrice
     owedPriceSource
     paidAmt
+    paymentSource
     paymentType
     pimNoReceipt
     pimPayAmt
@@ -402,6 +405,7 @@ mutation UploadSettings($parameters: updateSettingsInput) {
     serverIP
     surrenderedVehicle
     tollIncrement
+    upExtendedTripTimeInc
     uploadLogs
     useBluetoothPIM
     vehBtAddr
@@ -508,6 +512,7 @@ mutation UpdateTripFare($parameters: updateTripFareInput) {
     owedPrice
     owedPriceSource
     paidAmt
+    paymentSource
     paymentType
     pimNoReceipt
     pimPayAmt
@@ -581,6 +586,7 @@ mutation UpdateTripMeterState($parameters: updateTripMeterStateInput) {
     owedPrice
     owedPriceSource
     paidAmt
+    paymentSource
     paymentType
     pimNoReceipt
     pimPayAmt
@@ -682,6 +688,7 @@ mutation DoPimPayment($parameters: doPimPaymentInput) {
     owedPrice
     owedPriceSource
     paidAmt
+    paymentSource
     paymentType
     pimNoReceipt
     pimPayAmt
@@ -755,6 +762,7 @@ mutation PimPaymentMade($parameters: pimPaymentMadeInput) {
     owedPrice
     owedPriceSource
     paidAmt
+    paymentSource
     paymentType
     pimNoReceipt
     pimPayAmt

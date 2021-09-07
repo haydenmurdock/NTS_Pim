@@ -189,6 +189,7 @@ query GetSettings(
     serverIP
     surrenderedVehicle
     tollIncrement
+    upExtendedTripTimeInc
     uploadLogs
     useBluetoothPIM
     vehBtAddr
@@ -268,6 +269,7 @@ query GetTrip($tripId: String!) {
     owedPrice
     owedPriceSource
     paidAmt
+    paymentSource
     paymentType
     pimNoReceipt
     pimPayAmt
@@ -341,6 +343,7 @@ query GetTripsByNbr($endDate: String, $startDate: String, $tripNbr: Int!) {
     owedPrice
     owedPriceSource
     paidAmt
+    paymentSource
     paymentType
     pimNoReceipt
     pimPayAmt
@@ -414,6 +417,7 @@ query GetTripsByVehId($vehicleId: String!) {
     owedPrice
     owedPriceSource
     paidAmt
+    paymentSource
     paymentType
     pimNoReceipt
     pimPayAmt

@@ -15,6 +15,7 @@ import android.view.ViewGroup
 import android.view.View.OnLayoutChangeListener
 import android.widget.Button
 import android.widget.ImageView
+import android.widget.ListView
 import androidx.core.view.get
 import androidx.core.view.isVisible
 import androidx.navigation.NavController
@@ -22,9 +23,11 @@ import androidx.navigation.Navigation
 import com.bumptech.glide.Glide
 import com.example.nts_pim.R
 import com.example.nts_pim.activity.MainActivity
+import com.example.nts_pim.data.repository.PIMSetupHolder
 import com.example.nts_pim.data.repository.VehicleTripArrayHolder
 import com.example.nts_pim.data.repository.model_objects.SetupComplete
 import com.example.nts_pim.data.repository.providers.ModelPreferences
+import com.example.nts_pim.fragments_viewmodel.startup.adapter.StartupAdapter
 import com.example.nts_pim.utilities.enums.LogEnums
 import com.example.nts_pim.utilities.view_walker.ViewWalker
 import com.example.nts_pim.utilities.enums.MeterEnum
@@ -32,6 +35,7 @@ import com.example.nts_pim.utilities.enums.ReaderStatusEnum
 import com.example.nts_pim.utilities.enums.SharedPrefEnum
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import com.example.nts_pim.utilities.sound_helper.SoundHelper
+import kotlinx.android.synthetic.main.startup.*
 import java.text.DecimalFormat
 
 
@@ -56,7 +60,6 @@ class SquareService : OnLayoutChangeListener,
     private var userHasRemovedCard = false
     private var tag = "Square"
     private var navController: NavController? = null
-
 
     private enum class SqUIState {
         INIT_STATE,
@@ -303,23 +306,23 @@ class SquareService : OnLayoutChangeListener,
                     LoggerHelper.writeToLog("Square is in a new state: $newState", LogEnums.SQUARE.tag)
                     if(!VehicleTripArrayHolder.cardReaderStatusHasBeenChecked) {
                         stopTimeout()
-                        // This is where we check the reader status bar to find if we too reauthorize square for a failed reader status
                         cardReaderCheckView = View.inflate(activity,R.layout.card_reader_check_screen, viewGroup)
                         SoundHelper.turnOffSound(activity.applicationContext)
                         val newViewGroup =
                             squareActivity?.findViewById<TextView>(com.squareup.sdk.reader.api.R.id.reader_message_bar_current_text_view)
                         val squareReaderState = newViewGroup?.text
+
                         LoggerHelper.writeToLog("$tag, Reader Message: $squareReaderState", LogEnums.SQUARE.tag)
+                        PIMSetupHolder.contactedChipReader()
                         if (squareReaderState!!.contains("Press Button on Reader to Connect – Learn More") ) {
                             VehicleTripArrayHolder.updateReaderStatus(ReaderStatusEnum.UNAVAILABLE.status)
                             stopReaderCheckTimeout()
-                            startReaderCheckTimeout()
+                            startReaderCheckTimeout(activity)
                         }
                         if (squareReaderState.contains("Establishing Secure Connection") || squareReaderState.contains("Connecting - Tap Here to Learn More") || squareReaderState.contains("Checking for Reader Updates")) {
                             LoggerHelper.writeToLog("$tag, Square service is on card reader list in establishing connection status", LogEnums.SQUARE.tag)
-                            //Begin Connection timer....
                             stopReaderCheckTimeout()
-                            startReaderCheckTimeout()
+                            startReaderCheckTimeout(activity)
 
                         }
                         if (squareReaderState.contains("Reader Not Ready")) {
@@ -327,7 +330,7 @@ class SquareService : OnLayoutChangeListener,
                             LoggerHelper.writeToLog("$tag, Square service is on Reader Not Ready- aka- failed status", LogEnums.SQUARE.tag)
                             VehicleTripArrayHolder.updateReaderStatus(ReaderStatusEnum.FAILED.status)
                             stopReaderCheckTimeout()
-                            startReaderCheckTimeout()
+                            startReaderCheckTimeout(activity)
                         }
 
                         if (squareReaderState.contains("Reader Ready") ) {
@@ -353,7 +356,7 @@ class SquareService : OnLayoutChangeListener,
         }
     }
     // Swipe screen timeout and crude animation
-    private fun startReaderCheckTimeout(){
+    private fun startReaderCheckTimeout(activity: Activity){
         //This is where we check the reader during the process of connecting. If the reader connects during the check we close down the checking process and move on.
         if(readerCheckTimer == null){
             readerCheckTimer = object :CountDownTimer(60000, 2500){
@@ -362,6 +365,7 @@ class SquareService : OnLayoutChangeListener,
                         squareActivity?.findViewById<TextView>(com.squareup.sdk.reader.api.R.id.reader_message_bar_current_text_view)
                     val mSquareReaderState = newViewGroup?.text
                     LoggerHelper.writeToLog("$tag, Reader Check Timer: squareReaderState: $mSquareReaderState", LogEnums.SQUARE.tag)
+                    updateReaderStatusOnScreen(activity, mSquareReaderState.toString())
                     if (mSquareReaderState == null){
                         LoggerHelper.writeToLog("$tag, Reader checked via readerCheckTimer. Text view was null but timer is still going. Will check again in 2.5 seconds.", LogEnums.SQUARE.tag)
                         stopReaderCheckTimeout()
@@ -377,6 +381,14 @@ class SquareService : OnLayoutChangeListener,
                     val newViewGroup =
                         squareActivity?.findViewById<TextView>(com.squareup.sdk.reader.api.R.id.reader_message_bar_current_text_view)
                     val squareReaderState = newViewGroup?.text ?: ""
+                    if(squareReaderState.contains("Establishing Secure Connection") ||
+                            squareReaderState.contains("Checking for Reader Updates")){
+                        LoggerHelper.writeToLog("Reader was in $squareReaderState. It wasn't fully connected or failed.", LogEnums.SQUARE.tag)
+                        VehicleTripArrayHolder.updateReaderStatus(ReaderStatusEnum.CONNECTED.status)
+                        VehicleTripArrayHolder.squareHasBeenSetUp = true
+                        removeSquareReaderView()
+                        return
+                        }
                     if (squareReaderState.contains("Reader Ready")) {
                         VehicleTripArrayHolder.updateReaderStatus(ReaderStatusEnum.CONNECTED.status)
                         VehicleTripArrayHolder.squareHasBeenSetUp = true
@@ -393,8 +405,7 @@ class SquareService : OnLayoutChangeListener,
                         VehicleTripArrayHolder.needToReAuthorizeSquare()
                         removeSquareReaderView()
                     }
-                    if(squareReaderState.contains("Establishing Secure Connection") ||
-                        squareReaderState.contains("Connecting - Tap Here to Learn More")){
+                    if (squareReaderState.contains("Connecting - Tap Here to Learn More")){
                         LoggerHelper.writeToLog("$tag, Reader checked via readerCheckTimer. Timer has finished. Reader is still establishing connection after 60 seconds. Reader Failed", LogEnums.SQUARE.tag)
                         VehicleTripArrayHolder.updateReaderStatus(ReaderStatusEnum.CONNECTED.status)
                         removeSquareReaderView()
@@ -408,7 +419,13 @@ class SquareService : OnLayoutChangeListener,
                     }
                 }
             }.start()
-        } else {
+        }
+    }
+
+    private fun updateReaderStatusOnScreen(activity: Activity, readerStatus: String){
+        val readerStatusTextView = activity.findViewById<TextView>(R.id.card_reader_status_textView)
+        if(readerStatusTextView != null){
+            readerStatusTextView.text = "Reader Status: $readerStatus"
         }
     }
     private fun stopReaderCheckTimeout(){
@@ -428,6 +445,8 @@ class SquareService : OnLayoutChangeListener,
             }
         }
     }
+
+
     private fun startTimeout() {
         timeout = object : CountDownTimer(30000, 1000) {
             //We are running for 30 seconds
@@ -526,7 +545,7 @@ class SquareService : OnLayoutChangeListener,
 
         val cancelButton1 =
             getButton(squareActivity!!, com.squareup.sdk.reader.api.R.id.select_payment_up_button, "cancelButton1")
-        val cancelButton2 = getButton(squareActivity!!, com.squareup.sdk.reader.api.R.id.tutorial_bar_cancel, "cancelButton2")
+        //val cancelButton2 = getButton(squareActivity!!, com.squareup.sdk.reader.api.R.id.tutorial_bar_cancel, "cancelButton2")
         val cancelButton3 = getButton(squareActivity!!, com.squareup.sdk.reader.api.R.id.tutorial2_cancel, "cancelButton3")
         val cancelButton4 =
             getButton(squareActivity!!, com.squareup.sdk.reader.api.R.id.reader_warning_bottom_default_button, "cancelButton4")
@@ -545,10 +564,10 @@ class SquareService : OnLayoutChangeListener,
         cancelButton1.performClick()
         VehicleTripArrayHolder.squareHasTimedOut()
         }
-        if(cancelButton2 != null) {
-            cancelButton2.performClick()
-            VehicleTripArrayHolder.squareHasTimedOut()
-        }
+//        if(cancelButton2 != null) {
+//           // cancelButton2.performClick()
+//            VehicleTripArrayHolder.squareHasTimedOut()
+//        }
     if (cancelButton3 != null) {
         cancelButton3.performClick()
         VehicleTripArrayHolder.squareHasTimedOut()
@@ -562,11 +581,11 @@ class SquareService : OnLayoutChangeListener,
                 com.squareup.sdk.reader.api.R.id.select_payment_up_button,
                 "cancelButton1"
             )
-        val cancelButton2 = getButton(
-            squareActivity!!,
-            com.squareup.sdk.reader.api.R.id.tutorial_bar_cancel,
-            "cancelButton2"
-        )
+//        val cancelButton2 = getButton(
+//            squareActivity!!,
+//            com.squareup.sdk.reader.api.R.id.tutorial_bar_cancel,
+//            "cancelButton2"
+//        )
         val cancelButton3 = getButton(
             squareActivity!!,
             com.squareup.sdk.reader.api.R.id.tutorial2_cancel,
@@ -591,8 +610,8 @@ class SquareService : OnLayoutChangeListener,
         else {
             if (cancelButton1 != null)
                 cancelButton1.performClick()
-            if (cancelButton2 != null)
-                cancelButton2.performClick()
+//            if (cancelButton2 != null)
+//                cancelButton2.performClick()
             if (cancelButton3 != null)
                 cancelButton3.performClick()
 

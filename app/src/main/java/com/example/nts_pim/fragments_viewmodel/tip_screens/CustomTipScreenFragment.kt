@@ -520,8 +520,8 @@ class CustomTipScreenFragment : ScopedFragment() {
 
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
                 if(s.toString() == "500"){
-                    Log.i("test", "This was skipped")
                     addCursor(count)
+                    updateTripTipTotalFor500()
                     return
                 }
                 if (s != "0"){
@@ -566,9 +566,10 @@ class CustomTipScreenFragment : ScopedFragment() {
         }
         val toInt = tip.toInt()
         if(toInt >= 500){
-            tipIsOver500 = true
-            tipInCaseOfThreshold = customTipViewAmountString.dropLast(1)
+          //  tipIsOver500 = true
+        //    tipInCaseOfThreshold = customTipViewAmountString.dropLast(1)
             customTipViewAmountString = "500"
+            custom_tip_screen_editText.setText(customTipViewAmountString)
             return true
         }
         return false
@@ -581,6 +582,19 @@ class CustomTipScreenFragment : ScopedFragment() {
             return true
         }
         return false
+    }
+
+    private fun updateTripTipTotalFor500(){
+        val percentage = customTipViewAmountString.toDouble() * 00.01
+        val tripTotalPercent = tripTotal * percentage
+        val tripTotalPercentFormatted = formatString(tripTotalPercent)
+        tipPicked = tripTotalPercentFormatted.toFloat()
+        val tripTotalFormatted = formatString(tripTotal)
+        tripTotalWithTip = tripTotalFormatted.toDouble() + 500.00
+        val formattedTripTotal = tripTotalDF.format(tripTotalWithTip)
+        custom_tip_screen_trip_total_textView.text = "$$formattedTripTotal"
+        custom_tip_screen_tip_breakdown_textView2.text =" ($$tripTotalFormatted + $${customTipViewAmountString} tip)"
+
     }
     @SuppressLint("ResourceType")
     private fun inflateOver100Alert() {

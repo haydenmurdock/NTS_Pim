@@ -6,6 +6,8 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Button
+import android.widget.ImageView
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.NavController
@@ -19,11 +21,13 @@ import com.apollographql.apollo.api.Response
 import com.apollographql.apollo.exception.ApolloException
 import com.example.nts_pim.R
 import com.example.nts_pim.activity.MainActivity
+import com.example.nts_pim.data.repository.PIMSetupHolder
 import com.example.nts_pim.data.repository.UpfrontPriceViewModel
 import com.example.nts_pim.data.repository.VehicleTripArrayHolder
 import com.example.nts_pim.fragments_viewmodel.InjectorUtiles
 import com.example.nts_pim.fragments_viewmodel.base.ClientFactory
 import com.example.nts_pim.fragments_viewmodel.base.ScopedFragment
+import com.example.nts_pim.fragments_viewmodel.startup.adapter.StartupAdapter
 import com.example.nts_pim.fragments_viewmodel.vehicle_settings.setting_keyboard_viewModels.SettingsKeyboardViewModel
 import com.example.nts_pim.fragments_viewmodel.vehicle_setup.VehicleSetupModelFactory
 import com.example.nts_pim.fragments_viewmodel.vehicle_setup.VehicleSetupViewModel
@@ -36,6 +40,7 @@ import com.example.nts_pim.utilities.enums.PIMStatusEnum
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import com.example.nts_pim.utilities.mutation_helper.PIMMutationHelper
 import kotlinx.android.synthetic.main.fragment_blue_tooth_pairing.*
+import kotlinx.android.synthetic.main.startup.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.kodein.di.KodeinAware
@@ -62,14 +67,16 @@ class BlueToothPairingFragment : ScopedFragment(), KodeinAware {
     private var noBTConnectionTimer: CountDownTimer? = null
     private var noBTView: View? = null
     private var viewGroup: ViewGroup? = null
-    private var isDriverSignedIn = false
+    private var adapterOne: StartupAdapter? = null
+    private var adapterTwo: StartupAdapter? = null
+    private var adapterThree: StartupAdapter? = null
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
         // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_blue_tooth_pairing, container, false)
+        return inflater.inflate(R.layout.startup, container, false)
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -80,10 +87,12 @@ class BlueToothPairingFragment : ScopedFragment(), KodeinAware {
         upfrontPriceViewModel = ViewModelProvider(this, factory)
             .get(UpfrontPriceViewModel::class.java)
         isBluetoothOn = BluetoothDataCenter.isBluetoothOn().value
+        initRecyclerViews()
         vehicleId = viewModel.getVehicleID()
         deviceId = DeviceIdCheck.getDeviceId() ?: ""
         mAWSAppSyncClient = ClientFactory.getInstance(context)
         VehicleTripArrayHolder.updateInternalPIMStatus(PIMStatusEnum.PIM_PAIRING.status)
+        startBluetoothConnectionTimer()
         if(PIMMutationHelper.stopPimSetup){
             val error = PIMMutationHelper.pimError
             error?.message?.let {
@@ -94,12 +103,22 @@ class BlueToothPairingFragment : ScopedFragment(), KodeinAware {
                     it, viewModel, keyboardViewModel, vehicleId!!,mAWSAppSyncClient!! )
             }
         }
+        stepOneImageButton.setOnClickListener {
+            openCloseStepOneListView()
+        }
+
+        stepTwoImageButton.setOnClickListener {
+            openCloseStepTwoListView()
+        }
+
+        stepThreeImageButton.setOnClickListener {
+            openCloseStepThreeListView()
+        }
         if(!isBluetoothOn!!){
             LoggerHelper.writeToLog("${logTag}, Bluetooth pairing is off. Going to welcome screen", LogEnums.BLUETOOTH.tag)
             toWelcomeScreen()
         } else {
             LoggerHelper.writeToLog("${logTag}, Bluetooth pairing is on. Starting pairing process", LogEnums.BLUETOOTH.tag)
-            startBluetoothConnectionTimer()
             checkIfDriverIsSignedIn(vehicleId!!)
             getDriverTabletBluetoothAddress(deviceId!!)
         }
@@ -109,18 +128,124 @@ class BlueToothPairingFragment : ScopedFragment(), KodeinAware {
                 val dataObject = NTSPimPacket.PimStatusObj()
                 val statusObj =  NTSPimPacket(NTSPimPacket.Command.PIM_STATUS, dataObject)
                 Log.i("Bluetooth", "status request packet to be sent == $statusObj")
+                PIMSetupHolder.sentTestPacket()
                 (activity as MainActivity).sendBluetoothPacket(statusObj)
                 BluetoothDataCenter.startUpBTPairSuccessful()
-                toWelcomeScreen()
             }
         })
 
+        PIMSetupHolder.isDriverBTAddressCorrect().observe(this.viewLifecycleOwner, Observer { valid ->
+            if(valid){
+                updateAdapter(adapterThree!!)
+            }
+        })
+
+        PIMSetupHolder.didFindDriverTablet().observe(this.viewLifecycleOwner, Observer { foundTablet ->
+            if(foundTablet){
+                updateAdapter(adapterThree!!)
+                if(noBTView != null){
+                    val bluetoothLayout = view?.findViewById<View>(R.id.no_bluetooth_connection_layout)
+                    viewGroup?.removeView(bluetoothLayout)
+                    viewGroup?.removeView(noBTView)
+                }
+            }
+        })
+
+        PIMSetupHolder.didSendTestPacket().observe(this.viewLifecycleOwner, Observer { sentPacket ->
+            if(sentPacket){
+                updateAdapter(adapterThree!!)
+            }
+        })
+        PIMSetupHolder.didReceiveTestPacket().observe(this.viewLifecycleOwner, Observer { receivedPacket ->
+            if(receivedPacket){
+                updateAdapter((adapterThree!!))
+                PIMSetupHolder.bluetoothConnectionFinished()
+            }
+        })
+
+        PIMSetupHolder.isBluetoothConnectionFinished().observe(this.viewLifecycleOwner, Observer { btConnectionFinished ->
+            if(btConnectionFinished){
+             updateAdapter(adapterThree!!)
+                toWelcomeScreen()
+            }
+        })
         // Leaving in commented code for driver signed in. We might want to use this value for bluetooth connection logic.
 //        upfrontPriceViewModel.isDriverSignedIn().observe(this.viewLifecycleOwner, Observer { signedIn ->
 //            if(isDriverSignedIn){
 //
 //            }
 //        })
+    }
+    private fun updateAdapter(adapter: StartupAdapter){
+        adapter.notifyDataSetChanged()
+    }
+
+    private fun openCloseStepOneListView(){
+        if(stepOneListView.visibility == View.VISIBLE) {
+            stepOneListView.visibility = View.GONE
+            stepOneImageButton.setImageResource(R.drawable.ic_plus_btn_white)
+            return
+        }
+
+        if(stepOneListView.visibility == View.GONE){
+            stepOneListView.visibility = View.VISIBLE
+            stepOneImageButton.setImageResource(R.drawable.ic_close_btn_white)
+        }
+    }
+
+    private fun openCloseStepTwoListView(){
+        if(stepTwoListView.visibility == View.VISIBLE) {
+            stepTwoListView.visibility = View.GONE
+            stepTwoImageButton.setImageResource(R.drawable.ic_plus_btn_white)
+            return
+        }
+
+        if(stepTwoListView.visibility == View.GONE){
+            stepTwoListView.visibility = View.VISIBLE
+            stepTwoImageButton.setImageResource(R.drawable.ic_close_btn_white)
+        }
+    }
+
+    private fun openCloseStepThreeListView(){
+        if(stepThreeListView.visibility == View.VISIBLE) {
+            stepThreeListView.visibility = View.GONE
+            stepThreeImageButton.setImageResource(R.drawable.ic_plus_btn_white)
+            return
+        }
+
+        if(stepThreeListView.visibility == View.GONE){
+            stepThreeListView.visibility = View.VISIBLE
+            stepThreeImageButton.setImageResource(R.drawable.ic_close_btn_white)
+        }
+    }
+
+    private fun initRecyclerViews(){
+        stepOne_title_textView.text = "AWS: Connected"
+        step_one_status_imageView.visibility = View.VISIBLE
+
+        stepTwo_title_textView.text = "Reader Status: ${VehicleTripArrayHolder.cardReaderStatus}"
+        step_two_status_ImageView.visibility = View.VISIBLE
+        makeStartupList()
+        if(stepOneListView != null) {
+            stepOneListView.adapter = adapterOne as StartupAdapter
+        }
+        if(stepTwoListView != null) {
+            stepTwoListView.adapter = adapterTwo as StartupAdapter
+        }
+        if(stepThreeListView != null){
+            stepThreeListView.adapter = adapterThree as StartupAdapter
+        }
+    }
+
+
+
+    private fun makeStartupList() {
+        val stepOneList = PIMSetupHolder.getStepOneList()
+        val stepTwoList = PIMSetupHolder.getStepTwoList()
+        val stepThreeList = PIMSetupHolder.getStepThreeList()
+        adapterOne = StartupAdapter(requireContext(), stepOneList)
+        adapterTwo = StartupAdapter(requireContext(), stepTwoList)
+        adapterThree = StartupAdapter(requireContext(), stepThreeList)
     }
 
     private fun getDriverTabletBluetoothAddress(deviceId: String){
@@ -177,12 +302,16 @@ class BlueToothPairingFragment : ScopedFragment(), KodeinAware {
 
     private fun startBluetoothConnectionTimer(){
         val timerLength = 600000.toLong()
-         viewGroup = activity?.findViewById<View>(R.id.bluetooth_pairing_layout) as ViewGroup
+         viewGroup = activity?.findViewById<View>(R.id.linearLayout2) as ViewGroup
         if(noBTConnectionTimer == null){
             noBTConnectionTimer = object: CountDownTimer(timerLength, 60000){
                 override fun onFinish() {
                     try {
                         noBTView =  View.inflate(activity, R.layout.no_bluetooth_connection, viewGroup)
+                        val closeBtn = noBTView!!.findViewById<ImageView>(R.id.close_no_bt_connection_screen_imageView)
+                        closeBtn.setOnClickListener {
+                            viewGroup!!.removeView(noBTView)
+                        }
                     }catch (e: IllegalStateException){
                         LoggerHelper.writeToLog("Issue with the no_bluetooth_connection inflating. Error: $e", LogEnums.BLUETOOTH.tag)
                     }
@@ -209,7 +338,7 @@ class BlueToothPairingFragment : ScopedFragment(), KodeinAware {
    }
 
     override fun onDestroy() {
-        BluetoothDataCenter.isConnectedToDriverTablet().removeObservers(this)
+       BluetoothDataCenter.isConnectedToDriverTablet().removeObservers(this)
         noBTConnectionTimer?.cancel()
         super.onDestroy()
     }

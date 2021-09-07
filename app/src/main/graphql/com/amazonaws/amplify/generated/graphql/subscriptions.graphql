@@ -51,6 +51,7 @@ subscription OnSettingsUpdate($deviceId: String) {
     serverIP
     surrenderedVehicle
     tollIncrement
+    upExtendedTripTimeInc
     uploadLogs
     useBluetoothPIM
     vehBtAddr
@@ -130,6 +131,7 @@ subscription OnTripUpdate($tripId: String) {
     owedPrice
     owedPriceSource
     paidAmt
+    paymentSource
     paymentType
     pimNoReceipt
     pimPayAmt
@@ -259,6 +261,7 @@ subscription OnDoPimPayment($tripId: String) {
     owedPrice
     owedPriceSource
     paidAmt
+    paymentSource
     paymentType
     pimNoReceipt
     pimPayAmt
@@ -332,6 +335,7 @@ subscription OnPimPaymentMade($tripId: String) {
     owedPrice
     owedPriceSource
     paidAmt
+    paymentSource
     paymentType
     pimNoReceipt
     pimPayAmt

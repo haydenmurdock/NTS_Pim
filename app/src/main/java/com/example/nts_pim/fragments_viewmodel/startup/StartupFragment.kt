@@ -5,7 +5,11 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
+import android.net.NetworkInfo
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.telephony.TelephonyManager
@@ -16,6 +20,7 @@ import android.view.ViewGroup
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.core.content.ContextCompat.getSystemService
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.NavController
 import androidx.navigation.Navigation
@@ -29,21 +34,24 @@ import com.apollographql.apollo.exception.ApolloException
 import com.example.nts_pim.BuildConfig
 import com.example.nts_pim.R
 import com.example.nts_pim.data.repository.AdInfoHolder
+import com.example.nts_pim.data.repository.PIMSetupHolder
 import com.example.nts_pim.data.repository.model_objects.JsonAuthCode
 import com.example.nts_pim.fragments_viewmodel.InjectorUtiles
 import com.example.nts_pim.fragments_viewmodel.base.ClientFactory
 import com.example.nts_pim.fragments_viewmodel.base.ScopedFragment
 import com.example.nts_pim.fragments_viewmodel.callback.CallBackViewModel
-import com.example.nts_pim.utilities.device_id_check.DeviceIdCheck
+import com.example.nts_pim.fragments_viewmodel.startup.adapter.StartupAdapter
 import com.example.nts_pim.fragments_viewmodel.vehicle_setup.VehicleSetupModelFactory
 import com.example.nts_pim.fragments_viewmodel.vehicle_setup.VehicleSetupViewModel
 import com.example.nts_pim.utilities.bluetooth_helper.BluetoothDataCenter
+import com.example.nts_pim.utilities.device_id_check.DeviceIdCheck
 import com.example.nts_pim.utilities.enums.LogEnums
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import com.example.nts_pim.utilities.mutation_helper.PIMMutationHelper
 import com.google.gson.Gson
 import com.squareup.sdk.reader.ReaderSdk
 import com.squareup.sdk.reader.authorization.DeauthorizeCallback
+import kotlinx.android.synthetic.main.startup.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import okhttp3.Call
@@ -55,7 +63,6 @@ import org.kodein.di.android.x.closestKodein
 import org.kodein.di.generic.instance
 import type.ResetReAuthSquareInput
 import java.io.IOException
-import java.lang.Error
 import java.net.NetworkInterface
 import java.util.*
 
@@ -75,6 +82,9 @@ class StartupFragment: ScopedFragment(), KodeinAware {
     private var deviceId: String? = null
     private var vehicleId: String? = null
     private var phoneNumber: String? = null
+    private var adapterOne: StartupAdapter? = null
+    private var adapterTwo: StartupAdapter? = null
+    private var adapterThree: StartupAdapter? = null
     private val currentFragmentId = R.id.startupFragment
 
     override fun onCreateView(
@@ -113,12 +123,16 @@ class StartupFragment: ScopedFragment(), KodeinAware {
         }
 
         val isSetupComplete = viewModel.isSetUpComplete()
+
+        initRecyclerViews()
         LoggerHelper.writeToLog("Startup: is Setup Complete: $isSetupComplete", LogEnums.SETUP.tag)
+        deviceId = DeviceIdCheck.getDeviceId()
         if(isSetupComplete){
+                PIMSetupHolder.isPaired()
                 vehicleId = viewModel.getVehicleID()
-                deviceId = DeviceIdCheck.getDeviceId()
                 PIMMutationHelper.sendPIMStartTime(deviceId!!, mAWSAppSyncClient!!)
-                getPIMSettings(deviceId!!)
+        } else {
+            PIMSetupHolder.isNotPaired(vehicleId)
         }
         blueToothAddress = getBluetoothAddress()
         appVersionNumber = BuildConfig.VERSION_NAME
@@ -128,14 +142,142 @@ class StartupFragment: ScopedFragment(), KodeinAware {
                 it
             )
         }
+        stepOneImageButton.setOnClickListener {
+            openCloseStepOneListView()
+        }
+
+        stepTwoImageButton.setOnClickListener {
+            openCloseStepTwoListView()
+        }
+
+        stepThreeImageButton.setOnClickListener {
+            openCloseStepThreeListView()
+        }
+
+        PIMSetupHolder.doesPIMHavePermissions().observe(
+            this.viewLifecycleOwner,
+            androidx.lifecycle.Observer { permissions ->
+                if (permissions) {
+                    updateAdapter(adapterOne!!)
+                    val internetOn = isNetworkAvailable(requireContext())
+                    if(internetOn){
+                        PIMSetupHolder.internetIsConnected()
+                    }
+                }
+            })
+        PIMSetupHolder.doesPIMHaveInternet().observe(
+            this.viewLifecycleOwner,
+            androidx.lifecycle.Observer { internet ->
+                if (internet) {
+                    updateAdapter(adapterOne!!)
+                } else {
+                    updateAdapter(adapterOne!!)
+                }
+            })
+        PIMSetupHolder.isPIMSetupAndPaired().observe(
+            this.viewLifecycleOwner,
+            androidx.lifecycle.Observer { paired ->
+                if (paired) {
+                    updateAdapter(adapterOne!!)
+                }
+            })
+
+        PIMSetupHolder.isPIMSubscribedToAWS().observe(
+            this.viewLifecycleOwner,
+            androidx.lifecycle.Observer { subscribedAWS ->
+                if (subscribedAWS) {
+                    updateAdapter(adapterOne!!)
+                    if (deviceId != null) {
+                        getPIMSettings(deviceId!!)
+                    }
+                }
+
+            })
+        PIMSetupHolder.doesPIMHaveSettings().observe(
+            this.viewLifecycleOwner,
+            androidx.lifecycle.Observer { hasSettings ->
+                if (hasSettings) {
+                    updateAdapter(adapterOne!!)
+                    val navController = Navigation.findNavController(
+                        requireActivity(),
+                        R.id.nav_host_fragment
+                    )
+                    checkDestinations(navController)
+                }
+            })
+    }
+
+    private fun updateAdapter(adapter: StartupAdapter){
+        adapter.notifyDataSetChanged()
+    }
+
+    private fun openCloseStepOneListView(){
+        if(stepOneListView.visibility == View.VISIBLE) {
+            stepOneListView.visibility = View.GONE
+            stepOneImageButton.setImageResource(R.drawable.ic_plus_btn_white)
+            return
+        }
+
+        if(stepOneListView.visibility == View.GONE){
+            stepOneListView.visibility = View.VISIBLE
+            stepOneImageButton.setImageResource(R.drawable.ic_close_btn_white)
+        }
+    }
+
+    private fun openCloseStepTwoListView(){
+        if(stepTwoListView.visibility == View.VISIBLE) {
+            stepTwoListView.visibility = View.GONE
+            stepTwoImageButton.setImageResource(R.drawable.ic_plus_btn_white)
+            return
+        }
+
+        if(stepTwoListView.visibility == View.GONE){
+            stepTwoListView.visibility = View.VISIBLE
+            stepTwoImageButton.setImageResource(R.drawable.ic_close_btn_white)
+        }
+    }
+
+    private fun openCloseStepThreeListView(){
+        if(stepThreeListView.visibility == View.VISIBLE) {
+            stepThreeListView.visibility = View.GONE
+            stepThreeImageButton.setImageResource(R.drawable.ic_plus_btn_white)
+            return
+        }
+
+        if(stepThreeListView.visibility == View.GONE){
+            stepThreeListView.visibility = View.VISIBLE
+            stepThreeImageButton.setImageResource(R.drawable.ic_close_btn_white)
+        }
+    }
+
+    private fun initRecyclerViews(){
+        makeStartupList()
+        if(stepOneListView != null) {
+           stepOneListView.adapter = adapterOne as StartupAdapter
+        }
+        if(stepTwoListView != null) {
+            stepTwoListView.adapter = adapterTwo as StartupAdapter
+        }
+        if(stepThreeListView != null){
+            stepThreeListView.adapter = adapterThree as StartupAdapter
+        }
+    }
+
+
+
+    private fun makeStartupList() {
+        val stepOneList = PIMSetupHolder.getStepOneList()
+        val stepTwoList = PIMSetupHolder.getStepTwoList()
+        val stepThreeList = PIMSetupHolder.getStepThreeList()
+        adapterOne = StartupAdapter(requireContext(), stepOneList)
+        adapterTwo = StartupAdapter(requireContext(), stepTwoList)
+        adapterThree = StartupAdapter(requireContext(), stepThreeList)
     }
 
     private fun getPIMSettings(deviceId: String){
-
         if (mAWSAppSyncClient == null) {
             mAWSAppSyncClient = ClientFactory.getInstance(requireActivity().applicationContext)
         }
-
         mAWSAppSyncClient?.query(GetPimSettingsQuery.builder().deviceId(deviceId).build())
             ?.responseFetcher(AppSyncResponseFetchers.NETWORK_ONLY)
             ?.enqueue(startUpPIMSettingsQueryCallBack)
@@ -144,15 +286,26 @@ class StartupFragment: ScopedFragment(), KodeinAware {
     private var startUpPIMSettingsQueryCallBack = object: GraphQLCall.Callback<GetPimSettingsQuery.Data>() {
         override fun onResponse(response: Response<GetPimSettingsQuery.Data>) {
             Log.i("CheckingAWS", "${response.data()}")
-            LoggerHelper.writeToLog("GetPimSettingsQuery at start up: ${response.data()}", LogEnums.SETUP.tag)
+            LoggerHelper.writeToLog(
+                "GetPimSettingsQuery at start up: ${response.data()}",
+                LogEnums.SETUP.tag
+            )
             if(response.data()?.pimSettings?.errorCode() == "1016"){
-                LoggerHelper.writeToLog("Error code 1016. Showing Toast with error message: {${response.data()!!.pimSettings.error()}", LogEnums.SETUP.tag)
-                Toast.makeText(this@StartupFragment.context, "${response.data()?.pimSettings!!.error()}", Toast.LENGTH_LONG).show()
+                LoggerHelper.writeToLog(
+                    "Error code 1016. Showing Toast with error message: {${response.data()!!.pimSettings.error()}",
+                    LogEnums.SETUP.tag
+                )
+                Toast.makeText(
+                    this@StartupFragment.context,
+                    "${response.data()?.pimSettings!!.error()}",
+                    Toast.LENGTH_LONG
+                ).show()
             }
 
             if (response.data() != null &&
                 !response.hasErrors()
             ) {
+                PIMSetupHolder.pimSettingsAreUpdated()
                 val isLoggingOn = response.data()?.pimSettings?.log()
                 val awsBluetoothAddress = response.data()?.pimSettings?.btAddress()
                 val appVersion = response.data()?.pimSettings?.appVersion()
@@ -170,9 +323,16 @@ class StartupFragment: ScopedFragment(), KodeinAware {
                      }
                 }
                 if(pimPaired && awsDeviceId != deviceId){
-                    LoggerHelper.writeToLog("Device id didn't match from the query. Is trying to update device for v", LogEnums.SETUP.tag)
+                    LoggerHelper.writeToLog(
+                        "Device id didn't match from the query. Is trying to update device for v",
+                        LogEnums.SETUP.tag
+                    )
                     launch(Dispatchers.IO) {
-                        PIMMutationHelper.updateDeviceId(deviceId!!, mAWSAppSyncClient!!, vehicleId!!)
+                        PIMMutationHelper.updateDeviceId(
+                            deviceId!!,
+                            mAWSAppSyncClient!!,
+                            vehicleId!!
+                        )
                     }
                 }
 
@@ -180,20 +340,41 @@ class StartupFragment: ScopedFragment(), KodeinAware {
                     LoggerHelper.logging = isLoggingOn
                 }
                 if (awsBluetoothAddress.isNullOrEmpty() || awsBluetoothAddress != blueToothAddress){
-                PIMMutationHelper.updatePimSettings(blueToothAddress, appVersionNumber, phoneNumber, mAWSAppSyncClient!!,deviceId!!)
+                PIMMutationHelper.updatePimSettings(
+                    blueToothAddress,
+                    appVersionNumber,
+                    phoneNumber,
+                    mAWSAppSyncClient!!,
+                    deviceId!!
+                )
                 }
 
                 if(appVersion.isNullOrBlank() || appVersion.isNullOrEmpty() || appVersion != appVersionNumber){
-                    PIMMutationHelper.updatePimSettings(blueToothAddress, appVersionNumber, phoneNumber, mAWSAppSyncClient!!, deviceId!!)
+                    PIMMutationHelper.updatePimSettings(
+                        blueToothAddress,
+                        appVersionNumber,
+                        phoneNumber,
+                        mAWSAppSyncClient!!,
+                        deviceId!!
+                    )
                 }
                 if(reAuth != null && reAuth){
                     reauthorizeSquare()
                 }
                 if(awsPhoneNumber != phoneNumber){
-                    PIMMutationHelper.updatePimSettings(blueToothAddress, appVersionNumber, phoneNumber, mAWSAppSyncClient!!, deviceId!!)
+                    PIMMutationHelper.updatePimSettings(
+                        blueToothAddress,
+                        appVersionNumber,
+                        phoneNumber,
+                        mAWSAppSyncClient!!,
+                        deviceId!!
+                    )
                 }
                 if(useBluetooth != null){
-                    LoggerHelper.writeToLog("useBluetooth value at start up: $useBluetooth", LogEnums.SETUP.tag)
+                    LoggerHelper.writeToLog(
+                        "useBluetooth value at start up: $useBluetooth",
+                        LogEnums.SETUP.tag
+                    )
                     if(useBluetooth == true){
                             BluetoothDataCenter.turnOnBlueTooth()
                         } else {
@@ -201,22 +382,34 @@ class StartupFragment: ScopedFragment(), KodeinAware {
                         }
                     }
                 if(addRemoved) {
-                    LoggerHelper.writeToLog("Ad removed was true. Trying to delete ads", LogEnums.SETUP.tag)
+                    LoggerHelper.writeToLog(
+                        "Ad removed was true. Trying to delete ads",
+                        LogEnums.SETUP.tag
+                    )
                     AdInfoHolder.deleteAds()
                 }
                 if(!addRemoved){
-                    LoggerHelper.writeToLog("Ad removed was false. checking for internal add info", LogEnums.SETUP.tag)
+                    LoggerHelper.writeToLog(
+                        "Ad removed was false. checking for internal add info",
+                        LogEnums.SETUP.tag
+                    )
                    AdInfoHolder.checkForInternalAddInfo()
                 }
                 if(hasAddChanged){
-                    LoggerHelper.writeToLog("Ad changed is true. Trying to delete ads. Grabbing ad info from AWS", LogEnums.SETUP.tag)
+                    LoggerHelper.writeToLog(
+                        "Ad changed is true. Trying to delete ads. Grabbing ad info from AWS",
+                        LogEnums.SETUP.tag
+                    )
                     AdInfoHolder.deleteAds()
                     PIMMutationHelper.getAdInformation(vehicleId!!)
                 }
             }
         }
         override fun onFailure(e: ApolloException) {
-            LoggerHelper.writeToLog("Failure for Get Pim Settings Query. Request did not reach AWS. Error: $e", LogEnums.SETUP.tag)
+            LoggerHelper.writeToLog(
+                "Failure for Get Pim Settings Query. Request did not reach AWS. Error: $e",
+                LogEnums.SETUP.tag
+            )
         }
     }
     private fun reauthorizeSquare() = launch(Dispatchers.Main.immediate){
@@ -261,7 +454,7 @@ class StartupFragment: ScopedFragment(), KodeinAware {
                         }
                     }
                     if (response.code == 401) {
-                        launch(Dispatchers.Main.immediate){
+                        launch(Dispatchers.Main.immediate) {
                             Toast.makeText(
                                 context!!,
                                 "Need to authorize fleet with log In",
@@ -270,6 +463,7 @@ class StartupFragment: ScopedFragment(), KodeinAware {
                         }
                     }
                 }
+
                 override fun onFailure(call: Call, e: IOException) {
                     println("failure")
                 }
@@ -281,7 +475,7 @@ class StartupFragment: ScopedFragment(), KodeinAware {
     private fun onAuthorizationCodeRetrieved(authorizationCode: String, vehicleId: String)
             = launch(Dispatchers.Main.immediate) {
         ReaderSdk.authorizationManager().addAuthorizeCallback {
-            Log.i("Deauthorization" ,"$it")
+            Log.i("De-authorization", "$it")
             if(it.isSuccess){
                 sendBackAuthMutation(vehicleId)
             }
@@ -292,23 +486,34 @@ class StartupFragment: ScopedFragment(), KodeinAware {
     private fun sendBackAuthMutation(vehicleId: String) = launch(Dispatchers.IO){
         if(ReaderSdk.authorizationManager().authorizationState.isAuthorized){
             val reAuthInput = ResetReAuthSquareInput.builder().vehicleId(vehicleId).build()
-          mAWSAppSyncClient?.mutate(ResetReAuthSquareMutation.builder().parameters(reAuthInput).build())?.enqueue(reAuthCallback)
+          mAWSAppSyncClient?.mutate(
+              ResetReAuthSquareMutation.builder().parameters(reAuthInput).build()
+          )?.enqueue(reAuthCallback)
         }
     }
     private var reAuthCallback = object : GraphQLCall.Callback<ResetReAuthSquareMutation.Data>(){
         override fun onResponse(response: Response<ResetReAuthSquareMutation.Data>) {
             if(response.hasErrors()){
-                LoggerHelper.writeToLog("There was an error trying to reAuthorize square account for this vehicle. Suggest manuel ReAuth", LogEnums.SETUP.tag)
+                LoggerHelper.writeToLog(
+                    "There was an error trying to reAuthorize square account for this vehicle. Suggest manuel ReAuth",
+                    LogEnums.SETUP.tag
+                )
             }
 
             if(response.data()?.resetReAuthSquare()?.reAuthSquare() != null &&
                 response.data()?.resetReAuthSquare()?.reAuthSquare() == false){
-                LoggerHelper.writeToLog("$vehicleId was successfully re-authorized", LogEnums.SETUP.tag)
+                LoggerHelper.writeToLog(
+                    "$vehicleId was successfully re-authorized",
+                    LogEnums.SETUP.tag
+                )
             }
         }
 
         override fun onFailure(e: ApolloException) {
-            LoggerHelper.writeToLog("There was an error trying to reAuthorize square account for this vehicle. Suggest manual ReAuth", LogEnums.SETUP.tag)
+            LoggerHelper.writeToLog(
+                "There was an error trying to reAuthorize square account for this vehicle. Suggest manual ReAuth",
+                LogEnums.SETUP.tag
+            )
         }
     }
     private fun checkDrawPermission(): Boolean {
@@ -321,12 +526,64 @@ class StartupFragment: ScopedFragment(), KodeinAware {
 
 
     private fun openDrawPermissionsMenu(){
-        val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + requireContext().packageName))
+        val intent = Intent(
+            Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+            Uri.parse("package:" + requireContext().packageName)
+        )
         startActivity(intent)
+    }
+
+    fun isNetworkAvailable(context: Context): Boolean {
+        val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+
+        // For 29 api or above
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val capabilities = connectivityManager.getNetworkCapabilities(connectivityManager.activeNetwork) ?: return false
+            return when {
+                capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ->    true
+                capabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) ->   true
+                capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) ->   true
+                else ->     false
+            }
+        }
+        // For below 29 api
+        else {
+            if (connectivityManager.activeNetworkInfo != null && connectivityManager.activeNetworkInfo!!.isConnectedOrConnecting) {
+                return true
+            }
+        }
+        return false
     }
     private fun getBluetoothAddress(): String?{
       // We will use this for BlueTooth setup with the driver tablet
-        val alphabetArray = mutableListOf<String>("A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z")
+        val alphabetArray = mutableListOf<String>(
+            "A",
+            "B",
+            "C",
+            "D",
+            "E",
+            "F",
+            "G",
+            "H",
+            "I",
+            "J",
+            "K",
+            "L",
+            "M",
+            "N",
+            "O",
+            "P",
+            "Q",
+            "R",
+            "S",
+            "T",
+            "U",
+            "V",
+            "W",
+            "X",
+            "Y",
+            "Z"
+        )
         var bluetoothAddress = ""
         try {
             val all: List<NetworkInterface> =
@@ -359,7 +616,10 @@ class StartupFragment: ScopedFragment(), KodeinAware {
                 return bluetoothAddress
             }
         } catch (ex: Exception) {
-            com.example.nts_pim.utilities.view_helper.ViewHelper.makeSnackbar(this.requireView(), "Error getting bluetooth address: ex: $ex")
+            com.example.nts_pim.utilities.view_helper.ViewHelper.makeSnackbar(
+                this.requireView(),
+                "Error getting bluetooth address: ex: $ex"
+            )
         }
         return "02:00:00:00:00:00"
     }
@@ -403,13 +663,18 @@ class StartupFragment: ScopedFragment(), KodeinAware {
             // request all missing permissions
             val permissions = missingPermissions
                 .toTypedArray()
-            ActivityCompat.requestPermissions(this.requireActivity(), permissions, REQUEST_CODE_ASK_PERMISSIONS)
+            ActivityCompat.requestPermissions(
+                this.requireActivity(),
+                permissions,
+                REQUEST_CODE_ASK_PERMISSIONS
+            )
         } else {
             val grantResults = IntArray(REQUIRED_SDK_PERMISSIONS.size)
             Arrays.fill(grantResults, PackageManager.PERMISSION_GRANTED)
             onRequestPermissionsResult(
                 REQUEST_CODE_ASK_PERMISSIONS, REQUIRED_SDK_PERMISSIONS,
-                grantResults)
+                grantResults
+            )
         }
     }
 
@@ -427,7 +692,10 @@ class StartupFragment: ScopedFragment(), KodeinAware {
 
         //refreshes the screen
         val br =
-            Settings.System.getInt(requireContext().contentResolver, Settings.System.SCREEN_BRIGHTNESS)
+            Settings.System.getInt(
+                requireContext().contentResolver,
+                Settings.System.SCREEN_BRIGHTNESS
+            )
         val lp = requireActivity().window.attributes
         lp.screenBrightness = br.toFloat() / 255
         requireActivity().window.attributes = lp
@@ -442,7 +710,7 @@ class StartupFragment: ScopedFragment(), KodeinAware {
         if (setupStatus && permissionWrite && permissionDraw && permissionAccessibility){
             viewModel.vehicleIDExists()
             if (navController.currentDestination?.id == currentFragmentId) {
-                navController.navigate(R.id.bluetoothSetupFragment)
+              navController.navigate(R.id.bluetoothSetupFragment)
             }
         } else if(permissionDraw && permissionWrite && permissionAccessibility) {
             if (navController.currentDestination?.id == currentFragmentId) {
@@ -457,9 +725,12 @@ class StartupFragment: ScopedFragment(), KodeinAware {
         val navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment)
         if (!permissionDraw || !permissionWrite || !permissionAccessibility) {
             checkPermissions()
-        } else if (permissionWrite && permissionDraw && permissionAccessibility){
+        }
+        if(permissionDraw && permissionWrite && permissionAccessibility){
+            PIMSetupHolder.permissionsChecked()
+        }
+        if(!setupStatus){
             checkDestinations(navController)
         }
-        checkDestinations(navController)
     }
 }
