@@ -430,7 +430,7 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
             LoggerHelper.writeToLog("Reader was de-authorized", SquareHelper.logTag)
         }
         val isLastMACExpired = SquareHelper.isMACExpired(requireActivity().applicationContext)
-        if(isLastMACExpired){
+        if(isLastMACExpired == null || isLastMACExpired){
             LoggerHelper.writeToLog("MAC was expired or didn't exist. Getting NEW MAC for authorization.", LogEnums.SQUARE.tag)
            getMobileAuthCode(vehicleId)
         } else {
@@ -453,7 +453,7 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
     private fun onAuthorizationCodeRetrieved(authorizationCode: String)
             = launch {
         ReaderSdk.authorizationManager().authorize(authorizationCode)
-        SquareHelper.saveMAC(authorizationCode, activity!!.applicationContext)
+        SquareHelper.saveMAC(authorizationCode, requireActivity().applicationContext)
     }
     //onResults
     private fun onAuthorizeResult(result: Result<Location, ResultError<AuthorizeErrorCode>>) {
@@ -496,7 +496,7 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
     }
     private fun getMobileAuthCode(vehicleId: String) {
         val dateTime = ViewHelper.formatDateUtcIso(Date())
-        val url = "https://i8xgdzdwk5.execute-api.us-east-2.amazonaws.com/prod/CheckOAuthToken?vehicleId=$vehicleId&source=PIM&eventTimeStamp=2021-08-26T$dateTime&extraInfo=PairingSetup"
+        val url = "https://i8xgdzdwk5.execute-api.us-east-2.amazonaws.com/prod/CheckOAuthToken?vehicleId=$vehicleId&source=PIM&eventTimeStamp=2021-08-26T$dateTime&extraInfo=PIM_VEHICLE_PAIRING"
         val client = OkHttpClient()
         val request = Request.Builder()
             .url(url)

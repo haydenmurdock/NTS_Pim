@@ -7,7 +7,6 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
-import android.net.NetworkInfo
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -20,7 +19,6 @@ import android.view.ViewGroup
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import androidx.core.content.ContextCompat.getSystemService
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.NavController
 import androidx.navigation.Navigation
@@ -43,14 +41,15 @@ import com.example.nts_pim.fragments_viewmodel.callback.CallBackViewModel
 import com.example.nts_pim.fragments_viewmodel.startup.adapter.StartupAdapter
 import com.example.nts_pim.fragments_viewmodel.vehicle_setup.VehicleSetupModelFactory
 import com.example.nts_pim.fragments_viewmodel.vehicle_setup.VehicleSetupViewModel
+import com.example.nts_pim.utilities.Square_Service.SquareHelper
 import com.example.nts_pim.utilities.bluetooth_helper.BluetoothDataCenter
 import com.example.nts_pim.utilities.device_id_check.DeviceIdCheck
 import com.example.nts_pim.utilities.enums.LogEnums
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import com.example.nts_pim.utilities.mutation_helper.PIMMutationHelper
+import com.example.nts_pim.utilities.view_helper.ViewHelper
 import com.google.gson.Gson
 import com.squareup.sdk.reader.ReaderSdk
-import com.squareup.sdk.reader.authorization.DeauthorizeCallback
 import kotlinx.android.synthetic.main.startup.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -86,6 +85,8 @@ class StartupFragment: ScopedFragment(), KodeinAware {
     private var adapterTwo: StartupAdapter? = null
     private var adapterThree: StartupAdapter? = null
     private val currentFragmentId = R.id.startupFragment
+    private var pimSettingsAttempted = false
+    private var authoringSquare = false
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -123,7 +124,6 @@ class StartupFragment: ScopedFragment(), KodeinAware {
         }
 
         val isSetupComplete = viewModel.isSetUpComplete()
-
         initRecyclerViews()
         LoggerHelper.writeToLog("Startup: is Setup Complete: $isSetupComplete", LogEnums.SETUP.tag)
         deviceId = DeviceIdCheck.getDeviceId()
@@ -278,9 +278,12 @@ class StartupFragment: ScopedFragment(), KodeinAware {
         if (mAWSAppSyncClient == null) {
             mAWSAppSyncClient = ClientFactory.getInstance(requireActivity().applicationContext)
         }
-        mAWSAppSyncClient?.query(GetPimSettingsQuery.builder().deviceId(deviceId).build())
-            ?.responseFetcher(AppSyncResponseFetchers.NETWORK_ONLY)
-            ?.enqueue(startUpPIMSettingsQueryCallBack)
+        if (!pimSettingsAttempted){
+            mAWSAppSyncClient?.query(GetPimSettingsQuery.builder().deviceId(deviceId).build())
+                ?.responseFetcher(AppSyncResponseFetchers.NETWORK_ONLY)
+                ?.enqueue(startUpPIMSettingsQueryCallBack)
+            pimSettingsAttempted = true
+        }
     }
 
     private var startUpPIMSettingsQueryCallBack = object: GraphQLCall.Callback<GetPimSettingsQuery.Data>() {
@@ -305,7 +308,7 @@ class StartupFragment: ScopedFragment(), KodeinAware {
             if (response.data() != null &&
                 !response.hasErrors()
             ) {
-                PIMSetupHolder.pimSettingsAreUpdated()
+
                 val isLoggingOn = response.data()?.pimSettings?.log()
                 val awsBluetoothAddress = response.data()?.pimSettings?.btAddress()
                 val appVersion = response.data()?.pimSettings?.appVersion()
@@ -358,9 +361,7 @@ class StartupFragment: ScopedFragment(), KodeinAware {
                         deviceId!!
                     )
                 }
-                if(reAuth != null && reAuth){
-                    reauthorizeSquare()
-                }
+
                 if(awsPhoneNumber != phoneNumber){
                     PIMMutationHelper.updatePimSettings(
                         blueToothAddress,
@@ -403,7 +404,14 @@ class StartupFragment: ScopedFragment(), KodeinAware {
                     AdInfoHolder.deleteAds()
                     PIMMutationHelper.getAdInformation(vehicleId!!)
                 }
+                if(reAuth != null && reAuth){
+                    reauthorizeSquareFromFMP()
+                } else {
+                    PIMSetupHolder.pimSettingsAreUpdated()
+                }
             }
+
+
         }
         override fun onFailure(e: ApolloException) {
             LoggerHelper.writeToLog(
@@ -412,23 +420,40 @@ class StartupFragment: ScopedFragment(), KodeinAware {
             )
         }
     }
-    private fun reauthorizeSquare() = launch(Dispatchers.Main.immediate){
-        if(ReaderSdk.authorizationManager().authorizationState.canDeauthorize()){
-            ReaderSdk.authorizationManager().addDeauthorizeCallback(deauthorizeCallback)
-            ReaderSdk.authorizationManager().deauthorize()
-            Log.i("LOGGER", "$vehicleId successfully de-authorized")
-        }
-        if(!vehicleId.isNullOrEmpty()){
-            Log.i("LOGGER", "$vehicleId: Trying to reauthorize")
-            getAuthorizationCode(vehicleId!!)
+    private fun reauthorizeSquareFromFMP() {
+        //We don't check for a valid MAC in this instance. If we use a MAC that is already in use, it will push the authorization to the Reader Check Screen with a de-authorized reader SDK.
+        ViewHelper.makeSnackbar(requireView(), "FLEET MGMT PORTAL: RE-AUTH REQUEST")
+        if(!authoringSquare){
+            ReaderSdk.authorizationManager().addDeauthorizeCallback {  deauthorize  ->
+                if(deauthorize.isSuccess){
+                    SquareHelper.deleteMac("FMP request for new MAC", requireContext())
+                    getMobileAuthCode(vehicleId!!)
+                }
+            }
+            ReaderSdk.authorizationManager().addAuthorizeCallback {result ->
+                if(result.isSuccess){
+                    LoggerHelper.writeToLog("Reader SDK was successfully authorized via FMP", LogEnums.SQUARE.tag)
+                    PIMSetupHolder.pimSettingsAreUpdated()
+                }
+
+            }
+            if (ReaderSdk.authorizationManager().authorizationState.canDeauthorize()) {
+                activity?.runOnUiThread {
+                    ReaderSdk.authorizationManager().deauthorize()
+                }
+
+                LoggerHelper.writeToLog(
+                    "De-authorized_Square via startup function to authorize on FMP",
+                    LogEnums.SQUARE.tag
+                )
             }
         }
-    private val deauthorizeCallback = DeauthorizeCallback {
-       Log.i("deauthorize Callback", "$it")
-        it.isSuccess
     }
-    private fun getAuthorizationCode(vehicleId: String) {
-      val url = "https://i8xgdzdwk5.execute-api.us-east-2.amazonaws.com/prod/CheckOAuthToken?vehicleId=$vehicleId"
+
+    private fun getMobileAuthCode(vehicleId: String) = launch(Dispatchers.IO) {
+        val dateTime = ViewHelper.formatDateUtcIso(Date())
+        val url = "https://i8xgdzdwk5.execute-api.us-east-2.amazonaws.com/prod/CheckOAuthToken?vehicleId=$vehicleId&source=PIM&eventTimeStamp=$dateTime&extraInfo=REQ_VIA_FLEET_MGMT_PORTAL"
+        LoggerHelper.writeToLog("Sending MAC request to: $url", LogEnums.SQUARE.tag)
         val client = OkHttpClient()
         val request = Request.Builder()
             .url(url)
@@ -441,8 +466,8 @@ class StartupFragment: ScopedFragment(), KodeinAware {
                         val convertedObject =
                             gson.fromJson(response.body?.string(), JsonAuthCode::class.java)
                         val authCode = convertedObject.authCode
+                        LoggerHelper.writeToLog("Successfully got MAC", SquareHelper.logTag)
                         onAuthorizationCodeRetrieved(authCode, vehicleId)
-                        Log.i("LOGGER", "$vehicleId successfully got AuthCode")
                     }
                     if (response.code == 404) {
                         launch(Dispatchers.Main.immediate) {
@@ -472,24 +497,21 @@ class StartupFragment: ScopedFragment(), KodeinAware {
             println(e)
         }
     }
-    private fun onAuthorizationCodeRetrieved(authorizationCode: String, vehicleId: String)
-            = launch(Dispatchers.Main.immediate) {
-        ReaderSdk.authorizationManager().addAuthorizeCallback {
-            Log.i("De-authorization", "$it")
-            if(it.isSuccess){
-                sendBackAuthMutation(vehicleId)
-            }
+    private fun onAuthorizationCodeRetrieved(authorizationCode: String, vehicleId: String){
+        SquareHelper.saveMAC(authorizationCode, this.requireContext())
+        launch(Dispatchers.Main.immediate){
+            ReaderSdk.authorizationManager().authorize(authorizationCode)
         }
-        ReaderSdk.authorizationManager().authorize(authorizationCode)
+        authoringSquare = false
+        sendBackAuthMutation(vehicleId)
     }
 
     private fun sendBackAuthMutation(vehicleId: String) = launch(Dispatchers.IO){
-        if(ReaderSdk.authorizationManager().authorizationState.isAuthorized){
-            val reAuthInput = ResetReAuthSquareInput.builder().vehicleId(vehicleId).build()
+        val reAuthInput = ResetReAuthSquareInput.builder().vehicleId(vehicleId).build()
           mAWSAppSyncClient?.mutate(
               ResetReAuthSquareMutation.builder().parameters(reAuthInput).build()
           )?.enqueue(reAuthCallback)
-        }
+
     }
     private var reAuthCallback = object : GraphQLCall.Callback<ResetReAuthSquareMutation.Data>(){
         override fun onResponse(response: Response<ResetReAuthSquareMutation.Data>) {
@@ -533,7 +555,7 @@ class StartupFragment: ScopedFragment(), KodeinAware {
         startActivity(intent)
     }
 
-    fun isNetworkAvailable(context: Context): Boolean {
+    private fun isNetworkAvailable(context: Context): Boolean {
         val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
 
         // For 29 api or above

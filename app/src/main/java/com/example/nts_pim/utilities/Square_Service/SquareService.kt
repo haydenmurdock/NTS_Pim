@@ -7,15 +7,12 @@ import android.content.Context
 import android.media.AudioManager
 import android.media.MediaPlayer
 import android.view.MotionEvent
-import android.widget.TextView
 import android.os.CountDownTimer
 import android.util.Log
 import android.view.View
 import android.view.ViewGroup
 import android.view.View.OnLayoutChangeListener
-import android.widget.Button
-import android.widget.ImageView
-import android.widget.ListView
+import android.widget.*
 import androidx.core.view.get
 import androidx.core.view.isVisible
 import androidx.navigation.NavController
@@ -146,7 +143,7 @@ class SquareService : OnLayoutChangeListener,
         }
         val viewGroup = squareActivity!!.findViewById<View>(android.R.id.content) as ViewGroup
         val newState = computeState(view)
-        vw.walk(view)
+//        vw.walk(view)
         if (state != newState || state == SqUIState.OTHER_STATE) {
             // Leaving state
             when (state) {
@@ -212,6 +209,9 @@ class SquareService : OnLayoutChangeListener,
                         val imageView = activity.findViewById<ImageView>(R.id.insert_card_imageView)
                         Glide.with(activity.applicationContext)
                             .load(R.raw.insert_swipe_card).into(imageView)
+                        val blankToast = Toast.makeText(activity.applicationContext, "", Toast.LENGTH_SHORT)
+                        blankToast.show()
+                        blankToast.cancel()
                     }
                     val tripTotal = VehicleTripArrayHolder.getAmountForSquareDisplay().toDouble()
                     val decimalFormatter = DecimalFormat("####00.00")

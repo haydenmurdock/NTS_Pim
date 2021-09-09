@@ -609,7 +609,7 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
                     sendPimStatusBluetooth()
                     updateInternalInfoDeclinedPayment("${error.message}, ${PIMStatusEnum.SDK_NOT_AUTHORIZED.status}")
                     LoggerHelper.writeToLog("$logFragment,  SDK not authorized for square transaction", LogEnums.PAYMENT.tag)
-                    SquareHelper.authorizeSquare(vehicleId, this.requireActivity())
+                    SquareHelper.authorizeSquare(vehicleId, this.requireActivity(), "FAILED_TRANSACTION")
                 }
                 CheckoutErrorCode.CANCELED -> {
                     val toast = Toast.makeText(context,

@@ -3,6 +3,8 @@ package com.example.nts_pim.fragments_viewmodel.square_setup
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -39,7 +41,9 @@ import com.squareup.sdk.reader.core.ResultError
 import com.squareup.sdk.reader.hardware.ReaderSettingsErrorCode
 import kotlinx.android.synthetic.main.startup.*
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.OkHttpClient
@@ -49,9 +53,11 @@ import org.kodein.di.android.x.closestKodein
 import org.kodein.di.generic.instance
 import java.io.IOException
 import java.lang.Error
+import java.time.Duration
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.*
+import java.util.concurrent.TimeUnit
 import kotlin.collections.ArrayList
 
 class SquareSetupFragment: ScopedFragment(), KodeinAware {
@@ -75,9 +81,13 @@ class SquareSetupFragment: ScopedFragment(), KodeinAware {
     private var adapterOne: StartupAdapter? = null
     private var adapterTwo: StartupAdapter? = null
     private var adapterThree: StartupAdapter? = null
+    private var attemptingToAuth = false
 
 
     private val authCallback = AuthorizeCallback{ authorized ->
+        if(authorized.isSuccess){
+            startSquareCardReaderCheck()
+        }
         if(!authorized.isSuccess){
             LoggerHelper.writeToLog("auth callback, not successful. Error = ${authorized.error}", LogEnums.SQUARE.tag)
             if(view != null){
@@ -87,8 +97,16 @@ class SquareSetupFragment: ScopedFragment(), KodeinAware {
                         Toast.LENGTH_LONG)
                         .show()
                 }
+                if(authorized.error.debugCode == "authorize_code_already_used"){
+                    SquareHelper.deleteMac(authorized.error.debugCode, requireContext())
+                    attemptingToAuth = false
+                }
+                if(authorized.error.debugCode == "authorize_code_already_in_progress"){
+                    SquareHelper.deleteMac(authorized.error.debugCode, requireContext())
+                    attemptingToAuth = false
+                }
             }
-            if (numberOfReaderFailedAttempts <= 2){
+            if (numberOfReaderFailedAttempts <= 3){
                 Log.i(logtag, "Reader was authorized $numberOfReaderFailedAttempts number of times. Starting square card reader check")
                 startSquareCardReaderCheck()
                 numberOfReaderFailedAttempts += 1
@@ -128,7 +146,6 @@ class SquareSetupFragment: ScopedFragment(), KodeinAware {
         getArgs()
         turnOnBluetooth()
         initRecyclerViews()
-
         stepOneImageButton.setOnClickListener {
             openCloseStepOneListView()
         }
@@ -299,26 +316,15 @@ class SquareSetupFragment: ScopedFragment(), KodeinAware {
         readerSdk.addAuthorizeCallback(authCallback)
     }
     private fun startSquareCardReaderCheck(){
-       val doesMACExist = ReaderSdk.authorizationManager().authorizationState.isAuthorized
-        /**
-         * 8/24/21 After talking with Freeland @ SQUARE, this isAuthorized means the MAC exists or not in the readerSDK.
-         * It does not mean that the Tablet is actually authorized to take payments!
-         */
-        if(!doesMACExist){
-            LoggerHelper.writeToLog("Reader SDK did not MAC at time of starting square reader check. Getting MAC ", LogEnums.SQUARE.tag)
-            PIMSetupHolder.notAuthorized()
-            reauthorizeSquare()
-        } else {
-            LoggerHelper.writeToLog("Reader SDK has a MAC. Starting Chip Reader status check", LogEnums.SQUARE.tag)
-            ReaderSdk.readerManager().startReaderSettingsActivity(requireContext())
-            PIMSetupHolder.isAuthorized()
-        }
-
+        readerSettingsCallbackRef =
+            readerManager.addReaderSettingsActivityCallback(this::onReaderSettingsResultBTSetup)
+        ReaderSdk.readerManager().startReaderSettingsActivity(requireContext())
     }
 
     private fun onReaderSettingsResultBTSetup(result: Result<Void, ResultError<ReaderSettingsErrorCode>>) {
         if (result.isSuccess){
             LoggerHelper.writeToLog("onReaderSettings for reader check was successful", LogEnums.SQUARE.tag)
+            PIMSetupHolder.isAuthorized()
         }
         if (result.isError) {
             val error = result.error
@@ -335,20 +341,26 @@ class SquareSetupFragment: ScopedFragment(), KodeinAware {
                 }
                 ReaderSettingsErrorCode.USAGE_ERROR -> {
                     LoggerHelper.writeToLog("usage error: ${error.debugCode}", LogEnums.SQUARE.tag)
-                    readerSettingsCallbackRef?.clear()
                 }
             }
         }
     }
     private fun reauthorizeSquare(){
-        if(ReaderSdk.authorizationManager().authorizationState.canDeauthorize()){
-            ReaderSdk.authorizationManager().deauthorize()
-            LoggerHelper.writeToLog("Reader was de-authorized", SquareHelper.logTag)
-        }
-        val isLastMACExpired = SquareHelper.isMACExpired(requireContext())
-            if(isLastMACExpired){
-                LoggerHelper.writeToLog("MAC was expired or didn't exist. Getting NEW MAC for authorization.", LogEnums.SQUARE.tag)
-                getMobileAuthorizationCode()
+        if(!attemptingToAuth){
+            attemptingToAuth = true
+            if(ReaderSdk.authorizationManager().authorizationState.canDeauthorize()){
+                ReaderSdk.authorizationManager().deauthorize()
+                LoggerHelper.writeToLog("Reader was de-authorized", SquareHelper.logTag)
+            }
+            val isLastMACExpired = SquareHelper.isMACExpired(requireContext())
+            if(isLastMACExpired == null || isLastMACExpired){
+                LoggerHelper.writeToLog("MAC was expired or didn't exist. Getting NEW MAC for authorization. isLastMacExpired $isLastMACExpired", LogEnums.SQUARE.tag)
+                Handler(Looper.getMainLooper()).postDelayed(
+                    {
+                        getMobileAuthorizationCode()
+                    },
+                    3000 // value in milliseconds
+                )
             } else {
                 val lastMACid = SquareHelper.getLastMAC(requireContext())?.getId() ?: ""
                 LoggerHelper.writeToLog("Last mac id was less than 1 hour old. Using OLD MAC for authorization. Id: $lastMACid", LogEnums.SQUARE.tag)
@@ -358,15 +370,23 @@ class SquareSetupFragment: ScopedFragment(), KodeinAware {
                     }
                 } else {
                     LoggerHelper.writeToLog("Last mac id was less than 1 hour old, but MAC wasn't formatted correctly. Getting new MAC", LogEnums.SQUARE.tag)
-                    getMobileAuthorizationCode()
+                    Handler(Looper.getMainLooper()).postDelayed(
+                        {
+                           getMobileAuthorizationCode()
+                        },
+                        3000 // value in milliseconds
+                    )
+
                 }
             }
+
+        }
     }
 
 
     private fun getMobileAuthorizationCode() {
         val dateTime = ViewHelper.formatDateUtcIso(Date())
-        val url = "https://i8xgdzdwk5.execute-api.us-east-2.amazonaws.com/prod/CheckOAuthToken?vehicleId=$vehicleId&source=PIM&eventTimeStamp=2021-08-26T$dateTime&extraInfo=squareSetup"
+        val url = "https://i8xgdzdwk5.execute-api.us-east-2.amazonaws.com/prod/CheckOAuthToken?vehicleId=$vehicleId&source=PIM&eventTimeStamp=$dateTime&extraInfo=CHIP_READER_STATUS_CHECK"
         LoggerHelper.writeToLog("Sending MAC request to: $url", LogEnums.SQUARE.tag)
         val client = OkHttpClient()
         val request = Request.Builder()
@@ -412,12 +432,13 @@ class SquareSetupFragment: ScopedFragment(), KodeinAware {
 
     private fun onAuthorizationCodeRetrieved(authorizationCode: String)  {
         LoggerHelper.writeToLog("Authorizing SQUARE on the MainThread", LogEnums.SQUARE.tag)
-        launch(Dispatchers.Main.immediate){
+        activity?.runOnUiThread{
             ReaderSdk.authorizationManager().authorize(authorizationCode)
         }
         SquareHelper.saveMAC(authorizationCode, this.requireContext())
         PIMSetupHolder.isAuthorized()
-        startSquareCardReaderCheck()
+
+        attemptingToAuth = false
     }
 
     private fun checkBluetoothAdapter(){

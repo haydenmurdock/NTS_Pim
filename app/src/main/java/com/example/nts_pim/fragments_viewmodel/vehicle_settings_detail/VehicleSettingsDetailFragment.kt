@@ -52,6 +52,7 @@ import com.example.nts_pim.utilities.bluetooth_helper.BluetoothDataCenter
 import com.example.nts_pim.utilities.enums.LogEnums
 import com.example.nts_pim.utilities.enums.SharedPrefEnum
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
+import com.example.nts_pim.utilities.view_helper.ViewHelper
 import com.google.gson.Gson
 import com.squareup.sdk.reader.checkout.CheckoutParameters
 import com.squareup.sdk.reader.checkout.CurrencyCode
@@ -65,6 +66,7 @@ import okhttp3.Request
 import type.UnpairPIMInput
 import java.io.IOException
 import java.lang.Exception
+import java.util.*
 
 
 class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
@@ -189,8 +191,8 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
     }
 
     private fun getAuthorizationCode(vehicleId: String) {
-        val url =
-            "https://i8xgdzdwk5.execute-api.us-east-2.amazonaws.com/prod/CheckOAuthToken?vehicleId=$vehicleId"
+        val dateTime = ViewHelper.formatDateUtcIso(Date())
+        val url = "https://i8xgdzdwk5.execute-api.us-east-2.amazonaws.com/prod/CheckOAuthToken?vehicleId=$vehicleId&source=PIM&eventTimeStamp=$dateTime&extraInfo=PIM_ADMIN_SCREEN"
         val client = OkHttpClient()
         val request = Request.Builder()
             .url(url)
@@ -204,7 +206,7 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
                             gson.fromJson(response.body?.string(), JsonAuthCode::class.java)
                         val authCode = convertedObject.authCode
                         onAuthorizationCodeRetrieved(authCode)
-                        com.example.nts_pim.utilities.view_helper.ViewHelper.makeSnackbar(requireView(), "Re-authorized successful")
+                        ViewHelper.makeSnackbar(requireView(), "Re-authorized successful")
                     }
                     if (response.code == 404) {
                         launch(Dispatchers.Main.immediate) {
