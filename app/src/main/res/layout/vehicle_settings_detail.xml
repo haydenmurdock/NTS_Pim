@@ -28,7 +28,7 @@
             android:layout_width="258dp"
             android:layout_height="wrap_content"
             android:alpha="0.0"
-            android:text="BACK"
+            android:text="WELCOME SCREEN"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/power_Off_PIM_btn" />
@@ -72,8 +72,8 @@
             android:id="@+id/battery_btn"
             android:layout_width="77dp"
             android:layout_height="53dp"
-            android:visibility="visible"
             android:tooltipText="Controls if app runs off of battery power"
+            android:visibility="visible"
             app:layout_constraintBottom_toTopOf="@+id/exit_app_btn"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintHorizontal_bias="0.98"
@@ -244,6 +244,15 @@
             android:textSize="24sp"
             app:layout_constraintStart_toStartOf="@+id/logging_textView"
             app:layout_constraintTop_toBottomOf="@+id/logging_textView" />
+
+    <Button
+            android:id="@+id/redo_startup_btn"
+            android:layout_width="258dp"
+            android:layout_height="wrap_content"
+            android:text="PEFORM STARTUP"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/setting_detail_back_btn" />
 
 
 </androidx.constraintlayout.widget.ConstraintLayout>

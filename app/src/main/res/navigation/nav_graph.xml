@@ -162,6 +162,9 @@
         <action
                 android:id="@+id/action_startupFragment_to_bluetoothSetupFragment"
                 app:destination="@id/bluetoothSetupFragment" />
+        <action
+                android:id="@+id/action_startupFragment_to_vehicle_settings_detail_fragment"
+                app:destination="@id/vehicle_settings_detail_fragment" />
     </fragment>
     <fragment
             android:id="@+id/tipScreenFragment"
@@ -299,6 +302,9 @@
         <action
                 android:id="@+id/action_bluetoothSetupFragment_to_blueToothPairingFragment"
                 app:destination="@id/blueToothPairingFragment" />
+        <action
+                android:id="@+id/action_bluetoothSetupFragment_to_vehicle_settings_detail_fragment"
+                app:destination="@id/vehicle_settings_detail_fragment" />
     </fragment>
     <fragment
             android:id="@+id/deviceIdUpdate"
@@ -316,6 +322,9 @@
         <action
                 android:id="@+id/action_blueToothPairingFragment_to_welcome_fragment"
                 app:destination="@id/welcome_fragment" />
+        <action
+                android:id="@+id/action_blueToothPairingFragment_to_vehicle_settings_detail_fragment"
+                app:destination="@id/vehicle_settings_detail_fragment" />
     </fragment>
     <fragment
             android:id="@+id/advertisementFragment"

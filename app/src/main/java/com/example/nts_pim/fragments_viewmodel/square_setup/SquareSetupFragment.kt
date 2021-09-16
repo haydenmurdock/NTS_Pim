@@ -5,10 +5,13 @@ import android.bluetooth.BluetoothAdapter
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.provider.Settings
+import android.text.InputType
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.inputmethod.EditorInfo
 import android.widget.ArrayAdapter
 import android.widget.Toast
 import androidx.lifecycle.Observer
@@ -25,10 +28,12 @@ import com.example.nts_pim.fragments_viewmodel.base.ClientFactory
 import com.example.nts_pim.fragments_viewmodel.base.ScopedFragment
 import com.example.nts_pim.fragments_viewmodel.callback.CallBackViewModel
 import com.example.nts_pim.fragments_viewmodel.startup.adapter.StartupAdapter
+import com.example.nts_pim.fragments_viewmodel.vehicle_settings.setting_keyboard_viewModels.SettingsKeyboardViewModel
 import com.example.nts_pim.fragments_viewmodel.vehicle_setup.VehicleSetupModelFactory
 import com.example.nts_pim.fragments_viewmodel.vehicle_setup.VehicleSetupViewModel
 import com.example.nts_pim.utilities.Square_Service.SquareHelper
 import com.example.nts_pim.utilities.enums.LogEnums
+import com.example.nts_pim.utilities.keyboards.PhoneKeyboard
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import com.example.nts_pim.utilities.mutation_helper.PIMMutationHelper
 import com.example.nts_pim.utilities.view_helper.ViewHelper
@@ -65,6 +70,7 @@ class SquareSetupFragment: ScopedFragment(), KodeinAware {
     override val kodein by closestKodein()
     private val viewModelFactory: VehicleSetupModelFactory by instance<VehicleSetupModelFactory>()
     private lateinit var viewModel: VehicleSetupViewModel
+    private lateinit var keyboardViewModel: SettingsKeyboardViewModel
     private var readerSdk = ReaderSdk.authorizationManager()
     private val readerManager = ReaderSdk.readerManager()
     private var mAWSAppSyncClient: AWSAppSyncClient? = null
@@ -82,6 +88,10 @@ class SquareSetupFragment: ScopedFragment(), KodeinAware {
     private var adapterTwo: StartupAdapter? = null
     private var adapterThree: StartupAdapter? = null
     private var attemptingToAuth = false
+    private var buttonCount = 0
+    private val password = "1234"
+    private var isPasswordEntered = false
+    private  val fullBrightness = 255
 
 
     private val authCallback = AuthorizeCallback{ authorized ->
@@ -131,10 +141,13 @@ class SquareSetupFragment: ScopedFragment(), KodeinAware {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         val callBackFactory = InjectorUtiles.provideCallBackModelFactory()
+        val keyboardViewModelFactory = InjectorUtiles.provideSettingKeyboardModelFactory()
         viewModel = ViewModelProvider(this, viewModelFactory)
             .get(VehicleSetupViewModel::class.java)
         callBackViewModel = ViewModelProvider(this, callBackFactory)
             .get(CallBackViewModel::class.java)
+        keyboardViewModel = ViewModelProvider(this, keyboardViewModelFactory)
+            .get(SettingsKeyboardViewModel::class.java)
         readerSettingsCallbackRef =
             readerManager.addReaderSettingsActivityCallback(this::onReaderSettingsResultBTSetup)
         mAWSAppSyncClient = ClientFactory.getInstance(context)
@@ -146,6 +159,7 @@ class SquareSetupFragment: ScopedFragment(), KodeinAware {
         getArgs()
         turnOnBluetooth()
         initRecyclerViews()
+        setUpKeyboard()
         stepOneImageButton.setOnClickListener {
             openCloseStepOneListView()
         }
@@ -226,7 +240,67 @@ class SquareSetupFragment: ScopedFragment(), KodeinAware {
                  toBluetoothPairing()
             }
         })
+        keyboardViewModel.isPhoneKeyboardUp().observe(this.viewLifecycleOwner, androidx.lifecycle.Observer {
+            if (it) {
+                isPasswordEntered = true
+            }
+            if (!it && isPasswordEntered) {
+                checkPassword()
+                isPasswordEntered = false
+            }
+        })
+        admin_screen_btn.setOnClickListener {
+            changeScreenBrightness(fullBrightness)
+            buttonCount += 1
+            if (buttonCount in 2..5) {
+                showToastMessage("$buttonCount", 1000)
+            }
+            if (buttonCount == 5) {
+                admin_screen_btn.animate().alpha(1.00f).duration = 500
+                keyboardViewModel.phoneKeyboardIsUp()
+                ViewHelper.viewSlideUp(password_scroll_view, 500)
+            }
+            if (buttonCount >= 6) {
+                if (buttonCount % 2 == 0) {
+                    admin_screen_btn.animate().alpha(0.0f).duration = 500
+                    ViewHelper.viewSlideDown(password_scroll_view, 500)
+                    password_editText.setText("")
+                    keyboardViewModel.bothKeyboardsDown()
+                } else {
+                    admin_screen_btn.animate().alpha(1.00f).duration = 500
+                    keyboardViewModel.phoneKeyboardIsUp()
+                    ViewHelper.viewSlideUp(password_scroll_view, 500)
+                }
+            }
+        }
 
+    }
+    private fun setUpKeyboard() {
+        password_editText.setRawInputType(InputType.TYPE_CLASS_TEXT)
+        password_editText.setTextIsSelectable(false)
+        val phoneKeyboard = startupPasswordPhoneKeyboard as PhoneKeyboard
+        val ic = password_editText.onCreateInputConnection(EditorInfo())
+        phoneKeyboard.setInputConnection(ic)
+    }
+    private fun checkPassword() {
+        val passwordEntered = password_editText.text.toString().replace("\\s".toRegex(), "")
+        if (passwordEntered == password) {
+            changeScreenBrightness(255)
+            toVehicleSettingsDetail()
+        }
+    }
+
+    private fun toVehicleSettingsDetail(){
+        val navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment)
+        if (navController.currentDestination?.id == currentFragmentId){
+            navController.navigate(R.id.action_bluetoothSetupFragment_to_vehicle_settings_detail_fragment)
+        }
+    }
+    private fun showToastMessage(text: String, duration: Int) {
+        val toast = Toast.makeText(activity, text, Toast.LENGTH_SHORT)
+        toast.show()
+        val handler = Handler()
+        handler.postDelayed( { toast.cancel() }, duration.toLong())
     }
 
     private fun turnOnBluetooth(){
@@ -381,6 +455,28 @@ class SquareSetupFragment: ScopedFragment(), KodeinAware {
             }
 
         }
+    }
+    private fun changeScreenBrightness(screenBrightness: Int) {
+        Settings.System.putInt(
+            requireContext().contentResolver,
+            Settings.System.SCREEN_BRIGHTNESS_MODE,
+            Settings.System.SCREEN_BRIGHTNESS_MODE_MANUAL
+        )  //this will set the manual mode (set the automatic mode off)
+        Settings.System.putInt(
+            requireContext().contentResolver,
+            Settings.System.SCREEN_BRIGHTNESS,
+            screenBrightness
+        )  //this will set the brightness to maximum (255)
+
+        //refreshes the screen
+        val br =
+            Settings.System.getInt(
+                requireContext().contentResolver,
+                Settings.System.SCREEN_BRIGHTNESS
+            )
+        val lp = requireActivity().window.attributes
+        lp.screenBrightness = br.toFloat() / 255
+        requireActivity().window.attributes = lp
     }
 
 

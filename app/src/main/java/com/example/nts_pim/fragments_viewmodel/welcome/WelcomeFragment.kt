@@ -1,29 +1,20 @@
 package com.example.nts_pim.fragments_viewmodel.welcome
 
 import android.annotation.SuppressLint
-import android.content.Context
 import android.content.Intent
-import android.content.IntentFilter
-import android.os.BatteryManager
 import android.os.Bundle
 import android.os.CountDownTimer
 import android.os.Handler
 import android.provider.Settings
 import android.text.InputType
-import android.text.Layout
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
-import android.view.inputmethod.InputMethodManager
-import android.widget.Button
-import android.widget.TextView
 import android.widget.Toast
-import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.view.isVisible
-import androidx.core.view.iterator
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.Navigation
 import com.amazonaws.mobileconnectors.appsync.AWSAppSyncClient
@@ -54,9 +45,10 @@ import com.example.nts_pim.utilities.mutation_helper.PIMMutationHelper
 import com.example.nts_pim.utilities.sound_helper.SoundHelper
 import com.example.nts_pim.utilities.upfront_price_errors.UpfrontPriceErrorHelper
 import com.example.nts_pim.utilities.view_helper.ViewHelper
-import kotlinx.android.synthetic.main.error_view.*
-import kotlinx.android.synthetic.main.up_front_price_detail_fragment.*
+import kotlinx.android.synthetic.main.startup.*
 import kotlinx.android.synthetic.main.welcome_screen.*
+import kotlinx.android.synthetic.main.welcome_screen.password_editText
+import kotlinx.android.synthetic.main.welcome_screen.password_scroll_view
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.kodein.di.KodeinAware
@@ -64,8 +56,7 @@ import org.kodein.di.android.x.closestKodein
 import org.kodein.di.generic.instance
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-import java.util.*
-import kotlin.concurrent.timerTask
+
 
 
 class WelcomeFragment : ScopedFragment(), KodeinAware {
@@ -233,6 +224,7 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
         sendPimStatusBluetooth()
         SoundHelper.turnOnSound(PimApplication.pimContext)
         VehicleTripArrayHolder.squareHasBeenSetUp = true
+        startPowerCheckTimer()
         upfrontPriceViewModel.isDriverSignedIn().observe(this.viewLifecycleOwner, androidx.lifecycle.Observer {isSignedIn ->
            isDriverSignedIn = isSignedIn
         })
@@ -275,7 +267,6 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
         LoggerHelper.loggingTime = 180000
         Log.i(tag,"Logging time was set to ${LoggerHelper.loggingTime}")
     }
-
     private fun tripIsCurrentlyRunning(isTripActive: Boolean){
         if (!isTripActive){
             LoggerHelper.writeToLog("$logFragment. Trip Check: Last saved trip is not active", null)
@@ -305,7 +296,8 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
         LoggerHelper.writeToLog("$logFragment: StartTime of trip on pim: $time", LogEnums.TRIP_STATUS.tag)
     }
     private fun checkPassword() {
-        if (password_editText.text.toString() == password) {
+        val passwordEntered = password_editText.text.toString().replace("\\s".toRegex(), "")
+        if (passwordEntered == password) {
             changeScreenBrightness(255)
             toVehicleSettingsDetail()
         }
@@ -354,7 +346,6 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
             val lastTrip = ModelPreferences(requireContext())
                 .getObject(SharedPrefEnum.CURRENT_TRIP.key,
                     CurrentTrip::class.java)
-            Log.i("Welcome Screen", "Last Trip Id${lastTrip?.tripID}. Is trip active: ${lastTrip?.isActive}, Last Trip MeterState: ${lastTrip?.lastMeterState}")
             if (lastTrip == null){
                 return Pair(false, "")
             }
@@ -376,6 +367,11 @@ class WelcomeFragment : ScopedFragment(), KodeinAware {
             cabNumber = vehicleSettings.cabNumber
             updateUI(companyName)
         }
+    }
+
+    private fun startPowerCheckTimer(){
+        (activity as MainActivity).stopPowerCheckAfterSetup()
+        (activity as MainActivity).startPowerCheckAfterSetup()
     }
 
     private fun checkAppBuildVersion(){

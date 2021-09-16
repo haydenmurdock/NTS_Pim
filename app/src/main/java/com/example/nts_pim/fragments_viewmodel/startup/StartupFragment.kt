@@ -10,12 +10,15 @@ import android.net.NetworkCapabilities
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
 import android.provider.Settings
 import android.telephony.TelephonyManager
+import android.text.InputType
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.inputmethod.EditorInfo
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -31,6 +34,7 @@ import com.apollographql.apollo.api.Response
 import com.apollographql.apollo.exception.ApolloException
 import com.example.nts_pim.BuildConfig
 import com.example.nts_pim.R
+import com.example.nts_pim.activity.MainActivity
 import com.example.nts_pim.data.repository.AdInfoHolder
 import com.example.nts_pim.data.repository.PIMSetupHolder
 import com.example.nts_pim.data.repository.model_objects.JsonAuthCode
@@ -39,18 +43,23 @@ import com.example.nts_pim.fragments_viewmodel.base.ClientFactory
 import com.example.nts_pim.fragments_viewmodel.base.ScopedFragment
 import com.example.nts_pim.fragments_viewmodel.callback.CallBackViewModel
 import com.example.nts_pim.fragments_viewmodel.startup.adapter.StartupAdapter
+import com.example.nts_pim.fragments_viewmodel.vehicle_settings.setting_keyboard_viewModels.SettingsKeyboardViewModel
 import com.example.nts_pim.fragments_viewmodel.vehicle_setup.VehicleSetupModelFactory
 import com.example.nts_pim.fragments_viewmodel.vehicle_setup.VehicleSetupViewModel
 import com.example.nts_pim.utilities.Square_Service.SquareHelper
 import com.example.nts_pim.utilities.bluetooth_helper.BluetoothDataCenter
 import com.example.nts_pim.utilities.device_id_check.DeviceIdCheck
 import com.example.nts_pim.utilities.enums.LogEnums
+import com.example.nts_pim.utilities.keyboards.PhoneKeyboard
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import com.example.nts_pim.utilities.mutation_helper.PIMMutationHelper
 import com.example.nts_pim.utilities.view_helper.ViewHelper
 import com.google.gson.Gson
 import com.squareup.sdk.reader.ReaderSdk
 import kotlinx.android.synthetic.main.startup.*
+import kotlinx.android.synthetic.main.startup.password_editText
+import kotlinx.android.synthetic.main.startup.password_scroll_view
+import kotlinx.android.synthetic.main.welcome_screen.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import okhttp3.Call
@@ -70,6 +79,7 @@ class StartupFragment: ScopedFragment(), KodeinAware {
     private val viewModelFactory: VehicleSetupModelFactory by instance<VehicleSetupModelFactory>()
     private lateinit var viewModel: VehicleSetupViewModel
     private lateinit var callBackViewModel: CallBackViewModel
+    private lateinit var keyboardViewModel: SettingsKeyboardViewModel
     private var mAWSAppSyncClient: AWSAppSyncClient? = null
     private  val fullBrightness = 255
     private var permissionDraw = false
@@ -87,6 +97,9 @@ class StartupFragment: ScopedFragment(), KodeinAware {
     private val currentFragmentId = R.id.startupFragment
     private var pimSettingsAttempted = false
     private var authoringSquare = false
+    private var buttonCount = 0
+    private val password = "1234"
+    private var isPasswordEntered = false
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -101,8 +114,11 @@ class StartupFragment: ScopedFragment(), KodeinAware {
         viewModel = ViewModelProvider(this, viewModelFactory)
             .get(VehicleSetupViewModel::class.java)
         val factory = InjectorUtiles.provideCallBackModelFactory()
+        val keyboardViewModelFactory = InjectorUtiles.provideSettingKeyboardModelFactory()
         callBackViewModel = ViewModelProvider(this, factory)
             .get(CallBackViewModel::class.java)
+        keyboardViewModel = ViewModelProvider(this, keyboardViewModelFactory)
+            .get(SettingsKeyboardViewModel::class.java)
 
         mAWSAppSyncClient = ClientFactory.getInstance(requireActivity().applicationContext)
         val telephonyManager = context?.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
@@ -125,6 +141,7 @@ class StartupFragment: ScopedFragment(), KodeinAware {
 
         val isSetupComplete = viewModel.isSetUpComplete()
         initRecyclerViews()
+        setUpKeyboard()
         LoggerHelper.writeToLog("Startup: is Setup Complete: $isSetupComplete", LogEnums.SETUP.tag)
         deviceId = DeviceIdCheck.getDeviceId()
         if(isSetupComplete){
@@ -137,6 +154,7 @@ class StartupFragment: ScopedFragment(), KodeinAware {
         blueToothAddress = getBluetoothAddress()
         appVersionNumber = BuildConfig.VERSION_NAME
         Log.i("Version", "$appVersionNumber")
+        startPowerCheckTimer()
         PIMMutationHelper.getCurrentDateFormattedDateUtcIso()?.let {
             callBackViewModel.setPIMStartTime(
                 it
@@ -205,6 +223,71 @@ class StartupFragment: ScopedFragment(), KodeinAware {
                     checkDestinations(navController)
                 }
             })
+        keyboardViewModel.isPhoneKeyboardUp().observe(this.viewLifecycleOwner, androidx.lifecycle.Observer {
+            if (it) {
+                isPasswordEntered = true
+            }
+            if (!it && isPasswordEntered) {
+                checkPassword()
+                isPasswordEntered = false
+            }
+        })
+        admin_screen_btn.setOnClickListener {
+            changeScreenBrightness(fullBrightness)
+            buttonCount += 1
+            if (buttonCount in 2..5) {
+                showToastMessage("$buttonCount", 1000)
+            }
+            if (buttonCount == 5) {
+                admin_screen_btn.animate().alpha(1.00f).duration = 500
+                keyboardViewModel.phoneKeyboardIsUp()
+                ViewHelper.viewSlideUp(password_scroll_view, 500)
+            }
+            if (buttonCount >= 6) {
+                if (buttonCount % 2 == 0) {
+                    admin_screen_btn.animate().alpha(0.0f).duration = 500
+                    ViewHelper.viewSlideDown(password_scroll_view, 500)
+                    password_editText.setText("")
+                    keyboardViewModel.bothKeyboardsDown()
+                } else {
+                   admin_screen_btn.animate().alpha(1.00f).duration = 500
+                    keyboardViewModel.phoneKeyboardIsUp()
+                    ViewHelper.viewSlideUp(password_scroll_view, 500)
+                }
+            }
+        }
+    }
+
+    private fun setUpKeyboard() {
+        password_editText.setRawInputType(InputType.TYPE_CLASS_TEXT)
+        password_editText.setTextIsSelectable(false)
+        val phoneKeyboard = startupPasswordPhoneKeyboard as PhoneKeyboard
+        val ic = password_editText.onCreateInputConnection(EditorInfo())
+        phoneKeyboard.setInputConnection(ic)
+    }
+    private fun checkPassword() {
+        val passwordEntered = password_editText.text.toString().replace("\\s".toRegex(), "")
+        if (passwordEntered == password) {
+            changeScreenBrightness(255)
+            toVehicleSettingsDetail()
+        }
+    }
+
+    private fun toVehicleSettingsDetail(){
+        val navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment)
+        if (navController.currentDestination?.id == currentFragmentId){
+            navController.navigate(R.id.action_startupFragment_to_vehicle_settings_detail_fragment)
+        }
+    }
+    private fun showToastMessage(text: String, duration: Int) {
+        val toast = Toast.makeText(activity, text, Toast.LENGTH_SHORT)
+        toast.show()
+        val handler = Handler()
+        handler.postDelayed( { toast.cancel() }, duration.toLong())
+    }
+
+    private fun startPowerCheckTimer(){
+        (activity as MainActivity).startPowerCheckForStartup()
     }
 
     private fun updateAdapter(adapter: StartupAdapter){
@@ -262,9 +345,6 @@ class StartupFragment: ScopedFragment(), KodeinAware {
             stepThreeListView.adapter = adapterThree as StartupAdapter
         }
     }
-
-
-
     private fun makeStartupList() {
         val stepOneList = PIMSetupHolder.getStepOneList()
         val stepTwoList = PIMSetupHolder.getStepTwoList()
@@ -273,7 +353,6 @@ class StartupFragment: ScopedFragment(), KodeinAware {
         adapterTwo = StartupAdapter(requireContext(), stepTwoList)
         adapterThree = StartupAdapter(requireContext(), stepThreeList)
     }
-
     private fun getPIMSettings(deviceId: String){
         if (mAWSAppSyncClient == null) {
             mAWSAppSyncClient = ClientFactory.getInstance(requireActivity().applicationContext)
@@ -415,13 +494,19 @@ class StartupFragment: ScopedFragment(), KodeinAware {
         }
         override fun onFailure(e: ApolloException) {
             LoggerHelper.writeToLog(
-                "Failure for Get Pim Settings Query. Request did not reach AWS. Error: $e",
+                "Failure for Get Pim Settings Query. Request did not reach AWS. Error: $e, Trying to get PIM settings again",
                 LogEnums.SETUP.tag
             )
+            pimSettingsAttempted = false
+            getPIMSettings(deviceId!!)
         }
     }
     private fun reauthorizeSquareFromFMP() {
-        //We don't check for a valid MAC in this instance. If we use a MAC that is already in use, it will push the authorization to the Reader Check Screen with a de-authorized reader SDK.
+        /**
+         * We don't check for a hour old MAC in this situation.
+         * We will most likely see the error "authorize_code_already_used" error if we use the same MAC.
+         * If someone has requested a re-auth via the FMP, it's best to assume something is wrong and we need a new MAC to avoid issues of expired/already_used.
+         */
         ViewHelper.makeSnackbar(requireView(), "FLEET MGMT PORTAL: RE-AUTH REQUEST")
         if(!authoringSquare){
             ReaderSdk.authorizationManager().addDeauthorizeCallback {  deauthorize  ->

@@ -188,6 +188,10 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
             updatePowerButtonUI(batteryPermission)
         }
 
+        redo_startup_btn.setOnClickListener {
+            toStartUp()
+        }
+
     }
 
     private fun getAuthorizationCode(vehicleId: String) {

@@ -193,7 +193,7 @@ class SquareService : OnLayoutChangeListener,
                 SqUIState.SWIPE_STATE -> {
                     LoggerHelper.writeToLog("Square is in a new state: $newState", LogEnums.SQUARE.tag)
                     turnUpVolume()
-                    SoundHelper.turnOffSound(activity.applicationContext)
+                   // SoundHelper.turnOffSound(activity.applicationContext)
                     val navController = MainActivity.navigationController
                     if(navController.currentDestination?.id == R.id.tipScreenFragment ||
                         navController.currentDestination?.id == R.id.vehicle_settings_detail_fragment){
@@ -209,9 +209,6 @@ class SquareService : OnLayoutChangeListener,
                         val imageView = activity.findViewById<ImageView>(R.id.insert_card_imageView)
                         Glide.with(activity.applicationContext)
                             .load(R.raw.insert_swipe_card).into(imageView)
-                        val blankToast = Toast.makeText(activity.applicationContext, "", Toast.LENGTH_SHORT)
-                        blankToast.show()
-                        blankToast.cancel()
                     }
                     val tripTotal = VehicleTripArrayHolder.getAmountForSquareDisplay().toDouble()
                     val decimalFormatter = DecimalFormat("####00.00")

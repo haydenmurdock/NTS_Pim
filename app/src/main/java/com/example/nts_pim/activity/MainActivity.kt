@@ -150,7 +150,6 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                 LoggerHelper.writeToLog("$logFragment, Trip ended and meterStateQueryComplete is set to false", logFragment)
             }
         })
-        batteryCheckTimer.start()
         turnOnBluetooth()
         checkNavBar()
         registerReceivers()
@@ -973,7 +972,6 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
             }.start()
         }
     }
-
     private fun sendDriverReceipt(tripId: String) = launch(Dispatchers.IO){
         var transactionType = VehicleTripArrayHolder.paymentTypeSelected
         if(transactionType == "none"){
@@ -985,7 +983,6 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
         }
         DriverReceiptHelper.sendReceipt(tripId, transactionType, transactionId)
     }
-
     private fun checkNavBar(){
         val decorView = window.decorView
         decorView.setOnSystemUiVisibilityChangeListener((View.OnSystemUiVisibilityChangeListener {
@@ -997,7 +994,6 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
     override fun onBackPressed() {
         LoggerHelper.writeToLog("${logFragment}, back button on nav bar pressed", LogEnums.BUTTON_PRESS.tag)
     }
-
     @SuppressLint("MissingPermission")
     private fun turnOnBluetooth(){
         val mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
@@ -1012,7 +1008,6 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
             LoggerHelper.writeToLog("${logFragment}, bluetooth was on during start up", LogEnums.BLUETOOTH.tag)
         }
     }
-
     private fun getDriverTabletBluetoothAddress(deviceId: String){
         if (mAWSAppSyncClient == null) {
             mAWSAppSyncClient = ClientFactory.getInstance(applicationContext)
@@ -1022,7 +1017,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
             ?.responseFetcher(AppSyncResponseFetchers.NETWORK_ONLY)
             ?.enqueue(awsBluetoothAddressCallback)
     }
-    private var awsBluetoothAddressCallback = object: GraphQLCall.Callback<GetPimSettingsQuery.Data>() {
+    private var awsBluetoothAddressCallback = object : GraphQLCall.Callback<GetPimSettingsQuery.Data>() {
         override fun onResponse(response: Response<GetPimSettingsQuery.Data>) {
             Log.i("Bluetooth", "Bluetooth query response == ${response.data()}")
 
@@ -1037,20 +1032,47 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
 
         }
     }
-    private val batteryCheckTimer = object : CountDownTimer( 600000, 60000) {
-        //Every 10 minutes  we are doing a battery check.
+    private val batteryCheckTimerAfterStartup = object : CountDownTimer( 600000, 60000) {
+        //After setup, we check 10 minutes to see if the battery needs to be turned off
         override fun onTick(millisUntilFinished: Long) {}
 
         override fun onFinish() {
-            if (!resources.getBoolean(R.bool.isSquareBuildOn)){
-                batteryStatusCheck()
-            }
+                batteryStatusCheck(false)
         }
     }
 
-    private fun batteryStatusCheck() {
-        val batteryStatus: Intent? = IntentFilter(Intent.ACTION_BATTERY_CHANGED).let { ifilter ->
-            this.applicationContext.registerReceiver(null, ifilter)
+    fun startPowerCheckAfterSetup(){
+        LoggerHelper.writeToLog("Starting power check after startup", LogEnums.LIFE_CYCLE.tag)
+        batteryCheckTimerAfterStartup.start()
+    }
+    fun stopPowerCheckAfterSetup(){
+        LoggerHelper.writeToLog("Canceling power check after startup", LogEnums.LIFE_CYCLE.tag)
+        batteryCheckTimerAfterStartup.cancel()
+    }
+    private val batteryCheckTimerDuringStartup = object : CountDownTimer(1800000, 1800000){
+        //During setup we are going to give the PIM 30 min to connect
+        //1800000 == 30 min
+        override fun onTick(p0: Long) {
+        }
+
+        override fun onFinish() {
+            batteryStatusCheck(true)
+        }
+    }
+
+    fun startPowerCheckForStartup(){
+        LoggerHelper.writeToLog("Starting power check during startup, startup checklist beginning", LogEnums.LIFE_CYCLE.tag)
+        batteryCheckTimerDuringStartup.start()
+    }
+
+    fun stopPowerCheckTimerForStartup(){
+        LoggerHelper.writeToLog("Canceling power check during startup, startup checklist should be complete", LogEnums.LIFE_CYCLE.tag)
+        batteryCheckTimerAfterStartup.cancel()
+    }
+
+    private fun batteryStatusCheck(duringStartup: Boolean) {
+        val batteryStatus: Intent? = IntentFilter(Intent.ACTION_BATTERY_CHANGED).let { iFilter ->
+            this.applicationContext.registerReceiver(null, iFilter)
         }
         val status: Int = batteryStatus?.getIntExtra(BatteryManager.EXTRA_STATUS, -1) ?: -1
         val isCharging: Boolean = status == BatteryManager.BATTERY_STATUS_CHARGING
@@ -1061,7 +1083,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
         if (!isCharging &&
             mSuccessfulSetup &&
                !isOnActiveTrip) {
-            LoggerHelper.writeToLog("$logFragment: Battery Check: is charging: $isCharging, sending request for shutdown", LogEnums.OVERHEATING.tag)
+            LoggerHelper.writeToLog("$logFragment: Battery Check: is charging: $isCharging, sending request for shutdown", LogEnums.LIFE_CYCLE.tag)
             val action =  "com.claren.tablet_control.shutdown"
             val p = "com.claren.tablet_control"
             val intent = Intent()
@@ -1071,10 +1093,17 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
             sendBroadcast(intent)
         }
 
-        if (isCharging) {
-            LoggerHelper.writeToLog("$logFragment: Battery Check: is charging: $isCharging", LogEnums.OVERHEATING.tag)
-            batteryCheckTimer.cancel()
-            batteryCheckTimer.start()
+        if (isCharging &&
+            !duringStartup) {
+            LoggerHelper.writeToLog("$logFragment: Battery Check: is charging: $isCharging. During Startup: $duringStartup. Restarting Timer", LogEnums.LIFE_CYCLE.tag)
+            batteryCheckTimerAfterStartup.cancel()
+            batteryCheckTimerAfterStartup.start()
+        }
+        if(isCharging &&
+                duringStartup){
+            LoggerHelper.writeToLog("$logFragment: Battery Check: is charging: $isCharging.  During Startup: $duringStartup. Restarting Timer", LogEnums.LIFE_CYCLE.tag)
+            batteryCheckTimerDuringStartup.cancel()
+            batteryCheckTimerDuringStartup.start()
         }
     }
 
@@ -1091,13 +1120,12 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
         stopLogTimer()
         vehicleSubscriptionTimer?.cancel()
         LoggerHelper.writeToLog("$logFragment, MainActivity onDestroy hit", LogEnums.LIFE_CYCLE.tag)
-        batteryCheckTimer.cancel()
-
+        batteryCheckTimerAfterStartup.cancel()
+        batteryCheckTimerDuringStartup.cancel()
         super.onDestroy()
     }
 
     override fun onStop() {
-        Log.i("onStop", "onStop was hit")
         LoggerHelper.writeToLog("$logFragment, onStop was hit for main Activity.", LogEnums.LIFE_CYCLE.tag)
         super.onStop()
     }

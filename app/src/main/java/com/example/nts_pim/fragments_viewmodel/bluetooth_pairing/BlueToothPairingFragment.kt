@@ -2,12 +2,17 @@ package com.example.nts_pim.fragments_viewmodel.bluetooth_pairing
 
 import android.os.Bundle
 import android.os.CountDownTimer
+import android.os.Handler
+import android.provider.Settings
+import android.text.InputType
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.inputmethod.EditorInfo
 import android.widget.Button
 import android.widget.ImageView
+import android.widget.Toast
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.NavController
@@ -37,10 +42,15 @@ import com.example.nts_pim.utilities.device_id_check.DeviceIdCheck
 import com.example.nts_pim.utilities.dialog_composer.PIMDialogComposer
 import com.example.nts_pim.utilities.enums.LogEnums
 import com.example.nts_pim.utilities.enums.PIMStatusEnum
+import com.example.nts_pim.utilities.keyboards.PhoneKeyboard
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import com.example.nts_pim.utilities.mutation_helper.PIMMutationHelper
+import com.example.nts_pim.utilities.view_helper.ViewHelper
 import kotlinx.android.synthetic.main.fragment_blue_tooth_pairing.*
 import kotlinx.android.synthetic.main.startup.*
+import kotlinx.android.synthetic.main.startup.password_editText
+import kotlinx.android.synthetic.main.startup.password_scroll_view
+import kotlinx.android.synthetic.main.welcome_screen.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.kodein.di.KodeinAware
@@ -57,6 +67,7 @@ class BlueToothPairingFragment : ScopedFragment(), KodeinAware {
     private val logTag = "Bluetooth_Pairing_Fragment"
     private var navController: NavController? = null
     private val viewModelFactory: VehicleSetupModelFactory by instance<VehicleSetupModelFactory>()
+    private lateinit var keyboardViewModel: SettingsKeyboardViewModel
     private lateinit var upfrontPriceViewModel: UpfrontPriceViewModel
     private var mAWSAppSyncClient: AWSAppSyncClient? = null
     private lateinit var viewModel: VehicleSetupViewModel
@@ -70,6 +81,10 @@ class BlueToothPairingFragment : ScopedFragment(), KodeinAware {
     private var adapterOne: StartupAdapter? = null
     private var adapterTwo: StartupAdapter? = null
     private var adapterThree: StartupAdapter? = null
+    private var buttonCount = 0
+    private val password = "1234"
+    private var isPasswordEntered = false
+    private  val fullBrightness = 255
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -83,9 +98,12 @@ class BlueToothPairingFragment : ScopedFragment(), KodeinAware {
         super.onViewCreated(view, savedInstanceState)
         navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment)
         viewModel = ViewModelProvider(this, viewModelFactory).get(VehicleSetupViewModel::class.java)
+        val keyboardViewModelFactory = InjectorUtiles.provideSettingKeyboardModelFactory()
         val factory = InjectorUtiles.provideUpFrontPriceFactory()
         upfrontPriceViewModel = ViewModelProvider(this, factory)
             .get(UpfrontPriceViewModel::class.java)
+        keyboardViewModel = ViewModelProvider(this, keyboardViewModelFactory)
+            .get(SettingsKeyboardViewModel::class.java)
         isBluetoothOn = BluetoothDataCenter.isBluetoothOn().value
         initRecyclerViews()
         vehicleId = viewModel.getVehicleID()
@@ -93,6 +111,7 @@ class BlueToothPairingFragment : ScopedFragment(), KodeinAware {
         mAWSAppSyncClient = ClientFactory.getInstance(context)
         VehicleTripArrayHolder.updateInternalPIMStatus(PIMStatusEnum.PIM_PAIRING.status)
         startBluetoothConnectionTimer()
+        setUpKeyboard()
         if(PIMMutationHelper.stopPimSetup){
             val error = PIMMutationHelper.pimError
             error?.message?.let {
@@ -166,15 +185,76 @@ class BlueToothPairingFragment : ScopedFragment(), KodeinAware {
         PIMSetupHolder.isBluetoothConnectionFinished().observe(this.viewLifecycleOwner, Observer { btConnectionFinished ->
             if(btConnectionFinished){
              updateAdapter(adapterThree!!)
+                stopPowerCheckTimer()
                 toWelcomeScreen()
             }
         })
-        // Leaving in commented code for driver signed in. We might want to use this value for bluetooth connection logic.
-//        upfrontPriceViewModel.isDriverSignedIn().observe(this.viewLifecycleOwner, Observer { signedIn ->
-//            if(isDriverSignedIn){
-//
-//            }
-//        })
+
+        keyboardViewModel.isPhoneKeyboardUp().observe(this.viewLifecycleOwner, androidx.lifecycle.Observer {
+            if (it) {
+                isPasswordEntered = true
+            }
+            if (!it && isPasswordEntered) {
+                checkPassword()
+                isPasswordEntered = false
+            }
+        })
+        admin_screen_btn.setOnClickListener {
+            changeScreenBrightness(fullBrightness)
+            buttonCount += 1
+            if (buttonCount in 2..5) {
+                showToastMessage("$buttonCount", 1000)
+            }
+            if (buttonCount == 5) {
+                admin_screen_btn.animate().alpha(1.00f).duration = 500
+                keyboardViewModel.phoneKeyboardIsUp()
+                ViewHelper.viewSlideUp(password_scroll_view, 500)
+            }
+            if (buttonCount >= 6) {
+                if (buttonCount % 2 == 0) {
+                    admin_screen_btn.animate().alpha(0.0f).duration = 500
+                    ViewHelper.viewSlideDown(password_scroll_view, 500)
+                    password_editText.setText("")
+                    keyboardViewModel.bothKeyboardsDown()
+                } else {
+                    admin_screen_btn.animate().alpha(1.00f).duration = 500
+                    keyboardViewModel.phoneKeyboardIsUp()
+                    ViewHelper.viewSlideUp(password_scroll_view, 500)
+                }
+            }
+        }
+    }
+
+    private fun setUpKeyboard() {
+        password_editText.setRawInputType(InputType.TYPE_CLASS_TEXT)
+        password_editText.setTextIsSelectable(false)
+        val phoneKeyboard = startupPasswordPhoneKeyboard as PhoneKeyboard
+        val ic = password_editText.onCreateInputConnection(EditorInfo())
+        phoneKeyboard.setInputConnection(ic)
+    }
+    private fun checkPassword() {
+        val passwordEntered = password_editText.text.toString().replace("\\s".toRegex(), "")
+        if (passwordEntered == password) {
+            changeScreenBrightness(255)
+            toVehicleSettingsDetail()
+        }
+    }
+
+    private fun toVehicleSettingsDetail(){
+        val navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment)
+        if (navController.currentDestination?.id == currentFragmentId){
+            navController.navigate(R.id.action_blueToothPairingFragment_to_vehicle_settings_detail_fragment)
+        }
+    }
+    private fun showToastMessage(text: String, duration: Int) {
+        val toast = Toast.makeText(activity, text, Toast.LENGTH_SHORT)
+        toast.show()
+        val handler = Handler()
+        handler.postDelayed( { toast.cancel() }, duration.toLong())
+    }
+
+    private fun stopPowerCheckTimer(){
+        (activity as MainActivity).stopPowerCheckTimerForStartup()
     }
     private fun updateAdapter(adapter: StartupAdapter){
         adapter.notifyDataSetChanged()
@@ -323,9 +403,32 @@ class BlueToothPairingFragment : ScopedFragment(), KodeinAware {
             }.start()
         }
     }
+    private fun changeScreenBrightness(screenBrightness: Int) {
+        Settings.System.putInt(
+            requireContext().contentResolver,
+            Settings.System.SCREEN_BRIGHTNESS_MODE,
+            Settings.System.SCREEN_BRIGHTNESS_MODE_MANUAL
+        )  //this will set the manual mode (set the automatic mode off)
+        Settings.System.putInt(
+            requireContext().contentResolver,
+            Settings.System.SCREEN_BRIGHTNESS,
+            screenBrightness
+        )  //this will set the brightness to maximum (255)
+
+        //refreshes the screen
+        val br =
+            Settings.System.getInt(
+                requireContext().contentResolver,
+                Settings.System.SCREEN_BRIGHTNESS
+            )
+        val lp = requireActivity().window.attributes
+        lp.screenBrightness = br.toFloat() / 255
+        requireActivity().window.attributes = lp
+    }
 
    //Navigation
    private fun toWelcomeScreen() = launch(Dispatchers.Main.immediate){
+
        if (navController?.currentDestination?.id == currentFragmentId) {
            navController?.navigate(R.id.action_blueToothPairingFragment_to_welcome_fragment)
        }

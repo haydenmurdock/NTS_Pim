@@ -3,6 +3,7 @@ package com.example.nts_pim.fragments_viewmodel.vehicle_setup
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.content.Context
@@ -369,7 +370,7 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
                     val telephonyManager = context?.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
                     val phoneNumber = telephonyManager.line1Number
                     updatePimSettings(blueToothAddress,appVersion,phoneNumber,mAWSAppSyncClient!!, deviceId)
-                    checkAuthorization(vehicleID, requireActivity().parent as MainActivity)
+                    checkAuthorization(vehicleID, requireActivity())
                     if(checkedAndroidId){
                         updateDeviceId(deviceId,vehicleID)
                     }
@@ -416,7 +417,7 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
         launch(Dispatchers.Main.immediate) {
             viewModel.vehicleIDExists()
             showUIForSavedVehicleID()
-            checkAuthorization(vehicleId, requireActivity().parent as MainActivity)
+            checkAuthorization(vehicleId, requireActivity())
         }
 
         Log.i(
@@ -424,7 +425,7 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
             "Vehicle ID: ${vehicleID.vehicleID} saved to System Preferences"
         )
     }
-    private fun checkAuthorization(vehicleId: String, mainActivity: MainActivity) = launch(Dispatchers.IO) {
+    private fun checkAuthorization(vehicleId: String, activity: Activity) = launch(Dispatchers.IO) {
         if(ReaderSdk.authorizationManager().authorizationState.canDeauthorize()){
             ReaderSdk.authorizationManager().deauthorize()
             LoggerHelper.writeToLog("Reader was de-authorized", SquareHelper.logTag)
@@ -437,7 +438,7 @@ class VehicleSetupFragment:ScopedFragment(), KodeinAware {
             val lastMACid = SquareHelper.getLastMAC(requireActivity().applicationContext)?.getId() ?: ""
             LoggerHelper.writeToLog("Last mac id was less than 1 hour old. Using OLD MAC for authorization. Id: $lastMACid", LogEnums.SQUARE.tag)
             if(lastMACid != ""){
-               mainActivity.runOnUiThread {
+               activity.runOnUiThread {
                     ReaderSdk.authorizationManager().authorize(lastMACid)
                     viewModel.squareIsAuthorized()
                 }
