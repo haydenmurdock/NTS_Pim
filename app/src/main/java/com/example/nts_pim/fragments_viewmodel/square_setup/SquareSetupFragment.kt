@@ -38,6 +38,7 @@ import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import com.example.nts_pim.utilities.mutation_helper.PIMMutationHelper
 import com.example.nts_pim.utilities.view_helper.ViewHelper
 import com.google.gson.Gson
+import com.samsung.android.knox.custom.CustomDeviceManager
 import com.squareup.sdk.reader.ReaderSdk
 import com.squareup.sdk.reader.authorization.AuthorizeCallback
 import com.squareup.sdk.reader.core.CallbackReference
@@ -57,8 +58,22 @@ import org.kodein.di.generic.instance
 import java.io.IOException
 import java.lang.Error
 import java.util.*
-import java.util.concurrent.TimeUnit
 import kotlin.collections.ArrayList
+
+/**
+ * previously called BluetoothSetupFragment
+ *
+ * SquareSetupFragment is called by the StartupFragment.
+ *
+ * The purpose of this fragment is to check the square chip reader status and catch square setup issues before a payment. When the bluetooth adapter is ready we call startSquareCardReaderCheck().
+ * Since we haven't checked the reader before, the SquareService: OnlayoutListner will inflate the R.layout.card_reader_check_screen and update the UI text on the layout with the reader connection status
+ *
+ * We will update AWS with a CONNECTED, FAILED, OR UNAVAILABLE reader status. If the reader fails during our check, we do check it 2 more times before sending the reader status. This is to make sure that it is the correct connection type.
+ *
+ * This fragment also has it's own unique sdk_not_authorized logic for handling trimmed/deauthorized events. This includes MAC logic of making sure we use a MAC that we received from square before getting another one.
+ *
+ * After we send a request to update the reader status it goes to the BluetoothPairingFragment to connect to the driver tablet if the data transfer type is bluetooth.
+ */
 
 class SquareSetupFragment: ScopedFragment(), KodeinAware {
 
@@ -70,7 +85,7 @@ class SquareSetupFragment: ScopedFragment(), KodeinAware {
     private val readerManager = ReaderSdk.readerManager()
     private var mAWSAppSyncClient: AWSAppSyncClient? = null
     private var readerSettingsCallbackRef: CallbackReference? = null
-    private val logtag = "Square Reader Setup"
+    private val logTag = "Square_Reader_Setup_Fragment"
     private var mArrayAdapter: ArrayAdapter<String>? = null
     private var lastCheckStatus: String? = null
     private var devices = ArrayList<String>()
@@ -114,7 +129,7 @@ class SquareSetupFragment: ScopedFragment(), KodeinAware {
                 }
             }
             if (numberOfReaderFailedAttempts <= 3){
-                Log.i(logtag, "Reader was authorized $numberOfReaderFailedAttempts number of times. Starting square card reader check")
+                Log.i(logTag, "Reader was authorized $numberOfReaderFailedAttempts number of times. Starting square card reader check")
                 startSquareCardReaderCheck()
                 numberOfReaderFailedAttempts += 1
             } else {

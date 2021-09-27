@@ -9,79 +9,61 @@
         android:descendantFocusability="beforeDescendants"
         android:focusableInTouchMode="true">
 
+    <TextView
+            android:id="@+id/auth_square_textView"
+            android:layout_width="163dp"
+            android:layout_height="19dp"
+            android:text="Authorize Square"
+            android:textColor="@color/whiteTextColor"
+            tools:layout_editor_absoluteX="502dp"
+            tools:layout_editor_absoluteY="474dp" />
+
     <Button
             android:id="@+id/check_bluetooth_btn"
             android:layout_width="258dp"
             android:layout_height="wrap_content"
-            android:alpha="0.0"
+            android:alpha="1"
             android:text="SQUARE BLUETOOTH CONNECTIONS"
             android:textAlignment="center"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="0.5"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintVertical_bias="0.499" />
+            tools:layout_editor_absoluteX="898dp"
+            tools:layout_editor_absoluteY="102dp" />
 
     <Button
             android:id="@+id/setting_detail_back_btn"
             android:layout_width="258dp"
             android:layout_height="wrap_content"
-            android:alpha="0.0"
+            android:alpha="1"
             android:text="WELCOME SCREEN"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/power_Off_PIM_btn" />
+            tools:layout_editor_absoluteX="432dp"
+            tools:layout_editor_absoluteY="308dp" />
 
     <Button
             android:id="@+id/exit_app_btn"
             android:layout_width="258dp"
             android:layout_height="wrap_content"
-            android:alpha="0.0"
+            android:alpha="1"
             android:text="EXIT APPLICATION"
-            app:layout_constraintBottom_toTopOf="@+id/check_bluetooth_btn"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent" />
-
-    <TextView
-            android:id="@+id/settings_detail_textView"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Vehicle id:"
-            android:textColor="#FFFFFF"
-            android:textSize="30sp"
-            android:visibility="visible"
-            app:layout_constraintBottom_toTopOf="@+id/exit_app_btn"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="0.02"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintVertical_bias="0.110000014" />
+            tools:layout_editor_absoluteX="556dp"
+            tools:layout_editor_absoluteY="102dp" />
 
     <Button
             android:id="@+id/power_Off_PIM_btn"
             android:layout_width="258dp"
             android:layout_height="wrap_content"
-            android:alpha="0.0"
+            android:alpha="1"
             android:text="Power OFF PIM"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/check_bluetooth_btn" />
+            tools:layout_editor_absoluteX="757dp"
+            tools:layout_editor_absoluteY="308dp" />
 
     <ImageView
             android:id="@+id/battery_btn"
-            android:layout_width="77dp"
-            android:layout_height="53dp"
+            android:layout_width="147dp"
+            android:layout_height="116dp"
             android:tooltipText="Controls if app runs off of battery power"
             android:visibility="visible"
-            app:layout_constraintBottom_toTopOf="@+id/exit_app_btn"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="0.98"
-            app:layout_constraintStart_toEndOf="@+id/settings_detail_textView"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintVertical_bias="0.110000014"
             app:srcCompat="@drawable/ic_battery_2"
+            tools:layout_editor_absoluteX="167dp"
+            tools:layout_editor_absoluteY="523dp"
             tools:srcCompat="@drawable/ic_battery_2" />
 
     <ProgressBar
@@ -89,11 +71,8 @@
             style="?android:attr/progressBarStyle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            app:layout_constraintBottom_toTopOf="@+id/power_Off_PIM_btn"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="0.5"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/check_bluetooth_btn"
+            tools:layout_editor_absoluteX="709dp"
+            tools:layout_editor_absoluteY="417dp"
             tools:visibility="invisible" />
 
     <ImageView
@@ -101,158 +80,83 @@
             android:layout_width="73dp"
             android:layout_height="51dp"
             android:visibility="gone"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toStartOf="@+id/battery_btn"
-            app:layout_constraintHorizontal_bias="1.0"
-            app:layout_constraintStart_toEndOf="@+id/settings_detail_textView"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintVertical_bias="0.04000002"
-            app:srcCompat="@drawable/ic_wrench" />
-
-    <TextView
-            android:id="@+id/last_trip_id_textView"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Last Trip Id:"
-            android:textColor="@color/whiteTextColor"
-            android:textSize="24sp"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="0.02"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/settings_detail_textView"
-            app:layout_constraintVertical_bias="0.01999998" />
+            app:srcCompat="@drawable/ic_wrench"
+            tools:layout_editor_absoluteX="1203dp"
+            tools:layout_editor_absoluteY="29dp" />
 
     <Button
             android:id="@+id/recent_trip_button"
             android:layout_width="258dp"
             android:layout_height="wrap_content"
-            android:alpha="0"
+            android:alpha="1"
             android:text="Recent Trip"
             android:visibility="visible"
-            app:layout_constraintBottom_toTopOf="@+id/exit_app_btn"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="0.5"
-            app:layout_constraintStart_toStartOf="parent" />
-
-    <TextView
-            android:id="@+id/build_version_textView"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:fontFamily="@font/source_sans_pro"
-            android:text="Build Version: "
-            android:textColor="@color/whiteTextColor"
-            android:textSize="24sp"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="0.02"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/last_trip_id_textView" />
+            tools:layout_editor_absoluteX="244dp"
+            tools:layout_editor_absoluteY="102dp" />
 
     <ImageButton
             android:id="@+id/vehicle_settings_unpair_button"
-            android:layout_width="81dp"
-            android:layout_height="51dp"
-            android:layout_marginTop="16dp"
+            android:layout_width="137dp"
+            android:layout_height="126dp"
             android:background="@null"
             android:src="@drawable/ic_broken_link"
             android:text="Unpair"
-            app:layout_constraintEnd_toEndOf="@+id/upload_logs_btn"
-            app:layout_constraintTop_toBottomOf="@+id/upload_logs_btn" />
-
-    <TextView
-            android:id="@+id/power_status_textView"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:fontFamily="@font/source_sans_pro"
-            android:text="Power status:"
-            android:textColor="@color/whiteTextColor"
-            android:textSize="24sp"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="0.02"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/build_version_textView" />
-
-    <TextView
-            android:id="@+id/imei_textView"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="16dp"
-            android:layout_marginBottom="16dp"
-            android:fontFamily="@font/source_sans_pro"
-            android:text="IMEI:"
-            android:textColor="@color/whiteTextColor"
-            android:textSize="24sp"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintStart_toStartOf="parent" />
-
-    <TextView
-            android:id="@+id/logging_textView"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="16dp"
-            android:layout_marginTop="12dp"
-            android:fontFamily="@font/source_sans_pro"
-            android:text="Logging:"
-            android:textColor="@color/whiteTextColor"
-            android:textSize="24sp"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/power_status_textView" />
+            tools:layout_editor_absoluteX="1062dp"
+            tools:layout_editor_absoluteY="512dp" />
 
     <ImageView
             android:id="@+id/square_test_image_view"
             android:layout_width="79dp"
             android:layout_height="57dp"
-            android:layout_marginEnd="16dp"
-            android:layout_marginBottom="16dp"
             android:tooltipText="Starts Square Payment for $1.00"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:srcCompat="@drawable/ic_square_icon" />
+            app:srcCompat="@drawable/ic_square_icon"
+            tools:layout_editor_absoluteX="1120dp"
+            tools:layout_editor_absoluteY="308dp" />
 
     <ImageButton
             android:id="@+id/upload_logs_btn"
-            android:layout_width="81dp"
-            android:layout_height="51dp"
-            android:layout_marginTop="16dp"
+            android:layout_width="229dp"
+            android:layout_height="136dp"
             android:background="@null"
             android:tooltipText="send logs"
-            app:layout_constraintEnd_toEndOf="@+id/reauth_btn"
-            app:layout_constraintTop_toBottomOf="@+id/reauth_btn"
-            app:srcCompat="@drawable/ic_upload_white" />
+            app:srcCompat="@drawable/ic_upload_white"
+            tools:layout_editor_absoluteX="737dp"
+            tools:layout_editor_absoluteY="523dp" />
 
     <ImageButton
             android:id="@+id/reauth_btn"
-            android:layout_width="81dp"
-            android:layout_height="51dp"
-            android:layout_marginTop="16dp"
+            android:layout_width="147dp"
+            android:layout_height="116dp"
             android:background="@null"
             android:tooltipText="re-authorize square"
-            app:layout_constraintEnd_toEndOf="@+id/battery_btn"
-            app:layout_constraintTop_toBottomOf="@+id/battery_btn"
-            app:srcCompat="@drawable/ic_reauth_square" />
-
-    <TextView
-            android:id="@+id/battery_temp_textView"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:fontFamily="@font/source_sans_pro"
-            android:text="Battery temp:"
-            android:textColor="#FFFFFF"
-            android:textSize="24sp"
-            app:layout_constraintStart_toStartOf="@+id/logging_textView"
-            app:layout_constraintTop_toBottomOf="@+id/logging_textView" />
+            app:srcCompat="@drawable/ic_reauth_square"
+            tools:layout_editor_absoluteX="487dp"
+            tools:layout_editor_absoluteY="522dp" />
 
     <Button
             android:id="@+id/redo_startup_btn"
             android:layout_width="258dp"
             android:layout_height="wrap_content"
             android:text="PEFORM STARTUP"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/setting_detail_back_btn" />
+            tools:layout_editor_absoluteX="87dp"
+            tools:layout_editor_absoluteY="308dp" />
+
+    <Button
+            android:id="@+id/tablet_details_btn "
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Tablet info"
+            tools:layout_editor_absoluteX="87dp"
+            tools:layout_editor_absoluteY="102dp" />
+
+    <TextView
+            android:id="@+id/toggle_battery_power_textView"
+            android:layout_width="163dp"
+            android:layout_height="19dp"
+            android:text="Toggle Battery Power"
+            android:textColor="@color/whiteTextColor"
+            tools:layout_editor_absoluteX="167dp"
+            tools:layout_editor_absoluteY="493dp" />
 
 
 </androidx.constraintlayout.widget.ConstraintLayout>

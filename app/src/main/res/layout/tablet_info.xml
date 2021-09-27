@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:app="http://schemas.android.com/apk/res-auto"
+        xmlns:tools="http://schemas.android.com/tools"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/screenBackgroundColor">
+
+    <TextView
+            android:id="@+id/settings_detail_textView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="56dp"
+            android:text="Vehicle id:"
+            android:textColor="#FFFFFF"
+            android:textSize="30sp"
+            android:visibility="visible"
+            app:layout_constraintBottom_toTopOf="@+id/exit_app_btn"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintVertical_bias="0.110000014" />
+
+    <TextView
+            android:id="@+id/last_trip_id_textView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="Last Trip Id:"
+            android:textColor="@color/whiteTextColor"
+            android:textSize="24sp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/imei_textView" />
+
+    <TextView
+            android:id="@+id/build_version_textView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:fontFamily="@font/source_sans_pro"
+            android:text="Build Version: "
+            android:textColor="@color/whiteTextColor"
+            android:textSize="24sp"
+            app:layout_constraintEnd_toEndOf="@+id/last_trip_id_textView"
+            app:layout_constraintStart_toStartOf="@+id/last_trip_id_textView"
+            app:layout_constraintTop_toBottomOf="@+id/last_trip_id_textView" />
+
+    <TextView
+            android:id="@+id/power_status_textView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:fontFamily="@font/source_sans_pro"
+            android:text="Power status:"
+            android:textColor="@color/whiteTextColor"
+            android:textSize="24sp"
+            app:layout_constraintEnd_toEndOf="@+id/build_version_textView"
+            app:layout_constraintHorizontal_bias="0.428"
+            app:layout_constraintStart_toStartOf="@+id/build_version_textView"
+            app:layout_constraintTop_toBottomOf="@+id/build_version_textView" />
+
+    <TextView
+            android:id="@+id/logging_textView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:fontFamily="@font/source_sans_pro"
+            android:text="Logging:"
+            android:textColor="@color/whiteTextColor"
+            android:textSize="24sp"
+            app:layout_constraintEnd_toEndOf="@+id/power_status_textView"
+            app:layout_constraintHorizontal_bias="0.49"
+            app:layout_constraintStart_toStartOf="@+id/power_status_textView"
+            app:layout_constraintTop_toBottomOf="@+id/power_status_textView" />
+
+    <TextView
+            android:id="@+id/battery_temp_textView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:fontFamily="@font/source_sans_pro"
+            android:text="Battery temp:"
+            android:textColor="#FFFFFF"
+            android:textSize="24sp"
+            app:layout_constraintEnd_toEndOf="@+id/logging_textView"
+            app:layout_constraintHorizontal_bias="0.547"
+            app:layout_constraintStart_toStartOf="@+id/logging_textView"
+            app:layout_constraintTop_toBottomOf="@+id/logging_textView" />
+
+    <TextView
+            android:id="@+id/imei_textView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:fontFamily="@font/source_sans_pro"
+            android:text="IMEI:"
+            android:textColor="@color/whiteTextColor"
+            android:textSize="24sp"
+            app:layout_constraintEnd_toEndOf="@+id/settings_detail_textView"
+            app:layout_constraintStart_toStartOf="@+id/settings_detail_textView"
+            app:layout_constraintTop_toBottomOf="@+id/settings_detail_textView" />
+
+    <ImageView
+            android:id="@+id/back_to_admin_screen_imageView"
+            android:layout_width="82dp"
+            android:layout_height="47dp"
+            android:layout_marginStart="23dp"
+            android:layout_marginTop="16dp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:srcCompat="@drawable/ic_left_arrow_2" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

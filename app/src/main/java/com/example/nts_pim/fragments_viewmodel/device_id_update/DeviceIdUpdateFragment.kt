@@ -21,7 +21,18 @@ import org.kodein.di.KodeinAware
 import org.kodein.di.android.x.closestKodein
 import org.kodein.di.generic.instance
 
-class DeviceIdUpdate: ScopedFragment(), KodeinAware {
+/**
+ * This is the starting place for the navigation of the app.
+ * It will go to the startup fragment no matter what, but also it will update AWS deviceId with an androidId if it has an IMEI.
+ * We use the android id(a.k.a. device id) to get the Pim_Settings from AWS so we want it to be current and  correct before we try to grab them.
+ *
+ * This exists since there was a time when we used the imei as the device id, but android 10 removed access so we had to switch to the android id.
+ *
+ * Hopefully this can be removed someday or be better utilized.
+ *
+ */
+
+class DeviceIdUpdateFragment: ScopedFragment(), KodeinAware {
     override val kodein by closestKodein()
     private val viewModelFactory: VehicleSetupModelFactory by instance<VehicleSetupModelFactory>()
     private lateinit var viewModel: VehicleSetupViewModel

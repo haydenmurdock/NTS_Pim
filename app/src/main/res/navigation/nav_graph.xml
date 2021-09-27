@@ -134,6 +134,9 @@
         <action
                 android:id="@+id/action_vehicle_settings_detail_fragment_to_startupFragment"
                 app:destination="@id/startupFragment" />
+        <action
+                android:id="@+id/action_vehicle_settings_detail_fragment_to_tabletInfoFragment"
+                app:destination="@id/tabletInfoFragment" />
     </fragment>
 
     <fragment
@@ -308,7 +311,7 @@
     </fragment>
     <fragment
             android:id="@+id/deviceIdUpdate"
-            android:name="com.example.nts_pim.fragments_viewmodel.device_id_update.DeviceIdUpdate"
+            android:name="com.example.nts_pim.fragments_viewmodel.device_id_update.DeviceIdUpdateFragment"
             android:label="DeviceIdUpdate" >
         <action
                 android:id="@+id/action_deviceIdUpdate_to_startupFragment"
@@ -405,6 +408,14 @@
         <action
                 android:id="@+id/action_waitingForDriver_to_welcome_fragment"
                 app:destination="@id/welcome_fragment" />
+    </fragment>
+    <fragment
+            android:id="@+id/tabletInfoFragment"
+            android:name="com.example.nts_pim.fragments_viewmodel.vehicle_settings_detail.TabletInfoFragment"
+            android:label="TabletInfoFragment" >
+        <action
+                android:id="@+id/action_tabletInfoFragment_to_vehicle_settings_detail_fragment"
+                app:destination="@id/vehicle_settings_detail_fragment" />
     </fragment>
 
 
