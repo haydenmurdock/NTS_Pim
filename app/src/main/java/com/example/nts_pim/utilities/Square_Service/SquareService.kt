@@ -16,15 +16,13 @@ import android.widget.*
 import androidx.core.view.get
 import androidx.core.view.isVisible
 import androidx.navigation.NavController
-import androidx.navigation.Navigation
 import com.bumptech.glide.Glide
 import com.example.nts_pim.R
 import com.example.nts_pim.activity.MainActivity
-import com.example.nts_pim.data.repository.PIMSetupHolder
+import com.example.nts_pim.data.repository.SetupHolder
 import com.example.nts_pim.data.repository.VehicleTripArrayHolder
 import com.example.nts_pim.data.repository.model_objects.SetupComplete
 import com.example.nts_pim.data.repository.providers.ModelPreferences
-import com.example.nts_pim.fragments_viewmodel.startup.adapter.StartupAdapter
 import com.example.nts_pim.utilities.enums.LogEnums
 import com.example.nts_pim.utilities.view_walker.ViewWalker
 import com.example.nts_pim.utilities.enums.MeterEnum
@@ -32,7 +30,6 @@ import com.example.nts_pim.utilities.enums.ReaderStatusEnum
 import com.example.nts_pim.utilities.enums.SharedPrefEnum
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import com.example.nts_pim.utilities.sound_helper.SoundHelper
-import kotlinx.android.synthetic.main.startup.*
 import java.text.DecimalFormat
 
 
@@ -193,7 +190,7 @@ class SquareService : OnLayoutChangeListener,
                 SqUIState.SWIPE_STATE -> {
                     LoggerHelper.writeToLog("Square is in a new state: $newState", LogEnums.SQUARE.tag)
                     turnUpVolume()
-                   // SoundHelper.turnOffSound(activity.applicationContext)
+                     SoundHelper.turnOffSound(activity.applicationContext)
                     val navController = MainActivity.navigationController
                     if(navController.currentDestination?.id == R.id.tipScreenFragment ||
                         navController.currentDestination?.id == R.id.vehicle_settings_detail_fragment){
@@ -310,7 +307,7 @@ class SquareService : OnLayoutChangeListener,
                         val squareReaderState = newViewGroup?.text
 
                         LoggerHelper.writeToLog("$tag, Reader Message: $squareReaderState", LogEnums.SQUARE.tag)
-                        PIMSetupHolder.contactedChipReader()
+                        SetupHolder.contactedChipReader()
                         if (squareReaderState!!.contains("Press Button on Reader to Connect – Learn More") ) {
                             VehicleTripArrayHolder.updateReaderStatus(ReaderStatusEnum.UNAVAILABLE.status)
                             stopReaderCheckTimeout()

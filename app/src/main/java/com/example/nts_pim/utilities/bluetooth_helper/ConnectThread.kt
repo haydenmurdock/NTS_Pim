@@ -3,9 +3,8 @@ package com.example.nts_pim.utilities.bluetooth_helper
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothSocket
 import android.os.Handler
-import android.util.Log
 import com.example.nts_pim.activity.MainActivity
-import com.example.nts_pim.data.repository.PIMSetupHolder
+import com.example.nts_pim.data.repository.SetupHolder
 import com.example.nts_pim.utilities.enums.LogEnums
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import java.io.IOException
@@ -49,7 +48,7 @@ class ConnectThread(device: BluetoothDevice, activity: MainActivity) : Thread() 
              if(mmSocket!!.isConnected){
                      BluetoothDataCenter.clearNumberOfAttempts()
                      LoggerHelper.writeToLog("Connected_Thread: Socket is connected", LogEnums.BLUETOOTH.tag)
-                     PIMSetupHolder.foundDriverTablet()
+                     SetupHolder.foundDriverTablet()
                      BluetoothDataCenter.blueToothSocketIsConnected(mmSocket!!)
                  }
              } catch (e: IOException){
@@ -188,7 +187,7 @@ class ACKThread(private var mmSocket: BluetoothSocket?, activity: MainActivity):
     internal fun write(bytes: ByteArray?) {
         try {
             mmOutStream?.write(bytes)
-            PIMSetupHolder.receivedTestPacket()
+            SetupHolder.receivedTestPacket()
             mmOutStream?.flush()
         } catch (e: IOException) {
             LoggerHelper.writeToLog("ACK/NACK  was disconnected. $e", LogEnums.BLUETOOTH.tag)

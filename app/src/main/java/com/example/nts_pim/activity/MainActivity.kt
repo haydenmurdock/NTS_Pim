@@ -27,7 +27,7 @@ import com.apollographql.apollo.GraphQLCall
 import com.apollographql.apollo.api.Response
 import com.apollographql.apollo.exception.ApolloException
 import com.example.nts_pim.*
-import com.example.nts_pim.data.repository.PIMSetupHolder
+import com.example.nts_pim.data.repository.SetupHolder
 import com.example.nts_pim.data.repository.TripDetails
 import com.example.nts_pim.data.repository.UpfrontPriceViewModel
 import com.example.nts_pim.data.repository.VehicleTripArrayHolder
@@ -242,10 +242,10 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
 
         callbackViewModel.getIsPimOnline().observe(this, Observer { onlineStatus ->
             if(onlineStatus){
-                PIMSetupHolder.internetIsConnected()
+                SetupHolder.internetIsConnected()
             }
             if(!onlineStatus){
-                PIMSetupHolder.internetDisconnected()
+                SetupHolder.internetDisconnected()
             }
             if(!onlineStatus && mSuccessfulSetup){
                 clearAllSubscriptions()
@@ -281,13 +281,13 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
                                 blueToothAddressDriverTablet != null &&
                                 blueToothAddressDriverTablet != " " &&
                                 BluetoothDataCenter.isBluetoothAddressFormatted(blueToothAddressDriverTablet)){
-                                PIMSetupHolder.driverBTAddressIsCorrect(blueToothAddressDriverTablet!!)
+                                SetupHolder.driverBTAddressIsCorrect(blueToothAddressDriverTablet!!)
                                 driverTablet = bAdapter.getRemoteDevice(blueToothAddressDriverTablet)
                             } else  {
                                 if(blueToothAddressDriverTablet == null){
-                                    PIMSetupHolder.driverBTAddressNotCorrect("Null")
+                                    SetupHolder.driverBTAddressNotCorrect("Null")
                                 } else{
-                                    PIMSetupHolder.driverBTAddressNotCorrect(blueToothAddressDriverTablet!!)
+                                    SetupHolder.driverBTAddressNotCorrect(blueToothAddressDriverTablet!!)
                                 }
 
                                 LoggerHelper.writeToLog("Bluetooth, Issue with driver's bluetooth address. It is either blank or null when fetched to setup driver tablet connection. Driver Bt address == $blueToothAddressDriverTablet", LogEnums.BLUETOOTH.tag)
@@ -762,7 +762,7 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
             subscriptionWatcherUpdatePimSettings = mAWSAppSyncClient?.subscribe(subscription)
             subscriptionWatcherUpdatePimSettings?.execute(updatePimSettingsCallback)
             LoggerHelper.writeToLog("Tried to subscribe to updatePIM with deviceID $deviceId", LogEnums.AWS_SUBSCRIPTION.tag)
-            PIMSetupHolder.subscribedToAWS()
+            SetupHolder.subscribedToAWS()
         }
     }
     private var updatePimSettingsCallback = object : AppSyncSubscriptionCall.Callback<OnPimSettingsUpdateSubscription.Data>{
@@ -1059,17 +1059,14 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
             batteryStatusCheck(true)
         }
     }
-
     fun startPowerCheckForStartup(){
         LoggerHelper.writeToLog("Starting power check during startup, startup checklist beginning", LogEnums.LIFE_CYCLE.tag)
         batteryCheckTimerDuringStartup.start()
     }
-
     fun stopPowerCheckTimerForStartup(){
         LoggerHelper.writeToLog("Canceling power check during startup, startup checklist should be complete", LogEnums.LIFE_CYCLE.tag)
         batteryCheckTimerAfterStartup.cancel()
     }
-
     private fun batteryStatusCheck(duringStartup: Boolean) {
         val batteryStatus: Intent? = IntentFilter(Intent.ACTION_BATTERY_CHANGED).let { iFilter ->
             this.applicationContext.registerReceiver(null, iFilter)
@@ -1077,13 +1074,12 @@ open class MainActivity : AppCompatActivity(), CoroutineScope, KodeinAware {
         val status: Int = batteryStatus?.getIntExtra(BatteryManager.EXTRA_STATUS, -1) ?: -1
         val isCharging: Boolean = status == BatteryManager.BATTERY_STATUS_CHARGING
                 || status == BatteryManager.BATTERY_STATUS_FULL
-        val isOnActiveTrip = ModelPreferences(applicationContext)
-            .getObject(SharedPrefEnum.CURRENT_TRIP.key,
-                CurrentTrip::class.java)?.isActive ?: false
+        val navController = findNavController(this, R.id.nav_host_fragment)
+        val isOnActiveTrip = navController.currentDestination?.id != R.id.welcome_fragment
         if (!isCharging &&
             mSuccessfulSetup &&
                !isOnActiveTrip) {
-            LoggerHelper.writeToLog("$logFragment: Battery Check: is charging: $isCharging, sending request for shutdown", LogEnums.LIFE_CYCLE.tag)
+            LoggerHelper.writeToLog("$logFragment: Battery Check: is charging: $isCharging, isOnActiveTrip: $isOnActiveTrip: Sending request for shutdown:", LogEnums.LIFE_CYCLE.tag)
             val action =  "com.claren.tablet_control.shutdown"
             val p = "com.claren.tablet_control"
             val intent = Intent()

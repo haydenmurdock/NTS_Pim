@@ -10,7 +10,7 @@ import com.apollographql.apollo.api.Response
 import com.apollographql.apollo.exception.ApolloException
 import com.example.nts_pim.PimApplication
 import com.example.nts_pim.data.repository.AdInfoHolder
-import com.example.nts_pim.data.repository.PIMSetupHolder
+import com.example.nts_pim.data.repository.SetupHolder
 import com.example.nts_pim.data.repository.VehicleTripArrayHolder
 import com.example.nts_pim.data.repository.model_objects.DeviceID
 import com.example.nts_pim.data.repository.model_objects.PimError
@@ -92,16 +92,16 @@ object PIMMutationHelper {
             override fun onResponse(response: Response<UpdateVehTripStatusMutation.Data>) {
                 Log.i("Results", "ReaderStatus Updated ${response.data()}")
                 if(response.data()?.updateVehTripStatus()?.error() == null){
-                    PIMSetupHolder.updatedAWSWithReaderStatus()
+                    SetupHolder.updatedAWSWithReaderStatus()
                 }
                 if(response.data()?.updateVehTripStatus()?.error() != null){
-                    PIMSetupHolder.didNotUpdateAWSWithReaderStatus(response.data()?.updateVehTripStatus()?.error())
+                    SetupHolder.didNotUpdateAWSWithReaderStatus(response.data()?.updateVehTripStatus()?.error())
                 }
             }
 
             override fun onFailure(e: ApolloException) {
                 Log.e("Error", "There was an issue updating the pimStatus: $e")
-                PIMSetupHolder.didNotUpdateAWSWithReaderStatus("Issue updating reader status. onFailure ${e.message}")
+                SetupHolder.didNotUpdateAWSWithReaderStatus("Issue updating reader status. onFailure ${e.message}")
             }
         }
 

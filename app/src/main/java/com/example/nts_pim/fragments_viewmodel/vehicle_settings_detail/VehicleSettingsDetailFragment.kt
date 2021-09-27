@@ -41,7 +41,7 @@ import com.apollographql.apollo.exception.ApolloException
 import com.example.nts_pim.receivers.BatteryPowerReceiver
 import com.example.nts_pim.BuildConfig
 import com.example.nts_pim.activity.MainActivity
-import com.example.nts_pim.data.repository.PIMSetupHolder
+import com.example.nts_pim.data.repository.SetupHolder
 import com.example.nts_pim.data.repository.VehicleTripArrayHolder
 import com.example.nts_pim.data.repository.model_objects.*
 import com.example.nts_pim.data.repository.providers.ModelPreferences
@@ -94,23 +94,18 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
     @SuppressLint("MissingPermission")
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-
         mAWSAppSyncClient = ClientFactory.getInstance(context)
         val factory = InjectorUtiles.provideCallBackModelFactory()
         viewModel = ViewModelProvider(this, viewModelFactory)
             .get(VehicleSettingsDetailViewModel::class.java)
         callBackViewModel = ViewModelProvider(this, factory)
             .get(CallBackViewModel::class.java)
-        val readerManager = ReaderSdk.readerManager()
-        readerSettingsCallbackRef =
-            readerManager.addReaderSettingsActivityCallback(this::onReaderSettingsResult)
-
         val keyboardFactory = InjectorUtiles.provideSettingKeyboardModelFactory()
-
         keyboardViewModel = ViewModelProvider(this, keyboardFactory)
             .get(SettingsKeyboardViewModel::class.java)
         vehicleId = viewModel.getVehicleID()
         VehicleTripArrayHolder.readerStatusHasBeenChecked()
+        setupReaderSettingsCallback()
         tripID = ModelPreferences(requireContext())
             .getObject(
                 SharedPrefEnum.CURRENT_TRIP.key,
@@ -126,18 +121,14 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
             screenDisabled()
             activity_indicator_vehicle_detail.animate()
             activity_indicator_vehicle_detail.visibility = View.VISIBLE
-           Log.i("VehicleSettingsDetailFragment", "BlueToothDeviceAdapter: State- ${bluetoothDeviceAdapter.state}, " +
-                   "Enabled:  ${bluetoothDeviceAdapter.isEnabled}" +
-                   "Address: ${bluetoothDeviceAdapter.address}" +
-                   "Bonded Devices: ${bluetoothDeviceAdapter.bondedDevices}" +
-                   "Scan Mode: ${bluetoothDeviceAdapter.scanMode}" +
-                   "isDiscovering: ${bluetoothDeviceAdapter.isDiscovering}")
-            readerManager.startReaderSettingsActivity(requireContext())
+            ReaderSdk.readerManager().startReaderSettingsActivity(requireContext())
         }
 
 
         setting_detail_back_btn.setOnClickListener {
-            Navigation.findNavController(view).navigate(R.id.back_to_welcome_fragment)
+
+            toWelcomeScreen()
+
         }
         exit_app_btn.setOnClickListener {
             PIMDialogComposer.exitApplication(requireActivity())
@@ -189,9 +180,19 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
         }
 
         redo_startup_btn.setOnClickListener {
+            SetupHolder.clearStartupList()
+            SetupHolder.subscribedToAWS()
+            VehicleTripArrayHolder.cardReaderStatusHasBeenChecked = false
             toStartUp()
         }
+    }
 
+    private fun setupReaderSettingsCallback(){
+        val readerManager = ReaderSdk.readerManager()
+        if(readerSettingsCallbackRef == null){
+            readerSettingsCallbackRef =
+                readerManager.addReaderSettingsActivityCallback(this::onReaderSettingsResult)
+        }
     }
 
     private fun getAuthorizationCode(vehicleId: String) {
@@ -296,7 +297,7 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
             BluetoothDataCenter.turnOffBlueTooth()
             BluetoothDataCenter.blueToothSocketIsDisconnected()
             BluetoothDataCenter.disconnectedToDriverTablet()
-            PIMSetupHolder.clearStartupList()
+            SetupHolder.clearStartupList()
             VehicleTripArrayHolder.cardReaderStatusHasBeenChecked = false
             (activity as MainActivity).clearVehicleOfAWSTripSubscription()
             (activity as MainActivity).closeBluetoothThreads()
@@ -448,13 +449,13 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
                 }
             }
             if(response.hasErrors()){
-                com.example.nts_pim.utilities.view_helper.ViewHelper.makeSnackbar(requireView(), "Unpair was unsuccessful. Error: ${response.errors()}")
+               ViewHelper.makeSnackbar(requireView(), "Unpair was unsuccessful. Error: ${response.errors()}")
             }
         }
 
         override fun onFailure(e: ApolloException) {
             Log.e("Error", "There was an issue updating the pimStatus: $e")
-            com.example.nts_pim.utilities.view_helper.ViewHelper.makeSnackbar(requireView(), "Unpair was unsuccessful. Failure due to ${e.message}}")
+            ViewHelper.makeSnackbar(requireView(), "Unpair was unsuccessful. Failure due to ${e.message}}")
         }
     }
     private fun screenDisabled(){
@@ -503,9 +504,18 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
         }
     }
 //Navigation
+
+    private fun toWelcomeScreen(){
+        val navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment)
+        if (navController.currentDestination?.id == currentFragmentId){
+            readerSettingsCallbackRef?.clear()
+            navController.navigate(R.id.back_to_welcome_fragment)
+        }
+    }
     private fun toRecentTrip(){
         val navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment)
         if (navController.currentDestination?.id == currentFragmentId){
+            readerSettingsCallbackRef?.clear()
             navController.navigate(R.id.action_vehicle_settings_detail_fragment_to_recentTripAWSFragment)
         }
     }
@@ -513,6 +523,7 @@ class VehicleSettingsDetailFragment: ScopedFragment(), KodeinAware {
     private fun toStartUp(){
         val navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment)
         if (navController.currentDestination?.id == currentFragmentId){
+            readerSettingsCallbackRef?.clear()
             navController.navigate(R.id.action_vehicle_settings_detail_fragment_to_startupFragment)
         }
     }

@@ -20,7 +20,7 @@ import androidx.navigation.NavController
 import androidx.navigation.Navigation
 import com.amazonaws.mobileconnectors.appsync.AWSAppSyncClient
 import com.example.nts_pim.R
-import com.example.nts_pim.data.repository.PIMSetupHolder
+import com.example.nts_pim.data.repository.SetupHolder
 import com.example.nts_pim.data.repository.VehicleTripArrayHolder
 import com.example.nts_pim.data.repository.model_objects.JsonAuthCode
 import com.example.nts_pim.fragments_viewmodel.InjectorUtiles
@@ -46,9 +46,7 @@ import com.squareup.sdk.reader.core.ResultError
 import com.squareup.sdk.reader.hardware.ReaderSettingsErrorCode
 import kotlinx.android.synthetic.main.startup.*
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.OkHttpClient
@@ -58,9 +56,6 @@ import org.kodein.di.android.x.closestKodein
 import org.kodein.di.generic.instance
 import java.io.IOException
 import java.lang.Error
-import java.time.Duration
-import java.time.LocalDate
-import java.time.LocalDateTime
 import java.util.*
 import java.util.concurrent.TimeUnit
 import kotlin.collections.ArrayList
@@ -91,7 +86,9 @@ class SquareSetupFragment: ScopedFragment(), KodeinAware {
     private var buttonCount = 0
     private val password = "1234"
     private var isPasswordEntered = false
-    private  val fullBrightness = 255
+    private val fullBrightness = 255
+    private var mobileAuthTimeOut: Long = 10
+    private var maxTimeout: Long = 60
 
 
     private val authCallback = AuthorizeCallback{ authorized ->
@@ -148,10 +145,9 @@ class SquareSetupFragment: ScopedFragment(), KodeinAware {
             .get(CallBackViewModel::class.java)
         keyboardViewModel = ViewModelProvider(this, keyboardViewModelFactory)
             .get(SettingsKeyboardViewModel::class.java)
-        readerSettingsCallbackRef =
-            readerManager.addReaderSettingsActivityCallback(this::onReaderSettingsResultBTSetup)
         mAWSAppSyncClient = ClientFactory.getInstance(context)
         setUpSquareAuthCallbacks()
+        setupReaderSettingsCallback()
         vehicleId = viewModel.getVehicleID()
         devices = ArrayList()
         mArrayAdapter = ArrayAdapter(this.requireContext(), R.layout.dialog_select_bluetooth_device)
@@ -179,7 +175,7 @@ class SquareSetupFragment: ScopedFragment(), KodeinAware {
         callBackViewModel.isReaderConnected().observe(this.viewLifecycleOwner, Observer { connected ->
             if(connected){
                 if(VehicleTripArrayHolder.cardReaderStatus != "default") {
-                    PIMSetupHolder.foundReaderStatus(VehicleTripArrayHolder.cardReaderStatus)
+                    SetupHolder.foundReaderStatus(VehicleTripArrayHolder.cardReaderStatus)
                 }
                 LoggerHelper.writeToLog("Reader connected == true on Square setup fragment. Attempting to update AWS and going to bluetooth pairing", LogEnums.SQUARE.tag)
                 if(VehicleTripArrayHolder.cardReaderStatus != "default" || lastCheckStatus != VehicleTripArrayHolder.cardReaderStatus){
@@ -191,7 +187,7 @@ class SquareSetupFragment: ScopedFragment(), KodeinAware {
             }
         })
 
-        PIMSetupHolder.isBluetoothON().observe(this.viewLifecycleOwner, Observer {
+        SetupHolder.isBluetoothON().observe(this.viewLifecycleOwner, Observer {
             if(it){
                 updateAdapter(adapterTwo!!)
                 checkBluetoothAdapter()
@@ -201,7 +197,7 @@ class SquareSetupFragment: ScopedFragment(), KodeinAware {
             }
         })
 
-        PIMSetupHolder.isBluetoothAdapterReady().observe(this.viewLifecycleOwner, Observer { available ->
+        SetupHolder.isBluetoothAdapterReady().observe(this.viewLifecycleOwner, Observer { available ->
             if(available){
                 updateAdapter(adapterTwo!!)
                 startSquareCardReaderCheck()
@@ -211,30 +207,30 @@ class SquareSetupFragment: ScopedFragment(), KodeinAware {
             }
         })
 
-        PIMSetupHolder.isSquareInit().observe(this.viewLifecycleOwner, Observer { init ->
+        SetupHolder.isSquareInit().observe(this.viewLifecycleOwner, Observer { init ->
             if(init){
                 updateAdapter(adapterTwo!!)
             }
         })
 
-        PIMSetupHolder.isAuthorizedWithSquare().observe(this.viewLifecycleOwner, Observer { authorized ->
+        SetupHolder.isAuthorizedWithSquare().observe(this.viewLifecycleOwner, Observer { authorized ->
             if(authorized){
                 updateAdapter(adapterTwo!!)
             } else {
                 updateAdapter(adapterTwo!!)
             }
         })
-        PIMSetupHolder.hasContactedReader().observe(this.viewLifecycleOwner, Observer {foundReader ->
+        SetupHolder.hasContactedReader().observe(this.viewLifecycleOwner, Observer { foundReader ->
             if(foundReader){
                 updateAdapter(adapterTwo!!)
             }
         })
-        PIMSetupHolder.hasFoundReaderStatus().observe(this.viewLifecycleOwner, Observer { foundStatus ->
+        SetupHolder.hasFoundReaderStatus().observe(this.viewLifecycleOwner, Observer { foundStatus ->
             if(foundStatus){
                 updateAdapter(adapterTwo!!)
             }
         })
-        PIMSetupHolder.hasUpdatedAWSWithReaderStatus().observe(this.viewLifecycleOwner, Observer {updatedAWS ->
+        SetupHolder.hasUpdatedAWSWithReaderStatus().observe(this.viewLifecycleOwner, Observer { updatedAWS ->
             if(updatedAWS){
                 updateAdapter(adapterTwo!!)
                  toBluetoothPairing()
@@ -273,6 +269,15 @@ class SquareSetupFragment: ScopedFragment(), KodeinAware {
                 }
             }
         }
+    }
+
+    private fun setupReaderSettingsCallback(){
+        if(readerSettingsCallbackRef == null){
+            readerSettingsCallbackRef =
+                readerManager.addReaderSettingsActivityCallback(this::onReaderSettingsResultBTSetup)
+        } else {
+            LoggerHelper.writeToLog("ReaderSettings ref already existed at time of Square chip reader check", LogEnums.SQUARE.tag)
+        }
 
     }
     private fun setUpKeyboard() {
@@ -306,15 +311,15 @@ class SquareSetupFragment: ScopedFragment(), KodeinAware {
     private fun turnOnBluetooth(){
         val mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
         if (mBluetoothAdapter == null){
-            PIMSetupHolder.pimBluetoothIsOff()
+            SetupHolder.pimBluetoothIsOff()
             return
         }
         if (!mBluetoothAdapter.isEnabled) {
             mBluetoothAdapter.enable()
-            PIMSetupHolder.pimBluetoothIsOn()
+            SetupHolder.pimBluetoothIsOn()
         } else {
             LoggerHelper.writeToLog("bluetooth was on during start up", LogEnums.BLUETOOTH.tag)
-            PIMSetupHolder.pimBluetoothIsOn()
+            SetupHolder.pimBluetoothIsOn()
         }
     }
     private fun openCloseStepOneListView(){
@@ -376,9 +381,9 @@ class SquareSetupFragment: ScopedFragment(), KodeinAware {
         stepOne_title_textView.text = "AWS: Connected"
         step_one_status_imageView.visibility = View.VISIBLE
 
-        val stepOneList = PIMSetupHolder.getStepOneList()
-        val stepTwoList = PIMSetupHolder.getStepTwoList()
-        val stepThreeList = PIMSetupHolder.getStepThreeList()
+        val stepOneList = SetupHolder.getStepOneList()
+        val stepTwoList = SetupHolder.getStepTwoList()
+        val stepThreeList = SetupHolder.getStepThreeList()
         adapterOne = StartupAdapter(requireContext(), stepOneList)
         adapterTwo = StartupAdapter(requireContext(), stepTwoList)
         adapterThree = StartupAdapter(requireContext(), stepThreeList)
@@ -387,18 +392,17 @@ class SquareSetupFragment: ScopedFragment(), KodeinAware {
         lastCheckStatus = arguments?.getString("lastCheckedStatus")
     }
     private fun setUpSquareAuthCallbacks(){
+
         readerSdk.addAuthorizeCallback(authCallback)
     }
     private fun startSquareCardReaderCheck(){
-        readerSettingsCallbackRef =
-            readerManager.addReaderSettingsActivityCallback(this::onReaderSettingsResultBTSetup)
         ReaderSdk.readerManager().startReaderSettingsActivity(requireContext())
     }
 
     private fun onReaderSettingsResultBTSetup(result: Result<Void, ResultError<ReaderSettingsErrorCode>>) {
         if (result.isSuccess){
             LoggerHelper.writeToLog("onReaderSettings for reader check was successful", LogEnums.SQUARE.tag)
-            PIMSetupHolder.isAuthorized()
+            SetupHolder.isAuthorized()
         }
         if (result.isError) {
             val error = result.error
@@ -410,7 +414,7 @@ class SquareSetupFragment: ScopedFragment(), KodeinAware {
                         "SDK not authorized, trying to reauthorized square", Toast.LENGTH_LONG
                     ).show()
                     LoggerHelper.writeToLog("SDK not authorized, trying to reauthorized square", LogEnums.SQUARE.tag)
-                    PIMSetupHolder.notAuthorized()
+                    SetupHolder.notAuthorized()
                     reauthorizeSquare()
                 }
                 ReaderSettingsErrorCode.USAGE_ERROR -> {
@@ -483,8 +487,13 @@ class SquareSetupFragment: ScopedFragment(), KodeinAware {
     private fun getMobileAuthorizationCode() {
         val dateTime = ViewHelper.formatDateUtcIso(Date())
         val url = "https://i8xgdzdwk5.execute-api.us-east-2.amazonaws.com/prod/CheckOAuthToken?vehicleId=$vehicleId&source=PIM&eventTimeStamp=$dateTime&extraInfo=CHIP_READER_STATUS_CHECK"
-        LoggerHelper.writeToLog("Sending MAC request to: $url", LogEnums.SQUARE.tag)
-        val client = OkHttpClient()
+        LoggerHelper.writeToLog("Sending MAC request to: $url. Connection Timeout: $mobileAuthTimeOut", LogEnums.SQUARE.tag)
+        val client = OkHttpClient().newBuilder()
+            .connectTimeout(mobileAuthTimeOut, TimeUnit.SECONDS)
+            .writeTimeout(60, TimeUnit.SECONDS)
+            .readTimeout(60, TimeUnit.SECONDS)
+            .retryOnConnectionFailure(true)
+            .build()
         val request = Request.Builder()
             .url(url)
             .build()
@@ -519,6 +528,10 @@ class SquareSetupFragment: ScopedFragment(), KodeinAware {
                 }
                 override fun onFailure(call: Call, e: IOException) {
                     LoggerHelper.writeToLog("Failure getting auth code", SquareHelper.logTag)
+                    val additionalTime: Long = 10
+                    if(mobileAuthTimeOut != maxTimeout){
+                        mobileAuthTimeOut += additionalTime
+                    }
                 }
             })
         } catch (e: Error) {
@@ -532,23 +545,23 @@ class SquareSetupFragment: ScopedFragment(), KodeinAware {
             ReaderSdk.authorizationManager().authorize(authorizationCode)
         }
         SquareHelper.saveMAC(authorizationCode, this.requireContext())
-        PIMSetupHolder.isAuthorized()
+        SetupHolder.isAuthorized()
 
         attemptingToAuth = false
     }
 
     private fun checkBluetoothAdapter(){
         if(BluetoothAdapter.getDefaultAdapter().state == BluetoothAdapter.STATE_ON){
-            PIMSetupHolder.blueToothAdapterIsReady()
+            SetupHolder.blueToothAdapterIsReady()
         } else {
-            PIMSetupHolder.blueToothAdapterNotReady()
+            SetupHolder.blueToothAdapterNotReady()
         }
     }
     //Navigation
     private fun toBluetoothPairing(){
         if (navController?.currentDestination?.id == currentFragmentId) {
             readerSettingsCallbackRef?.clear()
-            LoggerHelper.writeToLog("Going to bluetoothPairing Fragment", LogEnums.LIFE_CYCLE.tag)
+            LoggerHelper.writeToLog("Square_Setup_Fragment_to_Bluetooth_Pairing_Fragment", LogEnums.LIFE_CYCLE.tag)
             navController?.navigate(R.id.action_bluetoothSetupFragment_to_blueToothPairingFragment)
         }
     }
@@ -558,6 +571,7 @@ class SquareSetupFragment: ScopedFragment(), KodeinAware {
         if(!callBackViewModel.isReaderConnected().hasActiveObservers()){
             callBackViewModel.isReaderConnected().observe(this.viewLifecycleOwner, Observer {connected ->
                 if(connected){
+                    readerSettingsCallbackRef?.clear()
                     toBluetoothPairing()
                 }
             })

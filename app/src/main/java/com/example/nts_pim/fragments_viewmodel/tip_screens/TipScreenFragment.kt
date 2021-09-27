@@ -477,26 +477,35 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
     }
     private fun squareCheckout(checkOutAmount: Double) = launch {
         //Function for square
-        LoggerHelper.writeToLog("$logFragment,  $checkOutAmount send to start square checkout", LogEnums.PAYMENT.tag)
-        PIMMutationHelper.updatePIMStatus(vehicleId, PIMStatusEnum.STARTED_SQUARE_PAYMENT.status, mAWSAppSyncClient!!)
-        VehicleTripArrayHolder.updateInternalPIMStatus(PIMStatusEnum.STARTED_SQUARE_PAYMENT.status)
-        sendPimStatusBluetooth()
-        callbackViewModel.setAmountForSquareDisplay(checkOutAmount)
         checkCheckoutManagerRef()
-        val p = checkOutAmount * 100.00
-        val checkOutTotal = Math.round(p)
-        val amountMoney = Money(checkOutTotal, CurrencyCode.current())
-        val parametersBuilder = CheckoutParameters.newBuilder(amountMoney)
-        parametersBuilder.skipReceipt(false)
-        // if trip number is 0 we use the last 8 of trip id
-        if (tripNumber != 0){
-            parametersBuilder.note("[$tripNumber] [$vehicleId] [$driverId]")
+        if(!ReaderSdk.authorizationManager().authorizationState.isAuthorized){
+            Toast.makeText(context,
+            "SDK not authorized before payment. Please try again",
+            Toast.LENGTH_LONG
+            ).show()
+            SquareHelper.authorizeSquare(vehicleId, requireActivity(), "BEFORE_TRANSACTION")
+            raiseAlphaUI()
         } else {
-            parametersBuilder.note("[${tripId?.length?.minus(8)?.let { tripId?.substring(it) }}] [$vehicleId] [$driverId]")
-        }
-        val checkoutManager = ReaderSdk.checkoutManager()
-        checkoutManager.startCheckoutActivity(requireContext(), parametersBuilder.build())
+            LoggerHelper.writeToLog("$logFragment,  $checkOutAmount send to start square checkout", LogEnums.PAYMENT.tag)
+            PIMMutationHelper.updatePIMStatus(vehicleId, PIMStatusEnum.STARTED_SQUARE_PAYMENT.status, mAWSAppSyncClient!!)
+            VehicleTripArrayHolder.updateInternalPIMStatus(PIMStatusEnum.STARTED_SQUARE_PAYMENT.status)
+            sendPimStatusBluetooth()
+            callbackViewModel.setAmountForSquareDisplay(checkOutAmount)
 
+            val p = checkOutAmount * 100.00
+            val checkOutTotal = Math.round(p)
+            val amountMoney = Money(checkOutTotal, CurrencyCode.current())
+            val parametersBuilder = CheckoutParameters.newBuilder(amountMoney)
+            parametersBuilder.skipReceipt(false)
+            // if trip number is 0 we use the last 8 of trip id
+            if (tripNumber != 0){
+                parametersBuilder.note("[$tripNumber] [$vehicleId] [$driverId]")
+            } else {
+                parametersBuilder.note("[${tripId?.length?.minus(8)?.let { tripId?.substring(it) }}] [$vehicleId] [$driverId]")
+            }
+            val checkoutManager = ReaderSdk.checkoutManager()
+            checkoutManager.startCheckoutActivity(requireContext(), parametersBuilder.build())
+        }
     }
     private fun lowerAlpha() {
         val alpha = 0.5f
@@ -609,7 +618,7 @@ class TipScreenFragment: ScopedFragment(),KodeinAware {
                     sendPimStatusBluetooth()
                     updateInternalInfoDeclinedPayment("${error.message}, ${PIMStatusEnum.SDK_NOT_AUTHORIZED.status}")
                     LoggerHelper.writeToLog("$logFragment,  SDK not authorized for square transaction", LogEnums.PAYMENT.tag)
-                    SquareHelper.authorizeSquare(vehicleId, this.requireActivity(), "FAILED_TRANSACTION")
+                    SquareHelper.authorizeSquare(vehicleId, this.requireActivity(), "AFTER_FAILED_TRANSACTION")
                 }
                 CheckoutErrorCode.CANCELED -> {
                     val toast = Toast.makeText(context,

@@ -17,7 +17,7 @@ import com.apollographql.apollo.GraphQLCall
 import com.apollographql.apollo.api.Response
 import com.apollographql.apollo.exception.ApolloException
 import com.example.nts_pim.R
-import com.example.nts_pim.data.repository.PIMSetupHolder
+import com.example.nts_pim.data.repository.SetupHolder
 import com.example.nts_pim.data.repository.model_objects.VehicleSettings
 import com.example.nts_pim.data.repository.providers.ModelPreferences
 import com.example.nts_pim.fragments_viewmodel.InjectorUtiles
@@ -81,9 +81,8 @@ class CheckVehicleInfoFragment: ScopedFragment(), KodeinAware {
         viewModel.doesCompanyNameExist().observe(this.viewLifecycleOwner, Observer {companyNameExists ->
             if(companyNameExists){
                 saveVehicleSettings()
-//                activity?.recreate()
                 welcomeViewModel.isSetupComplete()
-                PIMSetupHolder.subscribedToAWS()
+                SetupHolder.subscribedToAWS()
                 val navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment)
                 navController.navigate(R.id.action_checkVehicleInfoFragment_to_startupFragment)
             }

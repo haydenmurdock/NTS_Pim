@@ -4,7 +4,7 @@ import android.bluetooth.BluetoothAdapter.*
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import com.example.nts_pim.data.repository.PIMSetupHolder
+import com.example.nts_pim.data.repository.SetupHolder
 
 
 class BluetoothReceiver: BroadcastReceiver() {
@@ -13,14 +13,14 @@ class BluetoothReceiver: BroadcastReceiver() {
             if (action.equals(ACTION_STATE_CHANGED)) {
                 when(intent.getIntExtra(EXTRA_STATE, ERROR)) {
                      STATE_OFF -> {
-                         PIMSetupHolder.pimBluetoothIsOff()
+                         SetupHolder.pimBluetoothIsOff()
 
                      }
                     STATE_TURNING_OFF -> {
 
                     }
                     STATE_ON -> {
-                        PIMSetupHolder.pimBluetoothIsOn()
+                        SetupHolder.pimBluetoothIsOn()
                     }
                    STATE_TURNING_ON -> {
 
@@ -31,12 +31,12 @@ class BluetoothReceiver: BroadcastReceiver() {
     private fun turnOnBluetooth(){
         val mBluetoothAdapter = getDefaultAdapter()
         if (mBluetoothAdapter == null){
-            PIMSetupHolder.pimBluetoothIsOff()
+            SetupHolder.pimBluetoothIsOff()
             return
         }
         if (!mBluetoothAdapter.isEnabled) {
             mBluetoothAdapter.enable()
-            PIMSetupHolder.pimBluetoothIsOn()
+            SetupHolder.pimBluetoothIsOn()
         }
     }
 }

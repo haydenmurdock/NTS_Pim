@@ -10,7 +10,6 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
-import android.widget.Button
 import android.widget.ImageView
 import android.widget.Toast
 import androidx.lifecycle.Observer
@@ -26,7 +25,7 @@ import com.apollographql.apollo.api.Response
 import com.apollographql.apollo.exception.ApolloException
 import com.example.nts_pim.R
 import com.example.nts_pim.activity.MainActivity
-import com.example.nts_pim.data.repository.PIMSetupHolder
+import com.example.nts_pim.data.repository.SetupHolder
 import com.example.nts_pim.data.repository.UpfrontPriceViewModel
 import com.example.nts_pim.data.repository.VehicleTripArrayHolder
 import com.example.nts_pim.fragments_viewmodel.InjectorUtiles
@@ -46,18 +45,15 @@ import com.example.nts_pim.utilities.keyboards.PhoneKeyboard
 import com.example.nts_pim.utilities.logging_service.LoggerHelper
 import com.example.nts_pim.utilities.mutation_helper.PIMMutationHelper
 import com.example.nts_pim.utilities.view_helper.ViewHelper
-import kotlinx.android.synthetic.main.fragment_blue_tooth_pairing.*
 import kotlinx.android.synthetic.main.startup.*
 import kotlinx.android.synthetic.main.startup.password_editText
 import kotlinx.android.synthetic.main.startup.password_scroll_view
-import kotlinx.android.synthetic.main.welcome_screen.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.kodein.di.KodeinAware
 import org.kodein.di.android.x.closestKodein
 import org.kodein.di.generic.instance
 import java.lang.IllegalStateException
-import kotlin.time.milliseconds
 
 // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
 
@@ -147,19 +143,19 @@ class BlueToothPairingFragment : ScopedFragment(), KodeinAware {
                 val dataObject = NTSPimPacket.PimStatusObj()
                 val statusObj =  NTSPimPacket(NTSPimPacket.Command.PIM_STATUS, dataObject)
                 Log.i("Bluetooth", "status request packet to be sent == $statusObj")
-                PIMSetupHolder.sentTestPacket()
+                SetupHolder.sentTestPacket()
                 (activity as MainActivity).sendBluetoothPacket(statusObj)
                 BluetoothDataCenter.startUpBTPairSuccessful()
             }
         })
 
-        PIMSetupHolder.isDriverBTAddressCorrect().observe(this.viewLifecycleOwner, Observer { valid ->
+        SetupHolder.isDriverBTAddressCorrect().observe(this.viewLifecycleOwner, Observer { valid ->
             if(valid){
                 updateAdapter(adapterThree!!)
             }
         })
 
-        PIMSetupHolder.didFindDriverTablet().observe(this.viewLifecycleOwner, Observer { foundTablet ->
+        SetupHolder.didFindDriverTablet().observe(this.viewLifecycleOwner, Observer { foundTablet ->
             if(foundTablet){
                 updateAdapter(adapterThree!!)
                 if(noBTView != null){
@@ -170,19 +166,19 @@ class BlueToothPairingFragment : ScopedFragment(), KodeinAware {
             }
         })
 
-        PIMSetupHolder.didSendTestPacket().observe(this.viewLifecycleOwner, Observer { sentPacket ->
+        SetupHolder.didSendTestPacket().observe(this.viewLifecycleOwner, Observer { sentPacket ->
             if(sentPacket){
                 updateAdapter(adapterThree!!)
             }
         })
-        PIMSetupHolder.didReceiveTestPacket().observe(this.viewLifecycleOwner, Observer { receivedPacket ->
+        SetupHolder.didReceiveTestPacket().observe(this.viewLifecycleOwner, Observer { receivedPacket ->
             if(receivedPacket){
                 updateAdapter((adapterThree!!))
-                PIMSetupHolder.bluetoothConnectionFinished()
+                SetupHolder.bluetoothConnectionFinished()
             }
         })
 
-        PIMSetupHolder.isBluetoothConnectionFinished().observe(this.viewLifecycleOwner, Observer { btConnectionFinished ->
+        SetupHolder.isBluetoothConnectionFinished().observe(this.viewLifecycleOwner, Observer { btConnectionFinished ->
             if(btConnectionFinished){
              updateAdapter(adapterThree!!)
                 stopPowerCheckTimer()
@@ -320,9 +316,9 @@ class BlueToothPairingFragment : ScopedFragment(), KodeinAware {
 
 
     private fun makeStartupList() {
-        val stepOneList = PIMSetupHolder.getStepOneList()
-        val stepTwoList = PIMSetupHolder.getStepTwoList()
-        val stepThreeList = PIMSetupHolder.getStepThreeList()
+        val stepOneList = SetupHolder.getStepOneList()
+        val stepTwoList = SetupHolder.getStepTwoList()
+        val stepThreeList = SetupHolder.getStepThreeList()
         adapterOne = StartupAdapter(requireContext(), stepOneList)
         adapterTwo = StartupAdapter(requireContext(), stepTwoList)
         adapterThree = StartupAdapter(requireContext(), stepThreeList)
@@ -430,6 +426,7 @@ class BlueToothPairingFragment : ScopedFragment(), KodeinAware {
    private fun toWelcomeScreen() = launch(Dispatchers.Main.immediate){
 
        if (navController?.currentDestination?.id == currentFragmentId) {
+           LoggerHelper.writeToLog("From Bluetooth_Pairing_Fragment to Welcome_Fragment", LogEnums.LIFE_CYCLE.tag)
            navController?.navigate(R.id.action_blueToothPairingFragment_to_welcome_fragment)
        }
        if(noBTView != null){

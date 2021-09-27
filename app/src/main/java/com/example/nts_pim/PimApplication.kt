@@ -2,7 +2,7 @@ package com.example.nts_pim
 
 import android.app.Application
 import android.content.Context
-import com.example.nts_pim.data.repository.PIMSetupHolder
+import com.example.nts_pim.data.repository.SetupHolder
 import com.example.nts_pim.data.repository.trip_repository.TripRepository
 import com.example.nts_pim.data.repository.trip_repository.TripRepositoryImpl
 import com.example.nts_pim.fragments_viewmodel.check_vehicle_info.CheckVehicleInfoModelFactory
@@ -16,7 +16,6 @@ import com.example.nts_pim.fragments_viewmodel.vehicle_settings_detail.VehicleSe
 import com.example.nts_pim.fragments_viewmodel.vehicle_setup.VehicleSetupModelFactory
 import com.example.nts_pim.fragments_viewmodel.welcome.WelcomeViewModelFactory
 import com.example.nts_pim.utilities.LifeCycleCallBacks
-import com.example.nts_pim.utilities.Square_Service.SquareHelper
 import com.jakewharton.threetenabp.AndroidThreeTen
 import com.squareup.sdk.reader.ReaderSdk
 import org.kodein.di.Kodein
@@ -65,7 +64,7 @@ class PimApplication : Application(), KodeinAware{
             AndroidThreeTen.init(this)
             registerActivityLifecycleCallbacks(LifeCycleCallBacks())
             ReaderSdk.initialize(this)
-            PIMSetupHolder.squareIsInit()
+            SetupHolder.squareIsInit()
         }
 
 }

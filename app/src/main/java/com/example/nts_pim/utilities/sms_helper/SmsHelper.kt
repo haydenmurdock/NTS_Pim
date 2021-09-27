@@ -50,7 +50,7 @@ object SmsHelper {
                 " destLat: ${receiptPaymentInfo?.destLat}, " +
                 " destLon: ${receiptPaymentInfo?.destLon}", LogEnums.RECEIPT.tag)
         val client = OkHttpClient().newBuilder()
-            .connectTimeout(60, TimeUnit.SECONDS)
+            .connectTimeout(10, TimeUnit.SECONDS)
             .writeTimeout(60, TimeUnit.SECONDS)
             .readTimeout(60, TimeUnit.SECONDS)
             .retryOnConnectionFailure(false)

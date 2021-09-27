@@ -36,7 +36,7 @@ import com.example.nts_pim.BuildConfig
 import com.example.nts_pim.R
 import com.example.nts_pim.activity.MainActivity
 import com.example.nts_pim.data.repository.AdInfoHolder
-import com.example.nts_pim.data.repository.PIMSetupHolder
+import com.example.nts_pim.data.repository.SetupHolder
 import com.example.nts_pim.data.repository.model_objects.JsonAuthCode
 import com.example.nts_pim.fragments_viewmodel.InjectorUtiles
 import com.example.nts_pim.fragments_viewmodel.base.ClientFactory
@@ -59,7 +59,6 @@ import com.squareup.sdk.reader.ReaderSdk
 import kotlinx.android.synthetic.main.startup.*
 import kotlinx.android.synthetic.main.startup.password_editText
 import kotlinx.android.synthetic.main.startup.password_scroll_view
-import kotlinx.android.synthetic.main.welcome_screen.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import okhttp3.Call
@@ -145,11 +144,11 @@ class StartupFragment: ScopedFragment(), KodeinAware {
         LoggerHelper.writeToLog("Startup: is Setup Complete: $isSetupComplete", LogEnums.SETUP.tag)
         deviceId = DeviceIdCheck.getDeviceId()
         if(isSetupComplete){
-                PIMSetupHolder.isPaired()
+                SetupHolder.isPaired()
                 vehicleId = viewModel.getVehicleID()
                 PIMMutationHelper.sendPIMStartTime(deviceId!!, mAWSAppSyncClient!!)
         } else {
-            PIMSetupHolder.isNotPaired(vehicleId)
+            SetupHolder.isNotPaired(vehicleId)
         }
         blueToothAddress = getBluetoothAddress()
         appVersionNumber = BuildConfig.VERSION_NAME
@@ -172,18 +171,18 @@ class StartupFragment: ScopedFragment(), KodeinAware {
             openCloseStepThreeListView()
         }
 
-        PIMSetupHolder.doesPIMHavePermissions().observe(
+        SetupHolder.doesPIMHavePermissions().observe(
             this.viewLifecycleOwner,
             androidx.lifecycle.Observer { permissions ->
                 if (permissions) {
                     updateAdapter(adapterOne!!)
                     val internetOn = isNetworkAvailable(requireContext())
                     if(internetOn){
-                        PIMSetupHolder.internetIsConnected()
+                        SetupHolder.internetIsConnected()
                     }
                 }
             })
-        PIMSetupHolder.doesPIMHaveInternet().observe(
+        SetupHolder.doesPIMHaveInternet().observe(
             this.viewLifecycleOwner,
             androidx.lifecycle.Observer { internet ->
                 if (internet) {
@@ -192,7 +191,7 @@ class StartupFragment: ScopedFragment(), KodeinAware {
                     updateAdapter(adapterOne!!)
                 }
             })
-        PIMSetupHolder.isPIMSetupAndPaired().observe(
+        SetupHolder.isPIMSetupAndPaired().observe(
             this.viewLifecycleOwner,
             androidx.lifecycle.Observer { paired ->
                 if (paired) {
@@ -200,7 +199,7 @@ class StartupFragment: ScopedFragment(), KodeinAware {
                 }
             })
 
-        PIMSetupHolder.isPIMSubscribedToAWS().observe(
+        SetupHolder.isPIMSubscribedToAWS().observe(
             this.viewLifecycleOwner,
             androidx.lifecycle.Observer { subscribedAWS ->
                 if (subscribedAWS) {
@@ -209,9 +208,8 @@ class StartupFragment: ScopedFragment(), KodeinAware {
                         getPIMSettings(deviceId!!)
                     }
                 }
-
             })
-        PIMSetupHolder.doesPIMHaveSettings().observe(
+        SetupHolder.doesPIMHaveSettings().observe(
             this.viewLifecycleOwner,
             androidx.lifecycle.Observer { hasSettings ->
                 if (hasSettings) {
@@ -346,9 +344,9 @@ class StartupFragment: ScopedFragment(), KodeinAware {
         }
     }
     private fun makeStartupList() {
-        val stepOneList = PIMSetupHolder.getStepOneList()
-        val stepTwoList = PIMSetupHolder.getStepTwoList()
-        val stepThreeList = PIMSetupHolder.getStepThreeList()
+        val stepOneList = SetupHolder.getStepOneList()
+        val stepTwoList = SetupHolder.getStepTwoList()
+        val stepThreeList = SetupHolder.getStepThreeList()
         adapterOne = StartupAdapter(requireContext(), stepOneList)
         adapterTwo = StartupAdapter(requireContext(), stepTwoList)
         adapterThree = StartupAdapter(requireContext(), stepThreeList)
@@ -486,7 +484,7 @@ class StartupFragment: ScopedFragment(), KodeinAware {
                 if(reAuth != null && reAuth){
                     reauthorizeSquareFromFMP()
                 } else {
-                    PIMSetupHolder.pimSettingsAreUpdated()
+                    SetupHolder.pimSettingsAreUpdated()
                 }
             }
 
@@ -518,7 +516,7 @@ class StartupFragment: ScopedFragment(), KodeinAware {
             ReaderSdk.authorizationManager().addAuthorizeCallback {result ->
                 if(result.isSuccess){
                     LoggerHelper.writeToLog("Reader SDK was successfully authorized via FMP", LogEnums.SQUARE.tag)
-                    PIMSetupHolder.pimSettingsAreUpdated()
+                    SetupHolder.pimSettingsAreUpdated()
                 }
 
             }
@@ -589,6 +587,7 @@ class StartupFragment: ScopedFragment(), KodeinAware {
         }
         authoringSquare = false
         sendBackAuthMutation(vehicleId)
+        SetupHolder.isAuthorized()
     }
 
     private fun sendBackAuthMutation(vehicleId: String) = launch(Dispatchers.IO){
@@ -747,7 +746,7 @@ class StartupFragment: ScopedFragment(), KodeinAware {
 
     private fun openAndroidPermissionsMenu() {
         val i = Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS)
-        i.setData(Uri.parse("package:" + requireContext().packageName))
+        i.data = Uri.parse("package:" + requireContext().packageName)
         i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         startActivity(i)
     }
@@ -817,7 +816,9 @@ class StartupFragment: ScopedFragment(), KodeinAware {
         if (setupStatus && permissionWrite && permissionDraw && permissionAccessibility){
             viewModel.vehicleIDExists()
             if (navController.currentDestination?.id == currentFragmentId) {
-              navController.navigate(R.id.bluetoothSetupFragment)
+                LoggerHelper.writeToLog("From Start_Up_Fragment to Square_Setup_Fragment", LogEnums.LIFE_CYCLE.tag)
+                pimSettingsAttempted = false
+                navController.navigate(R.id.bluetoothSetupFragment)
             }
         } else if(permissionDraw && permissionWrite && permissionAccessibility) {
             if (navController.currentDestination?.id == currentFragmentId) {
@@ -834,7 +835,7 @@ class StartupFragment: ScopedFragment(), KodeinAware {
             checkPermissions()
         }
         if(permissionDraw && permissionWrite && permissionAccessibility){
-            PIMSetupHolder.permissionsChecked()
+            SetupHolder.permissionsChecked()
         }
         if(!setupStatus){
             checkDestinations(navController)

@@ -6,7 +6,6 @@ import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.util.Log
 import com.example.nts_pim.activity.MainActivity
-import com.example.nts_pim.data.repository.PIMSetupHolder
 import com.example.nts_pim.data.repository.model_objects.trip.Destination
 import com.example.nts_pim.data.repository.model_objects.trip.Passenger
 import com.example.nts_pim.data.repository.model_objects.trip.UpfrontTrip

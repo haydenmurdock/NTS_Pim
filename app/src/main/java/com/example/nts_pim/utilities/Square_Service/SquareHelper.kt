@@ -20,6 +20,7 @@ import okhttp3.Request
 import java.io.IOException
 import java.time.LocalTime
 import java.util.*
+import java.util.concurrent.TimeUnit
 
 object SquareHelper {
     //variable to check if we have successfully init square reader sdk.
@@ -61,7 +62,7 @@ object SquareHelper {
     }
 
     fun deAuthorizeSquare(activity: Activity){
-        //This is for test purposes
+        //This is for testing purposes
         activity.runOnUiThread {
             ReaderSdk.authorizationManager().deauthorize()
         }
@@ -103,7 +104,12 @@ object SquareHelper {
     private fun getMobileAuthCode(vehicleId: String, mainActivity: Activity, screen: String) {
         val dateTime = ViewHelper.formatDateUtcIso(Date())
         val url = "https://i8xgdzdwk5.execute-api.us-east-2.amazonaws.com/prod/CheckOAuthToken?vehicleId=$vehicleId&source=PIM&eventTimeStamp=$dateTime&extraInfo=$screen"
-        val client = OkHttpClient()
+        val client = OkHttpClient().newBuilder()
+            .connectTimeout(10, TimeUnit.SECONDS)
+            .writeTimeout(60, TimeUnit.SECONDS)
+            .readTimeout(60, TimeUnit.SECONDS)
+            .retryOnConnectionFailure(true)
+            .build()
         val request = Request.Builder()
             .url(url)
             .build()

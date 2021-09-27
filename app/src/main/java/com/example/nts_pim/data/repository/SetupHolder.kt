@@ -6,7 +6,7 @@ import com.example.nts_pim.data.repository.model_objects.startup.StartupRequirem
 /**
  * pointer for all startup procedures
  */
-object PIMSetupHolder {
+object SetupHolder {
     private var stepOneList = mutableListOf<StartupRequirement>()
     private var stepTwoList = mutableListOf<StartupRequirement>()
     private var stepThreeList = mutableListOf<StartupRequirement>()
@@ -86,7 +86,6 @@ object PIMSetupHolder {
     fun permissionsChecked(){
         permissionsCheckedMLD.postValue(true)
         permissionsReq?.complete = true
-
     }
     fun permissionsNotCorrect(deniedPermission: String){
         permissionsCheckedMLD.postValue(false)
